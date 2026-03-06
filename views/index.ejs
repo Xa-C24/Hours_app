@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Suivi des heures</title>
+    <script>
+      (() => {
+        const key = "hours_theme";
+        const allowed = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green"];
+        try {
+          const theme = localStorage.getItem(key) || "light";
+          document.documentElement.setAttribute("data-theme", allowed.includes(theme) ? theme : "light");
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="page-header">
+        <h1>Suivi mensuel des heures de travail</h1>
+        <div class="header-actions">
+          <div class="theme-picker">
+            <label for="themeSelectApp">Style</label>
+            <select id="themeSelectApp" data-theme-selector>
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+              <option value="deep-ocean-blue">Bleu ocean profond</option>
+              <option value="light-blue">Bleu clair</option>
+              <option value="orange-sunset">Orange solaire</option>
+              <option value="forest-green">Vert foret</option>
+              <option value="light-green">Vert clair</option>
+            </select>
+          </div>
+          <form action="/logout" method="post" class="logout-form">
+            <% if (authUser) { %>
+            <span class="user-chip"><%= authUser %></span>
+            <% } %>
+            <button type="submit" class="secondary">Deconnexion</button>
+          </form>
+        </div>
+      </header>
+
+      <% if (error) { %>
+      <p class="alert"><%= error %></p>
+      <% } %>
+      <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
+      <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
+
+      <section class="card">
+        <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
+        <form action="/entries" method="post" class="entry-form">
+          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
+
+          <div class="field">
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required value="<%= formData.date %>" />
+          </div>
+
+          <div class="field">
+            <label for="arrivalTime">Heure d'arrivee</label>
+            <input
+              id="arrivalTime"
+              name="arrivalTime"
+              type="time"
+              required
+              value="<%= formData.arrivalTime %>"
+            />
+          </div>
+
+          <div class="field">
+            <label for="departureTime">Heure de depart</label>
+            <input
+              id="departureTime"
+              name="departureTime"
+              type="time"
+              required
+              value="<%= formData.departureTime %>"
+            />
+          </div>
+
+          <div class="field">
+            <label for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
+            <input
+              id="lunchBreakMinutes"
+              name="lunchBreakMinutes"
+              type="number"
+              min="0"
+              max="480"
+              required
+              value="<%= formData.lunchBreakMinutes %>"
+            />
+          </div>
+
+          <div class="field field-comment">
+            <label for="commentText">Commentaire</label>
+            <textarea
+              id="commentText"
+              name="commentText"
+              rows="3"
+              maxlength="1000"
+              placeholder="Ex: reunion client, deplacement, taches importantes..."
+            ><%= formData.commentText || "" %></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit"><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
+            <% if (_isEditing) { %>
+            <a class="button-link button-neutral" href="/?month=<%= encodeURIComponent(selectedMonth) %>">
+              Annuler
+            </a>
+            <% } %>
+          </div>
+        </form>
+      </section>
+
+      <br>
+      <br>
+
+      <section class="card">
+        <div class="month-header">
+          <h2>Mois selectionne</h2>
+          <div class="month-tools">
+            <form action="/" method="get" class="month-form">
+              <label for="month">Choisir un mois</label>
+              <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
+              <button type="submit">Afficher</button>
+            </form>
+            <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>">
+              Export CSV
+            </a>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Arrivee</th>
+                <th>Depart</th>
+                <th>Pause (min)</th>
+                <th>Heures du jour</th>
+                <th class="overtime-col">Heures sup</th>
+                <th>Etat</th>
+                <th class="comment-col">Commentaire</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (entries.length === 0) { %>
+              <tr>
+                <td colspan="9" class="empty">Aucune journee enregistree pour ce mois.</td>
+              </tr>
+              <% } %>
+
+              <% entries.forEach((entry) => { %>
+              <tr
+                class="<%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
+              >
+                <td>
+                  <%= entry.work_date_display || (entry.work_date ? new Date(`${entry.work_date}T00:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "") %>
+                </td>
+                <td><%= entry.arrival_time %></td>
+                <td><%= entry.departure_time %></td>
+                <td><%= entry.lunch_break_minutes %></td>
+                <td><%= entry.worked_hhmm %></td>
+                <td class="overtime-col"><%= entry.overtime_hhmm %></td>
+                <td>
+                  <span class="status-pill <%= entry.under_target ? 'under' : 'ok' %>">
+                    <%= entry.under_target ? 'Moins de 7h' : 'OK' %>
+                  </span>
+                </td>
+                <td class="comment-cell"><%= entry.comment_text || "" %></td>
+                <td>
+                  <div class="row-actions">
+                    <a
+                      class="button-link secondary-link"
+                      href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>"
+                    >
+                      Modifier
+                    </a>
+                    <form
+                      action="/entries/<%= entry.work_date %>/delete"
+                      method="post"
+                      onsubmit="return confirm('Supprimer cette journee ?');"
+                    >
+                      <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                      <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="4">Total mensuel</th>
+                <th><%= totalHHMM %></th>
+                <th class="overtime-col"><%= totalOvertimeHHMM %></th>
+                <th></th>
+                <th></th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="/theme.js"></script>
+  </body>
+</html>

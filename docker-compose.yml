@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    container_name: hours-app
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: "3002"
+      DB_PATH: "/app/data/hours.db"
+    volumes:
+      - hours_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  hours_data:

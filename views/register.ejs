@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inscription</title>
+    <script>
+      (() => {
+        const key = "hours_theme";
+        const allowed = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green"];
+        try {
+          const theme = localStorage.getItem(key) || "light";
+          document.documentElement.setAttribute("data-theme", allowed.includes(theme) ? theme : "light");
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="login-page">
+      <div class="login-shell">
+        <div class="login-topbar">
+          <div class="theme-picker">
+            <label for="themeSelectRegister">Style</label>
+            <select id="themeSelectRegister" data-theme-selector>
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+              <option value="deep-ocean-blue">Bleu ocean profond</option>
+              <option value="light-blue">Bleu clair</option>
+              <option value="orange-sunset">Orange solaire</option>
+              <option value="forest-green">Vert foret</option>
+              <option value="light-green">Vert clair</option>
+            </select>
+          </div>
+        </div>
+        <section class="login-card">
+          <h1>Creer un compte</h1>
+          <p class="login-subtitle">Entrez un nom utilisateur et un mot de passe.</p>
+
+          <% if (error) { %>
+          <p class="alert"><%= error %></p>
+          <% } %>
+
+          <form action="/register" method="post" class="login-form">
+            <div class="field">
+              <label for="username">Nom utilisateur</label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autocomplete="username"
+                required
+                value="<%= formData.username || '' %>"
+              />
+            </div>
+
+            <div class="field">
+              <label for="password">Mot de passe</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+            </div>
+
+            <button type="submit">Creer mon compte</button>
+          </form>
+
+          <p class="auth-switch">
+            Vous avez deja un compte ? <a href="/login">Se connecter</a>
+          </p>
+        </section>
+      </div>
+    </main>
+    <script src="/theme.js"></script>
+  </body>
+</html>
