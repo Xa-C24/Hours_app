@@ -402,7 +402,7 @@ body::after {
 }
 
 .header-spacer {
-  height: clamp(1.8rem, 5.5vw, 4rem);
+  height: 12rem;
 }
 
 .header-actions {
@@ -542,7 +542,7 @@ h2 {
 }
 
 .between-sections-spacer {
-  height: clamp(1.5rem, 4.4vw, 3.2rem);
+  height: 12rem;
 }
 
 .alert {
@@ -1188,7 +1188,7 @@ tfoot tr.monthly-total-row th {
   }
 
   .between-sections-spacer {
-    height: 1.25rem;
+    height: 12rem;
   }
 }
 
