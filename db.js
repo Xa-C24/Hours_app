@@ -27,7 +27,72 @@ function ensureWorkEntriesCommentColumn(database) {
   }
 }
 
+function relaxWorkEntriesLunchBreakConstraint(database) {
+  const tableDef = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'work_entries'
+      `
+    )
+    .get();
+  const createTableSql =
+    tableDef && typeof tableDef.sql === "string" ? tableDef.sql.toLowerCase() : "";
+  if (!createTableSql.includes("lunch_break_minutes <= 480")) {
+    return;
+  }
+
+  database.exec(`
+    BEGIN;
+    CREATE TABLE work_entries_new (
+      work_date TEXT PRIMARY KEY
+        CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+      arrival_time TEXT NOT NULL
+        CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+      departure_time TEXT NOT NULL
+        CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+      lunch_break_minutes INTEGER NOT NULL
+        CHECK (lunch_break_minutes >= 0),
+      worked_minutes INTEGER NOT NULL
+        CHECK (worked_minutes >= 0),
+      comment_text TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    INSERT INTO work_entries_new (
+      work_date,
+      arrival_time,
+      departure_time,
+      lunch_break_minutes,
+      worked_minutes,
+      comment_text,
+      created_at,
+      updated_at
+    )
+    SELECT
+      work_date,
+      arrival_time,
+      departure_time,
+      lunch_break_minutes,
+      worked_minutes,
+      comment_text,
+      created_at,
+      updated_at
+    FROM work_entries;
+
+    DROP TABLE work_entries;
+    ALTER TABLE work_entries_new RENAME TO work_entries;
+
+    CREATE INDEX IF NOT EXISTS idx_work_entries_work_date
+      ON work_entries (work_date);
+    COMMIT;
+  `);
+}
+
 ensureWorkEntriesCommentColumn(authDb);
+relaxWorkEntriesLunchBreakConstraint(authDb);
 
 const getUserByUsernameStmt = authDb.prepare(`
   SELECT
@@ -65,7 +130,7 @@ CREATE TABLE IF NOT EXISTS work_entries (
   departure_time TEXT NOT NULL
     CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
   lunch_break_minutes INTEGER NOT NULL
-    CHECK (lunch_break_minutes >= 0 AND lunch_break_minutes <= 480),
+    CHECK (lunch_break_minutes >= 0),
   worked_minutes INTEGER NOT NULL
     CHECK (worked_minutes >= 0),
   comment_text TEXT NOT NULL DEFAULT '',
@@ -90,6 +155,7 @@ function migrateExistingUserDbs() {
     userDb.pragma("journal_mode = WAL");
     userDb.exec(workEntriesSchemaSql);
     ensureWorkEntriesCommentColumn(userDb);
+    relaxWorkEntriesLunchBreakConstraint(userDb);
     userDb.close();
   }
 }
@@ -116,6 +182,7 @@ function getUserStore(username) {
   userDb.pragma("journal_mode = WAL");
   userDb.exec(workEntriesSchemaSql);
   ensureWorkEntriesCommentColumn(userDb);
+  relaxWorkEntriesLunchBreakConstraint(userDb);
 
   const store = {
     upsertEntryStmt: userDb.prepare(`

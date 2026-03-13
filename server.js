@@ -147,6 +147,25 @@ function formatDateDisplayFr(dateString) {
   });
 }
 
+function formatDateDayMonthFr(dateString) {
+  if (typeof dateString !== "string" || !DATE_REGEX.test(dateString)) {
+    return "";
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return "";
+  }
+  return parsed.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+  });
+}
+
 function getCurrentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
@@ -230,6 +249,41 @@ function getWeekStartMonday(dateString) {
   return formatDate(parsed);
 }
 
+function getISOWeekNumber(dateString) {
+  if (typeof dateString !== "string" || !DATE_REGEX.test(dateString)) {
+    return null;
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const dayOfWeek = parsed.getUTCDay() || 7;
+  parsed.setUTCDate(parsed.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = new Date(Date.UTC(parsed.getUTCFullYear(), 0, 1));
+  const diffDays = Math.floor((parsed - yearStart) / 86400000) + 1;
+  return Math.ceil(diffDays / 7);
+}
+
+function formatWeekSummaryLabelFr(startDate, endDate, weekNumber) {
+  const startLabel = formatDateDayMonthFr(startDate);
+  const endLabel = formatDateDayMonthFr(endDate);
+  const rangeLabel =
+    startLabel && endLabel
+      ? `du ${startLabel} au ${endLabel}`
+      : startLabel || endLabel || "";
+  const weekLabel = Number.isInteger(weekNumber) ? `semaine ${weekNumber}` : "";
+  if (rangeLabel && weekLabel) {
+    return `${rangeLabel} - ${weekLabel}`;
+  }
+  return rangeLabel || weekLabel;
+}
+
 function getMonthData(username, month) {
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate } = getMonthBounds(normalizedMonth);
@@ -250,12 +304,51 @@ function getMonthData(username, month) {
     ...entry,
     week_color_class: weekClassByStart.get(entry.week_start) || "",
   }));
+  const displayEntries = [];
+  let weekTotalMinutes = 0;
+  let weekDayCount = 0;
+  let weekFirstWorkDate = "";
+  let weekLastWorkDate = "";
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const nextEntry = entries[index + 1];
+    if (!weekFirstWorkDate) {
+      weekFirstWorkDate = entry.work_date;
+    }
+    weekLastWorkDate = entry.work_date;
+    weekTotalMinutes += entry.worked_minutes;
+    weekDayCount += 1;
+    displayEntries.push(entry);
+
+    if (!nextEntry || nextEntry.week_start !== entry.week_start) {
+      const weeklyTargetMinutes = weekDayCount * DAILY_TARGET_MINUTES;
+      const weekOvertimeMinutes = Math.max(0, weekTotalMinutes - weeklyTargetMinutes);
+      const weekNumber = getISOWeekNumber(entry.week_start || weekFirstWorkDate);
+      displayEntries.push({
+        is_week_total: true,
+        week_color_class: entry.week_color_class,
+        week_total_hhmm: formatMinutesToHHMM(weekTotalMinutes),
+        week_total_overtime_hhmm: formatMinutesToHHMM(weekOvertimeMinutes),
+        week_summary_label: formatWeekSummaryLabelFr(
+          weekFirstWorkDate,
+          weekLastWorkDate,
+          weekNumber
+        ),
+      });
+      weekTotalMinutes = 0;
+      weekDayCount = 0;
+      weekFirstWorkDate = "";
+      weekLastWorkDate = "";
+    }
+  }
 
   const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
   const monthlyTargetMinutes = entries.length * DAILY_TARGET_MINUTES;
   const totalOvertimeMinutes = Math.max(0, totalMinutes - monthlyTargetMinutes);
   return {
     entries,
+    displayEntries,
     totalHHMM: formatMinutesToHHMM(totalMinutes),
     totalOvertimeHHMM: formatMinutesToHHMM(totalOvertimeMinutes),
   };
@@ -264,7 +357,7 @@ function getMonthData(username, month) {
 function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
-  const { entries, totalHHMM, totalOvertimeHHMM } = getMonthData(username, month);
+  const { entries, displayEntries, totalHHMM, totalOvertimeHHMM } = getMonthData(username, month);
 
   const defaultFormData = {
     date: formatDate(new Date()),
@@ -294,6 +387,7 @@ function renderIndex(res, options = {}) {
   res.render("index", {
     selectedMonth: month,
     entries,
+    displayEntries,
     totalHHMM,
     totalOvertimeHHMM,
     error: options.error || "",
@@ -528,8 +622,8 @@ app.post("/entries", (req, res) => {
   }
 
   const breakMinutes = Number(lunchBreakMinutes);
-  if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > 480) {
-    errors.push("La pause dejeuner doit etre un entier entre 0 et 480.");
+  if (!Number.isInteger(breakMinutes) || breakMinutes < 0) {
+    errors.push("La pause dejeuner doit etre un entier positif ou nul.");
   }
 
   if (normalizedComment.length > MAX_COMMENT_LENGTH) {

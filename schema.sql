@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS work_entries (
   departure_time TEXT NOT NULL
     CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
   lunch_break_minutes INTEGER NOT NULL
-    CHECK (lunch_break_minutes >= 0 AND lunch_break_minutes <= 480),
+    CHECK (lunch_break_minutes >= 0),
   worked_minutes INTEGER NOT NULL
     CHECK (worked_minutes >= 0),
   comment_text TEXT NOT NULL DEFAULT '',

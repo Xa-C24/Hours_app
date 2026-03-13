@@ -44,15 +44,30 @@
         </div>
       </header>
 
+      <div class="header-spacer" aria-hidden="true"></div>
+
+      
       <% if (error) { %>
       <p class="alert"><%= error %></p>
       <% } %>
       <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
       <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
 
-      <section class="card">
-        <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
-        <form action="/entries" method="post" class="entry-form">
+      <section class="card entry-card" data-entry-card>
+        <div class="entry-card-top">
+          <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
+          <button
+            type="button"
+            class="card-toggle"
+            data-entry-toggle
+            aria-expanded="true"
+            aria-controls="entryFormPanel"
+            title="Replier ou ouvrir la saisie"
+          >
+            <span class="card-toggle-icon" aria-hidden="true">▾</span>
+          </button>
+        </div>
+        <form action="/entries" method="post" class="entry-form" id="entryFormPanel" data-entry-form>
           <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
           <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
 
@@ -90,7 +105,6 @@
               name="lunchBreakMinutes"
               type="number"
               min="0"
-              max="480"
               required
               value="<%= formData.lunchBreakMinutes %>"
             />
@@ -118,12 +132,11 @@
         </form>
       </section>
 
-      <br>
-      <br>
+      <div class="between-sections-spacer" aria-hidden="true"></div>
 
       <section class="card">
         <div class="month-header">
-          <h2>Mois selectionne</h2>
+          <h2>Mois selectioné</h2>
           <div class="month-tools">
             <form action="/" method="get" class="month-form">
               <label for="month">Choisir un mois</label>
@@ -152,13 +165,39 @@
               </tr>
             </thead>
             <tbody>
-              <% if (entries.length === 0) { %>
+              <% if (displayEntries.length === 0) { %>
               <tr>
                 <td colspan="9" class="empty">Aucune journee enregistree pour ce mois.</td>
               </tr>
               <% } %>
 
-              <% entries.forEach((entry) => { %>
+              <% displayEntries.forEach((entry) => { %>
+              <% if (entry.is_week_total) { %>
+              <tr class="<%= [entry.week_color_class, 'week-total-row'].filter(Boolean).join(' ') %>">
+                <td colspan="4">
+                  <div class="week-total-main">
+                    <div class="week-total-left">
+                      <button
+                        type="button"
+                        class="week-toggle"
+                        data-week-toggle
+                        aria-expanded="true"
+                        title="Replier ou ouvrir la semaine"
+                      >
+                        <span class="week-toggle-icon" aria-hidden="true">▾</span>
+                      </button>
+                      <strong>Total semaine</strong>
+                    </div>
+                    <% if (entry.week_summary_label) { %>
+                    <span class="week-meta"><%= entry.week_summary_label %></span>
+                    <% } %>
+                  </div>
+                </td>
+                <td><strong><%= entry.week_total_hhmm %></strong></td>
+                <td class="overtime-col"><strong><%= entry.week_total_overtime_hhmm %></strong></td>
+                <td colspan="3"></td>
+              </tr>
+              <% } else { %>
               <tr
                 class="<%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
               >
@@ -195,16 +234,15 @@
                   </div>
                 </td>
               </tr>
+              <% } %>
               <% }); %>
             </tbody>
             <tfoot>
-              <tr>
-                <th colspan="4">Total mensuel</th>
+              <tr class="monthly-total-row">
+                <th colspan="6"></th>
+                <th>Total mensuel</th>
                 <th><%= totalHHMM %></th>
                 <th class="overtime-col"><%= totalOvertimeHHMM %></th>
-                <th></th>
-                <th></th>
-                <th></th>
               </tr>
             </tfoot>
           </table>
