@@ -159,6 +159,7 @@
                 <th>Pause (min)</th>
                 <th>Heures du jour</th>
                 <th class="overtime-col">Heures sup</th>
+                <th class="recovered-col">Heures recup</th>
                 <th>Etat</th>
                 <th class="comment-col">Commentaire</th>
                 <th>Action</th>
@@ -167,7 +168,7 @@
             <tbody>
               <% if (displayEntries.length === 0) { %>
               <tr>
-                <td colspan="9" class="empty">Aucune journee enregistree pour ce mois.</td>
+                <td colspan="10" class="empty">Aucune journee enregistree pour ce mois.</td>
               </tr>
               <% } %>
 
@@ -195,6 +196,7 @@
                 </td>
                 <td><strong><%= entry.week_total_hhmm %></strong></td>
                 <td class="overtime-col"><strong><%= entry.week_total_overtime_hhmm %></strong></td>
+                <td class="recovered-col"><strong><%= entry.week_total_recovered_hhmm %></strong></td>
                 <td colspan="3"></td>
               </tr>
               <% } else { %>
@@ -209,9 +211,10 @@
                 <td><%= entry.lunch_break_minutes %></td>
                 <td><%= entry.worked_hhmm %></td>
                 <td class="overtime-col"><%= entry.overtime_hhmm %></td>
+                <td class="recovered-col"><%= entry.recovered_minutes > 0 ? entry.recovered_hhmm : "" %></td>
                 <td>
-                  <span class="status-pill <%= entry.under_target ? 'under' : 'ok' %>">
-                    <%= entry.under_target ? 'Moins de 7h' : 'OK' %>
+                  <span class="status-pill <%= entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
+                    <%= entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
                   </span>
                 </td>
                 <td class="comment-cell"><%= entry.comment_text || "" %></td>
@@ -239,10 +242,12 @@
             </tbody>
             <tfoot>
               <tr class="monthly-total-row">
-                <th colspan="6"></th>
+                <th colspan="4"></th>
                 <th>Total mensuel</th>
                 <th><%= totalHHMM %></th>
                 <th class="overtime-col"><%= totalOvertimeHHMM %></th>
+                <th class="recovered-col"><%= totalRecoveredHHMM %></th>
+                <th colspan="2"></th>
               </tr>
             </tfoot>
           </table>

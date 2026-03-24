@@ -947,6 +947,13 @@ th.overtime-col {
   font-weight: 700;
 }
 
+td.recovered-col,
+th.recovered-col {
+  background: color-mix(in srgb, var(--status-ok-bg) 78%, #ffffff 22%);
+  color: var(--status-ok-text);
+  font-weight: 700;
+}
+
 .under-target td:first-child {
   box-shadow: inset 4px 0 0 #d97777;
 }
@@ -993,6 +1000,12 @@ tr.editing-row td:first-child {
   background: var(--status-under-bg);
   color: var(--status-under-text);
   border-color: color-mix(in srgb, var(--status-under-text) 20%, transparent);
+}
+
+.status-pill.recovered {
+  background: color-mix(in srgb, var(--status-ok-bg) 86%, #ffffff 14%);
+  color: var(--status-ok-text);
+  border-color: color-mix(in srgb, var(--status-ok-text) 20%, transparent);
 }
 
 tfoot th {

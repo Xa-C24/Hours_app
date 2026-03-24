@@ -211,6 +211,10 @@ function getOvertimeMinutes(workedMinutes) {
   return Math.max(0, workedMinutes - DAILY_TARGET_MINUTES);
 }
 
+function getRecoveryMinutes(workedMinutes) {
+  return Math.max(0, DAILY_TARGET_MINUTES - workedMinutes);
+}
+
 function escapeCsvValue(value) {
   const stringValue = String(value ?? "");
   return `"${stringValue.replace(/"/g, '""')}"`;
@@ -287,15 +291,26 @@ function formatWeekSummaryLabelFr(startDate, endDate, weekNumber) {
 function getMonthData(username, month) {
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate } = getMonthBounds(normalizedMonth);
-  const baseEntries = db.getEntriesForMonth(username, startDate, endDate).map((entry) => ({
-    ...entry,
-    week_start: getWeekStartMonday(entry.work_date),
-    work_date_display: formatDateDisplayFr(entry.work_date),
-    worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
-    overtime_minutes: getOvertimeMinutes(entry.worked_minutes),
-    overtime_hhmm: formatMinutesToHHMM(getOvertimeMinutes(entry.worked_minutes)),
-    under_target: entry.worked_minutes < DAILY_TARGET_MINUTES,
-  }));
+  let runningBalanceMinutes = 0;
+  const baseEntries = db.getEntriesForMonth(username, startDate, endDate).map((entry) => {
+    const overtimeMinutes = getOvertimeMinutes(entry.worked_minutes);
+    const missingMinutes = getRecoveryMinutes(entry.worked_minutes);
+    const recoveredMinutes = Math.min(Math.max(0, runningBalanceMinutes), missingMinutes);
+
+    runningBalanceMinutes += entry.worked_minutes - DAILY_TARGET_MINUTES;
+
+    return {
+      ...entry,
+      week_start: getWeekStartMonday(entry.work_date),
+      work_date_display: formatDateDisplayFr(entry.work_date),
+      worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
+      overtime_minutes: overtimeMinutes,
+      overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
+      recovered_minutes: recoveredMinutes,
+      recovered_hhmm: formatMinutesToHHMM(recoveredMinutes),
+      under_target: entry.worked_minutes < DAILY_TARGET_MINUTES,
+    };
+  });
   const weekStarts = [...new Set(baseEntries.map((entry) => entry.week_start).filter(Boolean))];
   const weekClassByStart = new Map(
     weekStarts.map((weekStart, index) => [weekStart, `week-${(index % 4) + 1}`])
@@ -306,6 +321,7 @@ function getMonthData(username, month) {
   }));
   const displayEntries = [];
   let weekTotalMinutes = 0;
+  let weekRecoveredMinutes = 0;
   let weekDayCount = 0;
   let weekFirstWorkDate = "";
   let weekLastWorkDate = "";
@@ -318,6 +334,7 @@ function getMonthData(username, month) {
     }
     weekLastWorkDate = entry.work_date;
     weekTotalMinutes += entry.worked_minutes;
+    weekRecoveredMinutes += entry.recovered_minutes;
     weekDayCount += 1;
     displayEntries.push(entry);
 
@@ -330,6 +347,7 @@ function getMonthData(username, month) {
         week_color_class: entry.week_color_class,
         week_total_hhmm: formatMinutesToHHMM(weekTotalMinutes),
         week_total_overtime_hhmm: formatMinutesToHHMM(weekOvertimeMinutes),
+        week_total_recovered_hhmm: formatMinutesToHHMM(weekRecoveredMinutes),
         week_summary_label: formatWeekSummaryLabelFr(
           weekFirstWorkDate,
           weekLastWorkDate,
@@ -337,6 +355,7 @@ function getMonthData(username, month) {
         ),
       });
       weekTotalMinutes = 0;
+      weekRecoveredMinutes = 0;
       weekDayCount = 0;
       weekFirstWorkDate = "";
       weekLastWorkDate = "";
@@ -346,18 +365,21 @@ function getMonthData(username, month) {
   const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
   const monthlyTargetMinutes = entries.length * DAILY_TARGET_MINUTES;
   const totalOvertimeMinutes = Math.max(0, totalMinutes - monthlyTargetMinutes);
+  const totalRecoveredMinutes = entries.reduce((sum, entry) => sum + entry.recovered_minutes, 0);
   return {
     entries,
     displayEntries,
     totalHHMM: formatMinutesToHHMM(totalMinutes),
     totalOvertimeHHMM: formatMinutesToHHMM(totalOvertimeMinutes),
+    totalRecoveredHHMM: formatMinutesToHHMM(totalRecoveredMinutes),
   };
 }
 
 function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
-  const { entries, displayEntries, totalHHMM, totalOvertimeHHMM } = getMonthData(username, month);
+  const { entries, displayEntries, totalHHMM, totalOvertimeHHMM, totalRecoveredHHMM } =
+    getMonthData(username, month);
 
   const defaultFormData = {
     date: formatDate(new Date()),
@@ -390,6 +412,7 @@ function renderIndex(res, options = {}) {
     displayEntries,
     totalHHMM,
     totalOvertimeHHMM,
+    totalRecoveredHHMM,
     error: options.error || "",
     formData: mergedFormData,
     isEditing: Boolean(editingWorkDate),
@@ -552,7 +575,10 @@ app.get("/entries/:workDate/edit", (req, res) => {
 
 app.get("/export.csv", (req, res) => {
   const month = normalizeMonth(req.query.month);
-  const { entries, totalHHMM, totalOvertimeHHMM } = getMonthData(req.authUser, month);
+  const { entries, totalHHMM, totalOvertimeHHMM, totalRecoveredHHMM } = getMonthData(
+    req.authUser,
+    month
+  );
 
   const header = [
     "date",
@@ -562,6 +588,7 @@ app.get("/export.csv", (req, res) => {
     "comment_text",
     "worked_hhmm",
     "overtime_hhmm",
+    "recovered_hhmm",
     "status",
   ];
 
@@ -577,7 +604,8 @@ app.get("/export.csv", (req, res) => {
         normalizeExportText(entry.comment_text),
         entry.worked_hhmm,
         entry.overtime_hhmm,
-        entry.under_target ? "moins_de_7h" : "ok",
+        entry.recovered_hhmm,
+        entry.recovered_minutes > 0 ? "recup" : entry.under_target ? "moins_de_7h" : "ok",
       ]
         .map(escapeCsvValue)
         .join(CSV_SEPARATOR)
@@ -587,6 +615,7 @@ app.get("/export.csv", (req, res) => {
   lines.push("");
   lines.push([escapeCsvValue("total_month"), escapeCsvValue(totalHHMM)].join(CSV_SEPARATOR));
   lines.push([escapeCsvValue("total_overtime"), escapeCsvValue(totalOvertimeHHMM)].join(CSV_SEPARATOR));
+  lines.push([escapeCsvValue("total_recovered"), escapeCsvValue(totalRecoveredHHMM)].join(CSV_SEPARATOR));
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="hours-${month}.csv"`);
