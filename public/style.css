@@ -337,8 +337,8 @@ body {
     linear-gradient(160deg, var(--bg-top) 0%, var(--bg) 52%, var(--bg-bottom) 100%),
     url("/hours.png");
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: center center, center center, center center, center top;
-  background-size: auto, auto, cover, cover;
+  background-position: center center, center center, center center, center center;
+  background-size: auto, auto, cover, auto 125vh;
   background-blend-mode: normal, normal, multiply, normal;
   background-attachment: fixed;
   min-height: 100vh;
