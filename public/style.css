@@ -1,320 +1,327 @@
 :root {
-  --bg-top: #f5f9ff;
-  --bg: #e9f2ff;
-  --bg-bottom: #edf5ff;
-  --blob-1: rgba(83, 153, 255, 0.28);
-  --blob-2: rgba(35, 196, 177, 0.2);
-  --card-bg: #ffffff;
-  --card-bg-2: #f8fbff;
-  --text: #0f2438;
-  --muted: #49637b;
-  --border: #d5e2f0;
-  --primary: #1e6de0;
-  --primary-hover: #1856b0;
-  --focus-ring: rgba(30, 109, 224, 0.23);
-  --danger: #b42318;
-  --danger-hover: #8f1b14;
-  --week-1: #fff4e2;
-  --week-2: #e8f3ff;
-  --week-3: #e8f9ef;
-  --week-4: #f2edff;
-  --overtime-bg: #ffe9e9;
-  --overtime-text: #8a2222;
-  --chip-bg: #e1edff;
-  --chip-text: #1f3f7a;
-  --alert-bg: #fef3f2;
-  --alert-text: #8a1f17;
-  --alert-border: #f1c1bc;
-  --alert-success-bg: #ecfdf3;
-  --alert-success-text: #11663a;
-  --alert-success-border: #b7ebcd;
-  --link: #1d4ed8;
-  --link-hover: #1e40af;
-  --secondary: #5a6f86;
-  --secondary-hover: #455a70;
-  --secondary-link: #36689b;
-  --secondary-link-hover: #2a537d;
-  --shadow: rgba(16, 41, 66, 0.14);
-  --login-shadow: rgba(16, 41, 66, 0.18);
-  --input-bg: #f7fbff;
-  --status-ok-bg: #e8f7ee;
-  --status-ok-text: #146b3a;
-  --status-under-bg: #fdecec;
-  --status-under-text: #9a1c1c;
-  --radius-card: 22px;
-  --radius-control: 12px;
-  --radius-table: 16px;
+  color-scheme: light;
+  --bg-top: #f7f4ee;
+  --bg: #ece8df;
+  --bg-bottom: #e2ddd2;
+  --blob-1: rgba(78, 108, 145, 0.18);
+  --blob-2: rgba(125, 152, 136, 0.16);
+  --card-bg: #fffdf9;
+  --card-bg-2: #f4efe7;
+  --text: #1f2933;
+  --muted: #66727d;
+  --border: #d7d0c5;
+  --primary: #355b84;
+  --primary-hover: #274a71;
+  --focus-ring: rgba(53, 91, 132, 0.18);
+  --danger: #b14a3a;
+  --danger-hover: #933b2d;
+  --week-1: #f7efe3;
+  --week-2: #e6edf5;
+  --week-3: #e9f1eb;
+  --week-4: #efe9f2;
+  --overtime-bg: #f5e6e2;
+  --overtime-text: #8c4238;
+  --chip-bg: #e6ebf1;
+  --chip-text: #36506f;
+  --alert-bg: #f8ece8;
+  --alert-text: #8b3f34;
+  --alert-border: #e4c4bb;
+  --alert-success-bg: #edf5ef;
+  --alert-success-text: #325a49;
+  --alert-success-border: #c7ddcf;
+  --link: #315982;
+  --link-hover: #243f5d;
+  --secondary: #788694;
+  --secondary-hover: #5e6d7b;
+  --secondary-link: #516b88;
+  --secondary-link-hover: #40576f;
+  --shadow: rgba(23, 31, 40, 0.12);
+  --login-shadow: rgba(23, 31, 40, 0.18);
+  --input-bg: #faf6f0;
+  --status-ok-bg: #e7efe8;
+  --status-ok-text: #315948;
+  --status-under-bg: #f4e7e2;
+  --status-under-text: #8b4438;
+  --radius-card: 24px;
+  --radius-control: 14px;
+  --radius-table: 18px;
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root[data-theme="dark"] {
-  --bg-top: #313a4f;
-  --bg: #222b3c;
-  --bg-bottom: #161f31;
-  --blob-1: rgba(120, 154, 255, 0.26);
-  --blob-2: rgba(54, 194, 177, 0.2);
-  --card-bg: #232d3f;
-  --card-bg-2: #1d2738;
-  --text: #f2f6ff;
-  --muted: #b4c0d4;
-  --border: #3d4f69;
-  --primary: #65adff;
-  --primary-hover: #3e8cf2;
-  --focus-ring: rgba(101, 173, 255, 0.3);
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-  --week-1: #4a3c2a;
-  --week-2: #2b4159;
-  --week-3: #2a4a3b;
-  --week-4: #3a2f54;
-  --overtime-bg: #4b2834;
-  --overtime-text: #ffd6d9;
-  --chip-bg: #29497a;
-  --chip-text: #d8e9ff;
-  --alert-bg: #452326;
-  --alert-text: #fecaca;
-  --alert-border: #8c2f2f;
-  --alert-success-bg: #1d402b;
-  --alert-success-text: #bbf7d0;
-  --alert-success-border: #2c7a52;
-  --link: #9eccff;
-  --link-hover: #d0e5ff;
-  --secondary: #7085a6;
-  --secondary-hover: #576d90;
-  --secondary-link: #5177b2;
-  --secondary-link-hover: #3f6194;
-  --shadow: rgba(4, 8, 19, 0.38);
-  --login-shadow: rgba(4, 8, 19, 0.45);
-  --input-bg: #1b2434;
-  --status-ok-bg: #1d4b34;
-  --status-ok-text: #b9f4d0;
-  --status-under-bg: #4a2931;
-  --status-under-text: #ffd0d5;
+  color-scheme: dark;
+  --bg-top: #171d28;
+  --bg: #10151d;
+  --bg-bottom: #090d14;
+  --blob-1: rgba(111, 136, 176, 0.16);
+  --blob-2: rgba(79, 112, 104, 0.14);
+  --card-bg: #171d28;
+  --card-bg-2: #111722;
+  --text: #eef2f7;
+  --muted: #a1aab6;
+  --border: #2a3444;
+  --primary: #7d98bd;
+  --primary-hover: #627da4;
+  --focus-ring: rgba(125, 152, 189, 0.26);
+  --danger: #d27768;
+  --danger-hover: #bf5d4b;
+  --week-1: #3d332d;
+  --week-2: #253243;
+  --week-3: #24342e;
+  --week-4: #31293a;
+  --overtime-bg: #41282a;
+  --overtime-text: #f0c6be;
+  --chip-bg: #243449;
+  --chip-text: #d5e0ef;
+  --alert-bg: #3b2325;
+  --alert-text: #f2cbc3;
+  --alert-border: #815450;
+  --alert-success-bg: #20342b;
+  --alert-success-text: #cbe7d6;
+  --alert-success-border: #466658;
+  --link: #a8bfde;
+  --link-hover: #d6e4f4;
+  --secondary: #5e6d82;
+  --secondary-hover: #4a586c;
+  --secondary-link: #687f9c;
+  --secondary-link-hover: #546a85;
+  --shadow: rgba(3, 7, 13, 0.55);
+  --login-shadow: rgba(2, 5, 10, 0.62);
+  --input-bg: #0f1520;
+  --status-ok-bg: #1f372c;
+  --status-ok-text: #c7e7d2;
+  --status-under-bg: #3f282a;
+  --status-under-text: #efc5be;
 }
 
 :root[data-theme="deep-ocean-blue"] {
-  --bg-top: #4d8db8;
-  --bg: #2f6f98;
-  --bg-bottom: #1b496b;
-  --blob-1: rgba(178, 224, 255, 0.3);
-  --blob-2: rgba(96, 213, 186, 0.22);
-  --card-bg: #215b82;
-  --card-bg-2: #1a4f72;
-  --text: #ebf7ff;
-  --muted: #b8d4e8;
-  --border: #4581aa;
-  --primary: #76d8ff;
-  --primary-hover: #3eb0dd;
-  --focus-ring: rgba(118, 216, 255, 0.32);
-  --danger: #f87171;
-  --danger-hover: #ef4444;
-  --week-1: #65583a;
-  --week-2: #2f5675;
-  --week-3: #2c604e;
-  --week-4: #405783;
-  --overtime-bg: #5a3141;
-  --overtime-text: #ffd8df;
-  --chip-bg: #2f709d;
-  --chip-text: #dff3ff;
-  --alert-bg: #593540;
-  --alert-text: #ffd6dc;
-  --alert-border: #8f4b57;
-  --alert-success-bg: #1d5046;
-  --alert-success-text: #bbf7d0;
-  --alert-success-border: #2b8d78;
-  --link: #c6ecff;
-  --link-hover: #e8f8ff;
-  --secondary: #6f90ac;
-  --secondary-hover: #587691;
-  --secondary-link: #4e84af;
-  --secondary-link-hover: #3c6e96;
-  --shadow: rgba(3, 18, 33, 0.35);
-  --login-shadow: rgba(3, 18, 33, 0.42);
-  --input-bg: #184f73;
-  --status-ok-bg: #1f5c4c;
-  --status-ok-text: #c9f5e3;
-  --status-under-bg: #613542;
-  --status-under-text: #ffd5dd;
+  color-scheme: dark;
+  --bg-top: #10263b;
+  --bg: #0b1b2d;
+  --bg-bottom: #07111d;
+  --blob-1: rgba(112, 159, 197, 0.18);
+  --blob-2: rgba(79, 138, 132, 0.14);
+  --card-bg: #102438;
+  --card-bg-2: #0d1c2c;
+  --text: #edf6ff;
+  --muted: #9db3c6;
+  --border: #21415f;
+  --primary: #7ca4cc;
+  --primary-hover: #5f87b1;
+  --focus-ring: rgba(124, 164, 204, 0.28);
+  --danger: #d9847a;
+  --danger-hover: #c0695d;
+  --week-1: #43372d;
+  --week-2: #1c3044;
+  --week-3: #1b3735;
+  --week-4: #27354a;
+  --overtime-bg: #42292c;
+  --overtime-text: #f4c9c4;
+  --chip-bg: #163554;
+  --chip-text: #d9e9f8;
+  --alert-bg: #402528;
+  --alert-text: #f3cbc5;
+  --alert-border: #7f5450;
+  --alert-success-bg: #1c3733;
+  --alert-success-text: #c9ece1;
+  --alert-success-border: #396963;
+  --link: #b6d2ea;
+  --link-hover: #e2eef8;
+  --secondary: #55728f;
+  --secondary-hover: #435d78;
+  --secondary-link: #6487a8;
+  --secondary-link-hover: #4f708e;
+  --shadow: rgba(4, 14, 24, 0.5);
+  --login-shadow: rgba(4, 14, 24, 0.58);
+  --input-bg: #0d1c2d;
+  --status-ok-bg: #1d3933;
+  --status-ok-text: #c6e8dd;
+  --status-under-bg: #412b2e;
+  --status-under-text: #f1c8c2;
 }
 
 :root[data-theme="light-blue"] {
-  --bg-top: #e7f4ff;
-  --bg: #d7ebff;
-  --bg-bottom: #d2e6ff;
-  --blob-1: rgba(64, 149, 255, 0.3);
-  --blob-2: rgba(95, 196, 255, 0.26);
-  --card-bg: #ffffff;
-  --card-bg-2: #ecf6ff;
-  --text: #0f2c49;
-  --muted: #3f5f7e;
-  --border: #b7d4f0;
-  --primary: #1f70ea;
-  --primary-hover: #1259c7;
-  --focus-ring: rgba(31, 112, 234, 0.26);
-  --danger: #c2410c;
-  --danger-hover: #9a3412;
-  --week-1: #fff1dd;
-  --week-2: #d7eaff;
-  --week-3: #dcf5f0;
-  --week-4: #e1e7ff;
-  --overtime-bg: #fee2e2;
-  --overtime-text: #991b1b;
-  --chip-bg: #cfe5ff;
-  --chip-text: #1d3f79;
-  --alert-bg: #ffeff0;
-  --alert-text: #8f1a40;
-  --alert-border: #f5bfc9;
-  --alert-success-bg: #e9fcf5;
-  --alert-success-text: #14633e;
-  --alert-success-border: #a9ebcb;
-  --link: #165ad1;
-  --link-hover: #1143a9;
-  --secondary: #5070a1;
-  --secondary-hover: #405983;
-  --secondary-link: #327dd6;
-  --secondary-link-hover: #2665af;
-  --shadow: rgba(17, 57, 99, 0.13);
-  --login-shadow: rgba(17, 57, 99, 0.17);
-  --input-bg: #eff7ff;
-  --status-ok-bg: #dff7ec;
-  --status-ok-text: #155f3b;
-  --status-under-bg: #fde7e8;
-  --status-under-text: #9d1d34;
+  color-scheme: light;
+  --bg-top: #eff4f8;
+  --bg: #e4ebf1;
+  --bg-bottom: #dde5ec;
+  --blob-1: rgba(106, 137, 168, 0.18);
+  --blob-2: rgba(164, 182, 196, 0.15);
+  --card-bg: #fbfcfe;
+  --card-bg-2: #eef2f6;
+  --text: #22303d;
+  --muted: #677786;
+  --border: #d2dae2;
+  --primary: #5a7696;
+  --primary-hover: #425d7c;
+  --focus-ring: rgba(90, 118, 150, 0.18);
+  --danger: #ba5d50;
+  --danger-hover: #96483d;
+  --week-1: #f5ede5;
+  --week-2: #e6ecf3;
+  --week-3: #e7f0ec;
+  --week-4: #ece9f1;
+  --overtime-bg: #f4e6e3;
+  --overtime-text: #8d4439;
+  --chip-bg: #e4ebf2;
+  --chip-text: #405b78;
+  --alert-bg: #f7ece9;
+  --alert-text: #8b4036;
+  --alert-border: #e1c5be;
+  --alert-success-bg: #edf4ef;
+  --alert-success-text: #32594a;
+  --alert-success-border: #c6dad0;
+  --link: #476684;
+  --link-hover: #33495f;
+  --secondary: #7b8da1;
+  --secondary-hover: #617284;
+  --secondary-link: #627a95;
+  --secondary-link-hover: #4d6278;
+  --shadow: rgba(29, 44, 59, 0.11);
+  --login-shadow: rgba(29, 44, 59, 0.16);
+  --input-bg: #f7fafc;
+  --status-ok-bg: #e7efea;
+  --status-ok-text: #335748;
+  --status-under-bg: #f3e7e3;
+  --status-under-text: #8b4439;
 }
 
 :root[data-theme="orange-sunset"] {
-  --bg-top: #fff2df;
-  --bg: #ffe3c2;
-  --bg-bottom: #ffd2ad;
-  --blob-1: rgba(255, 140, 66, 0.28);
-  --blob-2: rgba(255, 193, 118, 0.25);
-  --card-bg: #fff9f2;
-  --card-bg-2: #fff1e3;
-  --text: #4a2716;
-  --muted: #7a4c37;
-  --border: #f0c9ad;
-  --primary: #e6732f;
-  --primary-hover: #cc5b1d;
-  --focus-ring: rgba(230, 115, 47, 0.24);
-  --danger: #be2f1f;
-  --danger-hover: #982013;
-  --week-1: #ffe8cf;
-  --week-2: #ffe2da;
-  --week-3: #f0f9dd;
-  --week-4: #ffe7f2;
-  --overtime-bg: #ffd9d9;
-  --overtime-text: #8d1e1e;
-  --chip-bg: #ffd9bf;
-  --chip-text: #71351b;
-  --alert-bg: #ffe6e3;
-  --alert-text: #8d1e1e;
-  --alert-border: #f4b6aa;
-  --alert-success-bg: #eefce8;
-  --alert-success-text: #1f5b2f;
-  --alert-success-border: #bee6c0;
-  --link: #b95211;
-  --link-hover: #8f3d07;
-  --secondary: #a06a4a;
-  --secondary-hover: #7f5238;
-  --secondary-link: #c97a42;
-  --secondary-link-hover: #a85f2f;
-  --shadow: rgba(92, 44, 12, 0.14);
-  --login-shadow: rgba(92, 44, 12, 0.2);
-  --input-bg: #fff7ee;
-  --status-ok-bg: #e8f7ee;
-  --status-ok-text: #146b3a;
-  --status-under-bg: #fdecec;
-  --status-under-text: #9a1c1c;
+  color-scheme: light;
+  --bg-top: #f7f0e7;
+  --bg: #ece3d6;
+  --bg-bottom: #e1d5c6;
+  --blob-1: rgba(174, 128, 92, 0.18);
+  --blob-2: rgba(130, 146, 126, 0.13);
+  --card-bg: #fffaf3;
+  --card-bg-2: #f3ebe0;
+  --text: #34271f;
+  --muted: #75665c;
+  --border: #dbcab9;
+  --primary: #9b6c4d;
+  --primary-hover: #7c5339;
+  --focus-ring: rgba(155, 108, 77, 0.18);
+  --danger: #b65a49;
+  --danger-hover: #954736;
+  --week-1: #f6ebdf;
+  --week-2: #eee7de;
+  --week-3: #ebf0e6;
+  --week-4: #f1e8eb;
+  --overtime-bg: #f5e5e1;
+  --overtime-text: #8c4438;
+  --chip-bg: #efe3d6;
+  --chip-text: #744d36;
+  --alert-bg: #f7ebe7;
+  --alert-text: #8b4034;
+  --alert-border: #e4c4ba;
+  --alert-success-bg: #eef4eb;
+  --alert-success-text: #415847;
+  --alert-success-border: #cad8c7;
+  --link: #7f5538;
+  --link-hover: #613f29;
+  --secondary: #9a8571;
+  --secondary-hover: #7c6856;
+  --secondary-link: #8b6b52;
+  --secondary-link-hover: #6f543f;
+  --shadow: rgba(52, 39, 31, 0.12);
+  --login-shadow: rgba(52, 39, 31, 0.18);
+  --input-bg: #fbf5ed;
+  --status-ok-bg: #e9f0ea;
+  --status-ok-text: #3b5645;
+  --status-under-bg: #f3e6e2;
+  --status-under-text: #8b4438;
 }
 
 :root[data-theme="forest-green"] {
-  --bg-top: #2a4a3b;
-  --bg: #1f3a2f;
-  --bg-bottom: #142a21;
-  --blob-1: rgba(122, 224, 170, 0.24);
-  --blob-2: rgba(101, 178, 255, 0.18);
-  --card-bg: #1f3f31;
-  --card-bg-2: #1a3529;
-  --text: #eefcf5;
-  --muted: #b7d5c6;
-  --border: #3b6654;
-  --primary: #42b576;
-  --primary-hover: #2b945d;
-  --focus-ring: rgba(66, 181, 118, 0.3);
-  --danger: #f87171;
-  --danger-hover: #ef4444;
-  --week-1: #5a4d30;
-  --week-2: #2d4658;
-  --week-3: #24533f;
-  --week-4: #3f446d;
-  --overtime-bg: #572f3c;
-  --overtime-text: #ffd6dd;
-  --chip-bg: #2d6a4f;
-  --chip-text: #d1fae5;
-  --alert-bg: #5a3340;
-  --alert-text: #ffd6dd;
-  --alert-border: #8f4b57;
-  --alert-success-bg: #1f4a36;
-  --alert-success-text: #bbf7d0;
-  --alert-success-border: #2a7f5a;
-  --link: #9df4bf;
-  --link-hover: #cffee0;
-  --secondary: #6a8b7f;
-  --secondary-hover: #537163;
-  --secondary-link: #4b7a64;
-  --secondary-link-hover: #3a614f;
-  --shadow: rgba(0, 0, 0, 0.32);
-  --login-shadow: rgba(0, 0, 0, 0.38);
-  --input-bg: #173428;
-  --status-ok-bg: #1f5c43;
-  --status-ok-text: #c7f5df;
-  --status-under-bg: #603845;
-  --status-under-text: #ffd8df;
+  color-scheme: dark;
+  --bg-top: #1a2821;
+  --bg: #121c17;
+  --bg-bottom: #0c1410;
+  --blob-1: rgba(110, 148, 124, 0.18);
+  --blob-2: rgba(120, 131, 160, 0.12);
+  --card-bg: #17231c;
+  --card-bg-2: #111a14;
+  --text: #edf6ef;
+  --muted: #a2b3a7;
+  --border: #2d4034;
+  --primary: #7ba287;
+  --primary-hover: #60836b;
+  --focus-ring: rgba(123, 162, 135, 0.26);
+  --danger: #d27a6d;
+  --danger-hover: #b96256;
+  --week-1: #40362f;
+  --week-2: #253039;
+  --week-3: #213229;
+  --week-4: #2f2f3e;
+  --overtime-bg: #40282b;
+  --overtime-text: #f0c9c3;
+  --chip-bg: #26382d;
+  --chip-text: #d7e9dd;
+  --alert-bg: #3c2427;
+  --alert-text: #f0cbc5;
+  --alert-border: #7d534d;
+  --alert-success-bg: #203128;
+  --alert-success-text: #cee6d5;
+  --alert-success-border: #466553;
+  --link: #b7d6bf;
+  --link-hover: #e1f0e4;
+  --secondary: #5f7467;
+  --secondary-hover: #4b5d52;
+  --secondary-link: #698572;
+  --secondary-link-hover: #53685a;
+  --shadow: rgba(3, 8, 5, 0.5);
+  --login-shadow: rgba(3, 8, 5, 0.56);
+  --input-bg: #101912;
+  --status-ok-bg: #20332a;
+  --status-ok-text: #cbe4d2;
+  --status-under-bg: #412a2d;
+  --status-under-text: #efc9c3;
 }
 
 :root[data-theme="light-green"] {
-  --bg-top: #f4fcf6;
-  --bg: #e8f6ed;
-  --bg-bottom: #e6f2ea;
-  --blob-1: rgba(100, 198, 144, 0.22);
-  --blob-2: rgba(108, 175, 255, 0.2);
-  --card-bg: #ffffff;
-  --card-bg-2: #f7fdf9;
-  --text: #1d3a2b;
-  --muted: #517060;
-  --border: #cde2d4;
-  --primary: #2c9a5f;
-  --primary-hover: #227749;
-  --focus-ring: rgba(44, 154, 95, 0.24);
-  --danger: #b42318;
-  --danger-hover: #8f1b14;
-  --week-1: #fff3dd;
-  --week-2: #e4f0ff;
-  --week-3: #ddf7e8;
-  --week-4: #ecf1ff;
-  --overtime-bg: #fde8e8;
-  --overtime-text: #7f1d1d;
-  --chip-bg: #dcfce7;
-  --chip-text: #166534;
-  --alert-bg: #fef2f2;
-  --alert-text: #991b1b;
-  --alert-border: #fecaca;
-  --alert-success-bg: #ecfdf3;
-  --alert-success-text: #11663a;
-  --alert-success-border: #b7ebcd;
-  --link: #15803d;
-  --link-hover: #166534;
-  --secondary: #537b68;
-  --secondary-hover: #3f5f50;
-  --secondary-link: #2d6a4f;
-  --secondary-link-hover: #245640;
-  --shadow: rgba(29, 58, 43, 0.09);
-  --login-shadow: rgba(29, 58, 43, 0.13);
-  --input-bg: #f5fcf8;
-  --status-ok-bg: #e8f7ee;
-  --status-ok-text: #146b3a;
-  --status-under-bg: #fdecec;
-  --status-under-text: #9a1c1c;
+  color-scheme: light;
+  --bg-top: #f2f5ef;
+  --bg: #e7ece4;
+  --bg-bottom: #dfe6dc;
+  --blob-1: rgba(122, 156, 136, 0.16);
+  --blob-2: rgba(141, 154, 174, 0.14);
+  --card-bg: #fcfdf9;
+  --card-bg-2: #eff3ec;
+  --text: #243128;
+  --muted: #647268;
+  --border: #d2d9cf;
+  --primary: #5f7d68;
+  --primary-hover: #47614f;
+  --focus-ring: rgba(95, 125, 104, 0.18);
+  --danger: #b45a4c;
+  --danger-hover: #93473b;
+  --week-1: #f4eee3;
+  --week-2: #e7ece8;
+  --week-3: #e6efe8;
+  --week-4: #eceaf0;
+  --overtime-bg: #f4e7e3;
+  --overtime-text: #8c453a;
+  --chip-bg: #e4ece4;
+  --chip-text: #466252;
+  --alert-bg: #f7ece8;
+  --alert-text: #8b4035;
+  --alert-border: #e0c5bd;
+  --alert-success-bg: #edf4ee;
+  --alert-success-text: #36594a;
+  --alert-success-border: #c7d8ce;
+  --link: #4d6655;
+  --link-hover: #37493d;
+  --secondary: #7b8c80;
+  --secondary-hover: #627165;
+  --secondary-link: #66806f;
+  --secondary-link-hover: #506557;
+  --shadow: rgba(36, 49, 40, 0.1);
+  --login-shadow: rgba(36, 49, 40, 0.15);
+  --input-bg: #f8fbf5;
+  --status-ok-bg: #e8f0ea;
+  --status-ok-text: #355848;
+  --status-under-bg: #f3e7e3;
+  --status-under-text: #8b4539;
 }
 
 * {
@@ -332,14 +339,29 @@ body {
   line-height: 1.42;
   color: var(--text);
   background:
-    radial-gradient(circle at 12% 8%, var(--blob-1) 0%, transparent 45%),
-    radial-gradient(circle at 88% 94%, var(--blob-2) 0%, transparent 47%),
-    linear-gradient(160deg, var(--bg-top) 0%, var(--bg) 52%, var(--bg-bottom) 100%),
-    url("/hours.png");
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: center center, center center, center center, center center;
-  background-size: auto, auto, cover, auto 125vh;
-  background-blend-mode: normal, normal, multiply, normal;
+    linear-gradient(
+      180deg,
+      rgba(8, 14, 24, 0.16) 0%,
+      rgba(8, 14, 24, 0.24) 100%
+    ),
+    url("/hours.png"),
+    radial-gradient(circle at 12% 8%, var(--blob-1) 0%, transparent 42%),
+    radial-gradient(circle at 88% 94%, var(--blob-2) 0%, transparent 46%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--bg-top) 88%, #ffffff 12%) 0%,
+      var(--bg) 50%,
+      color-mix(in srgb, var(--bg-bottom) 92%, #091018 8%) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 42%, transparent) 0%,
+      color-mix(in srgb, var(--bg-bottom) 72%, rgba(8, 15, 24, 0.34)) 100%
+    );
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: center center, center top, center center, center center, center center, center center;
+  background-size: cover, auto 132vh, auto, auto, cover, cover;
+  background-blend-mode: normal, normal, screen, screen, normal, multiply;
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -350,24 +372,24 @@ body::after {
   position: fixed;
   pointer-events: none;
   z-index: 0;
-  filter: blur(46px);
-  opacity: 0.42;
+  filter: blur(58px);
+  opacity: 0.32;
 }
 
 body::before {
-  width: 26rem;
-  height: 26rem;
-  top: -8rem;
-  right: -8rem;
+  width: 30rem;
+  height: 30rem;
+  top: -9rem;
+  right: -10rem;
   border-radius: 999px;
   background: linear-gradient(160deg, var(--primary), transparent 70%);
 }
 
 body::after {
-  width: 20rem;
-  height: 20rem;
-  bottom: -6rem;
-  left: -6rem;
+  width: 24rem;
+  height: 24rem;
+  bottom: -8rem;
+  left: -8rem;
   border-radius: 999px;
   background: linear-gradient(160deg, var(--secondary-link), transparent 72%);
 }
@@ -387,12 +409,18 @@ body::after {
   gap: 1.2rem;
   flex-wrap: wrap;
   margin-bottom: 0.9rem;
-  padding: 0.95rem 1.05rem;
-  border: 1px solid var(--border);
+  padding: 1.05rem 1.15rem;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff 12%);
   border-radius: calc(var(--radius-card) - 4px);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 90%, #ffffff 10%), var(--card-bg-2));
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--shadow) 82%, transparent);
-  backdrop-filter: blur(9px);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card-bg) 88%, rgba(255, 255, 255, 0.22)) 0%,
+    color-mix(in srgb, var(--card-bg-2) 96%, transparent) 100%
+  );
+  box-shadow:
+    0 20px 38px color-mix(in srgb, var(--shadow) 78%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--card-bg) 76%, #ffffff 24%);
+  backdrop-filter: blur(18px) saturate(125%);
   transition: box-shadow 0.28s var(--ease-out-soft), border-color 0.28s var(--ease-out-soft);
 }
 
@@ -415,34 +443,67 @@ body::after {
 .theme-picker {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  min-width: 190px;
+  gap: 0.42rem;
+  min-width: 220px;
 }
 
 .theme-picker label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .theme-picker select {
+  appearance: none;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: linear-gradient(175deg, var(--card-bg), color-mix(in srgb, var(--card-bg-2) 84%, #ffffff 16%));
+  border-radius: calc(var(--radius-control) + 1px);
+  background-image:
+    linear-gradient(
+      175deg,
+      color-mix(in srgb, var(--card-bg) 94%, #ffffff 6%),
+      color-mix(in srgb, var(--card-bg-2) 94%, #0c1016 6%)
+    ),
+    linear-gradient(45deg, transparent 50%, color-mix(in srgb, var(--text) 62%, var(--muted) 38%) 50%),
+    linear-gradient(135deg, color-mix(in srgb, var(--text) 62%, var(--muted) 38%) 50%, transparent 50%);
+  background-position:
+    center center,
+    calc(100% - 1.05rem) calc(50% - 0.14rem),
+    calc(100% - 0.74rem) calc(50% - 0.14rem);
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 0.45rem 0.45rem, 0.45rem 0.45rem;
   color: var(--text);
-  padding: 0.58rem 0.72rem;
+  padding: 0.74rem 2.8rem 0.74rem 0.95rem;
   font-size: 0.92rem;
   font-weight: 600;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--shadow) 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--card-bg) 72%, #ffffff 28%);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.theme-picker select:hover {
+  border-color: color-mix(in srgb, var(--border) 64%, var(--primary) 36%);
+  transform: translateY(-1px);
 }
 
 .theme-picker select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px var(--focus-ring);
+  box-shadow:
+    0 0 0 4px var(--focus-ring),
+    0 16px 34px color-mix(in srgb, var(--shadow) 36%, transparent);
   transform: translateY(-1px);
+}
+
+.theme-picker select option {
+  background: color-mix(in srgb, var(--card-bg) 92%, #10151d 8%);
+  color: var(--text);
 }
 
 h1 {
@@ -464,7 +525,7 @@ h2 {
 
 .card {
   background: linear-gradient(168deg, color-mix(in srgb, var(--card-bg) 92%, #ffffff 8%), var(--card-bg-2));
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff 12%);
   border-radius: var(--radius-card);
   padding: 1.25rem 1.2rem 1.15rem;
   margin-bottom: 0.95rem;
@@ -694,11 +755,15 @@ h2 {
 }
 
 button {
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--primary) 62%, #ffffff 38%);
   border-radius: var(--radius-control);
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 90%, #ffffff 10%),
+    var(--primary-hover)
+  );
   color: #ffffff;
-  padding: 0.66rem 1.05rem;
+  padding: 0.72rem 1.1rem;
   cursor: pointer;
   font-size: 0.96rem;
   font-weight: 700;
@@ -708,7 +773,9 @@ button {
     filter 0.2s var(--ease-out-soft),
     box-shadow 0.2s var(--ease-out-soft),
     opacity 0.2s var(--ease-out-soft);
-  box-shadow: 0 12px 22px color-mix(in srgb, var(--shadow) 78%, transparent);
+  box-shadow:
+    0 14px 28px color-mix(in srgb, var(--shadow) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 button:hover {
@@ -725,10 +792,15 @@ button:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--secondary-link) 62%, #ffffff 38%);
   border-radius: var(--radius-control);
-  background: linear-gradient(135deg, var(--secondary-link), var(--secondary-link-hover));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--secondary-link) 90%, #ffffff 10%),
+    var(--secondary-link-hover)
+  );
   color: #ffffff;
-  padding: 0.66rem 1.05rem;
+  padding: 0.72rem 1.1rem;
   font-weight: 700;
   text-decoration: none;
   transition:
@@ -736,7 +808,9 @@ button:active {
     filter 0.2s var(--ease-out-soft),
     box-shadow 0.2s var(--ease-out-soft),
     opacity 0.2s var(--ease-out-soft);
-  box-shadow: 0 12px 22px color-mix(in srgb, var(--shadow) 78%, transparent);
+  box-shadow:
+    0 14px 28px color-mix(in srgb, var(--shadow) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .button-link:hover {
@@ -745,7 +819,8 @@ button:active {
 }
 
 .button-link.button-neutral {
-  background: linear-gradient(135deg, var(--secondary), var(--secondary-hover));
+  border-color: color-mix(in srgb, var(--secondary) 62%, #ffffff 38%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--secondary) 90%, #ffffff 10%), var(--secondary-hover));
 }
 
 .button-link.button-neutral:hover {
@@ -753,6 +828,7 @@ button:active {
 }
 
 button.danger {
+  border-color: color-mix(in srgb, var(--danger) 62%, #ffffff 38%);
   background: linear-gradient(135deg, var(--danger), var(--danger-hover));
 }
 
@@ -761,7 +837,8 @@ button.danger:hover {
 }
 
 button.secondary {
-  background: linear-gradient(135deg, var(--secondary), var(--secondary-hover));
+  border-color: color-mix(in srgb, var(--secondary) 62%, #ffffff 38%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--secondary) 90%, #ffffff 10%), var(--secondary-hover));
 }
 
 button.secondary:hover {
@@ -769,7 +846,8 @@ button.secondary:hover {
 }
 
 .button-link.secondary-link {
-  background: linear-gradient(135deg, var(--secondary), var(--secondary-hover));
+  border-color: color-mix(in srgb, var(--secondary) 62%, #ffffff 38%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--secondary) 90%, #ffffff 10%), var(--secondary-hover));
 }
 
 .button-link.secondary-link:hover {
@@ -1039,63 +1117,113 @@ tfoot tr.monthly-total-row th {
 
 .login-shell {
   width: 100%;
-  max-width: 420px;
+  max-width: 452px;
 }
 
 .login-topbar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.95rem;
 }
 
 .login-card {
   width: 100%;
-  background: linear-gradient(168deg, color-mix(in srgb, var(--card-bg) 92%, #ffffff 8%), var(--card-bg-2));
-  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--card-bg) 88%, rgba(255, 255, 255, 0.24)) 0%,
+    color-mix(in srgb, var(--card-bg-2) 96%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--border) 86%, #ffffff 14%);
   border-radius: var(--radius-card);
-  padding: 1.25rem;
+  padding: 1.55rem;
   box-shadow:
-    0 18px 34px color-mix(in srgb, var(--login-shadow) 80%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--card-bg) 75%, #ffffff 25%);
-  backdrop-filter: blur(8px);
+    0 24px 44px color-mix(in srgb, var(--login-shadow) 72%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--card-bg) 74%, #ffffff 26%);
+  backdrop-filter: blur(20px) saturate(125%);
+}
+
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--primary) 58%, #ffffff 42%) 50%,
+    transparent 100%
+  );
+}
+
+.login-card::after {
+  content: "";
+  position: absolute;
+  top: -4.5rem;
+  right: -3.5rem;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 24%, transparent) 0%, transparent 72%);
+  pointer-events: none;
 }
 
 .login-subtitle {
   margin-top: 0.35rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
   color: var(--muted);
+  max-width: 26ch;
 }
 
 .login-form {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .login-form .field {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  gap: 0.48rem;
+}
+
+.login-form .field label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.login-form .field:focus-within label {
+  color: color-mix(in srgb, var(--text) 70%, var(--primary) 30%);
 }
 
 .login-form input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.68rem 0.8rem;
+  border-radius: calc(var(--radius-control) + 1px);
+  padding: 0.8rem 0.95rem;
   font-size: 1rem;
   font-weight: 600;
   background: linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 88%, #ffffff 12%), var(--input-bg));
   color: var(--text);
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, var(--shadow) 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--shadow) 14%, transparent);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .login-form button {
   width: 100%;
-  margin-top: 0.2rem;
+  margin-top: 0.35rem;
+  padding-block: 0.82rem;
 }
 
 .auth-switch {
-  margin: 0.9rem 0 0;
+  margin: 1.15rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   font-size: 0.92rem;
   color: var(--muted);
 }

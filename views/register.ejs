@@ -3,8 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1f2937" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Hours" />
     <title>Inscription</title>
     <link rel="icon" type="image/png" href="/favion.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <script>
       (() => {
         const key = "hours_theme";
@@ -24,15 +30,15 @@
       <div class="login-shell">
         <div class="login-topbar">
           <div class="theme-picker">
-            <label for="themeSelectRegister">Style</label>
+            <label for="themeSelectRegister">Theme</label>
             <select id="themeSelectRegister" data-theme-selector>
-              <option value="light">Clair</option>
-              <option value="dark">Sombre</option>
-              <option value="deep-ocean-blue">Bleu ocean profond</option>
-              <option value="light-blue">Bleu clair</option>
-              <option value="orange-sunset">Orange solaire</option>
-              <option value="forest-green">Vert foret</option>
-              <option value="light-green">Vert clair</option>
+              <option value="light">Ivoire</option>
+              <option value="dark">Nuit graphite</option>
+              <option value="deep-ocean-blue">Bleu minuit</option>
+              <option value="light-blue">Brume bleue</option>
+              <option value="orange-sunset">Sable cuivre</option>
+              <option value="forest-green">Sauge profonde</option>
+              <option value="light-green">Celadon</option>
             </select>
           </div>
         </div>
@@ -78,5 +84,12 @@
       </div>
     </main>
     <script src="/theme.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
