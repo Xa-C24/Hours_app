@@ -344,7 +344,6 @@ body {
       rgba(8, 14, 24, 0.16) 0%,
       rgba(8, 14, 24, 0.24) 100%
     ),
-    url("/hours.png"),
     radial-gradient(circle at 12% 8%, var(--blob-1) 0%, transparent 42%),
     radial-gradient(circle at 88% 94%, var(--blob-2) 0%, transparent 46%),
     linear-gradient(
@@ -358,10 +357,10 @@ body {
       color-mix(in srgb, var(--bg) 42%, transparent) 0%,
       color-mix(in srgb, var(--bg-bottom) 72%, rgba(8, 15, 24, 0.34)) 100%
     );
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: center center, center top, center center, center center, center center, center center;
-  background-size: cover, auto 132vh, auto, auto, cover, cover;
-  background-blend-mode: normal, normal, screen, screen, normal, multiply;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: center center, center center, center center, center center, center center;
+  background-size: cover, auto, auto, cover, cover;
+  background-blend-mode: normal, screen, screen, normal, multiply;
   background-attachment: fixed;
   min-height: 100vh;
 }
