@@ -1239,6 +1239,10 @@ tfoot tr.monthly-total-row th {
 }
 
 @media (max-width: 1050px) {
+  .container {
+    margin-top: 0.9rem;
+  }
+
   .entry-form {
     grid-template-columns: repeat(2, minmax(190px, 1fr));
   }
@@ -1255,10 +1259,16 @@ tfoot tr.monthly-total-row th {
   .header-actions {
     width: 100%;
     justify-content: space-between;
+    align-items: stretch;
+  }
+
+  .header-spacer,
+  .between-sections-spacer {
+    height: 3rem;
   }
 
   table {
-    min-width: 860px;
+    min-width: 760px;
   }
 }
 
@@ -1281,8 +1291,21 @@ tfoot tr.monthly-total-row th {
     border-radius: 14px;
   }
 
+  .month-header {
+    align-items: stretch;
+  }
+
   .month-form,
   .month-tools {
+    width: 100%;
+  }
+
+  .month-form {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .month-tools .button-link {
     width: 100%;
   }
 
@@ -1294,6 +1317,10 @@ tfoot tr.monthly-total-row th {
   .logout-form,
   .login-topbar {
     width: 100%;
+  }
+
+  .logout-form {
+    justify-content: space-between;
   }
 
   .login-topbar {
@@ -1316,6 +1343,16 @@ tfoot tr.monthly-total-row th {
     width: 100%;
   }
 
+  .row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .row-actions .button-link,
+  .row-actions button {
+    width: 100%;
+  }
+
   th,
   td {
     font-size: 0.85rem;
@@ -1328,7 +1365,23 @@ tfoot tr.monthly-total-row th {
   }
 
   .between-sections-spacer {
-    height: 12rem;
+    height: 1rem;
+  }
+}
+
+@media (max-width: 900px) {
+  th.comment-col,
+  td.comment-cell {
+    display: none;
+  }
+
+  table {
+    min-width: 640px;
+  }
+
+  .header-spacer,
+  .between-sections-spacer {
+    height: 2rem;
   }
 }
 
