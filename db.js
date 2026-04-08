@@ -27,6 +27,16 @@ function ensureWorkEntriesCommentColumn(database) {
   }
 }
 
+function ensureWorkEntriesDayTypeColumn(database) {
+  const columns = database.prepare("PRAGMA table_info(work_entries)").all();
+  const hasDayTypeColumn = columns.some((column) => column.name === "day_type");
+  if (!hasDayTypeColumn) {
+    database
+      .prepare("ALTER TABLE work_entries ADD COLUMN day_type TEXT NOT NULL DEFAULT 'office'")
+      .run();
+  }
+}
+
 function relaxWorkEntriesLunchBreakConstraint(database) {
   const tableDef = database
     .prepare(
@@ -48,6 +58,7 @@ function relaxWorkEntriesLunchBreakConstraint(database) {
     CREATE TABLE work_entries_new (
       work_date TEXT PRIMARY KEY
         CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+      day_type TEXT NOT NULL DEFAULT 'office',
       arrival_time TEXT NOT NULL
         CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
       departure_time TEXT NOT NULL
@@ -63,6 +74,7 @@ function relaxWorkEntriesLunchBreakConstraint(database) {
 
     INSERT INTO work_entries_new (
       work_date,
+      day_type,
       arrival_time,
       departure_time,
       lunch_break_minutes,
@@ -73,6 +85,7 @@ function relaxWorkEntriesLunchBreakConstraint(database) {
     )
     SELECT
       work_date,
+      day_type,
       arrival_time,
       departure_time,
       lunch_break_minutes,
@@ -91,8 +104,21 @@ function relaxWorkEntriesLunchBreakConstraint(database) {
   `);
 }
 
+const payPeriodSalariesSchemaSql = `
+CREATE TABLE IF NOT EXISTS pay_period_salaries (
+  pay_period_month TEXT PRIMARY KEY
+    CHECK (pay_period_month GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+  salary_amount_cents INTEGER NOT NULL
+    CHECK (salary_amount_cents >= 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
 ensureWorkEntriesCommentColumn(authDb);
+ensureWorkEntriesDayTypeColumn(authDb);
 relaxWorkEntriesLunchBreakConstraint(authDb);
+authDb.exec(payPeriodSalariesSchemaSql);
 
 const getUserByUsernameStmt = authDb.prepare(`
   SELECT
@@ -125,6 +151,7 @@ const workEntriesSchemaSql = `
 CREATE TABLE IF NOT EXISTS work_entries (
   work_date TEXT PRIMARY KEY
     CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+  day_type TEXT NOT NULL DEFAULT 'office',
   arrival_time TEXT NOT NULL
     CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
   departure_time TEXT NOT NULL
@@ -154,7 +181,9 @@ function migrateExistingUserDbs() {
     const userDb = new Database(filePath);
     userDb.pragma("journal_mode = WAL");
     userDb.exec(workEntriesSchemaSql);
+    userDb.exec(payPeriodSalariesSchemaSql);
     ensureWorkEntriesCommentColumn(userDb);
+    ensureWorkEntriesDayTypeColumn(userDb);
     relaxWorkEntriesLunchBreakConstraint(userDb);
     userDb.close();
   }
@@ -181,13 +210,16 @@ function getUserStore(username) {
   const userDb = new Database(userDbPath);
   userDb.pragma("journal_mode = WAL");
   userDb.exec(workEntriesSchemaSql);
+  userDb.exec(payPeriodSalariesSchemaSql);
   ensureWorkEntriesCommentColumn(userDb);
+  ensureWorkEntriesDayTypeColumn(userDb);
   relaxWorkEntriesLunchBreakConstraint(userDb);
 
   const store = {
     upsertEntryStmt: userDb.prepare(`
       INSERT INTO work_entries (
         work_date,
+        day_type,
         arrival_time,
         departure_time,
         lunch_break_minutes,
@@ -198,6 +230,7 @@ function getUserStore(username) {
       )
       VALUES (
         @work_date,
+        @day_type,
         @arrival_time,
         @departure_time,
         @lunch_break_minutes,
@@ -207,6 +240,7 @@ function getUserStore(username) {
         datetime('now')
       )
       ON CONFLICT(work_date) DO UPDATE SET
+        day_type = excluded.day_type,
         arrival_time = excluded.arrival_time,
         departure_time = excluded.departure_time,
         lunch_break_minutes = excluded.lunch_break_minutes,
@@ -218,9 +252,36 @@ function getUserStore(username) {
       DELETE FROM work_entries
       WHERE work_date = ?
     `),
+    upsertPayPeriodSalaryStmt: userDb.prepare(`
+      INSERT INTO pay_period_salaries (
+        pay_period_month,
+        salary_amount_cents,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        @pay_period_month,
+        @salary_amount_cents,
+        datetime('now'),
+        datetime('now')
+      )
+      ON CONFLICT(pay_period_month) DO UPDATE SET
+        salary_amount_cents = excluded.salary_amount_cents,
+        updated_at = datetime('now')
+    `),
+    deletePayPeriodSalaryStmt: userDb.prepare(`
+      DELETE FROM pay_period_salaries
+      WHERE pay_period_month = ?
+    `),
+    getPayPeriodSalaryStmt: userDb.prepare(`
+      SELECT salary_amount_cents
+      FROM pay_period_salaries
+      WHERE pay_period_month = ?
+    `),
     getEntriesForMonthStmt: userDb.prepare(`
       SELECT
         work_date,
+        day_type,
         arrival_time,
         departure_time,
         lunch_break_minutes,
@@ -250,6 +311,22 @@ function deleteEntry(username, workDate) {
   store.deleteEntryStmt.run(workDate);
 }
 
+function upsertPayPeriodSalary(username, payPeriodSalary) {
+  const store = getUserStore(username);
+  store.upsertPayPeriodSalaryStmt.run(payPeriodSalary);
+}
+
+function deletePayPeriodSalary(username, payPeriodMonth) {
+  const store = getUserStore(username);
+  store.deletePayPeriodSalaryStmt.run(payPeriodMonth);
+}
+
+function getPayPeriodSalary(username, payPeriodMonth) {
+  const store = getUserStore(username);
+  const row = store.getPayPeriodSalaryStmt.get(payPeriodMonth);
+  return row ? row.salary_amount_cents : null;
+}
+
 function getEntriesForMonth(username, startDate, endDate) {
   const store = getUserStore(username);
   return store.getEntriesForMonthStmt.all(startDate, endDate);
@@ -266,6 +343,9 @@ function createUser(user) {
 module.exports = {
   upsertEntry,
   deleteEntry,
+  upsertPayPeriodSalary,
+  deletePayPeriodSalary,
+  getPayPeriodSalary,
   getEntriesForMonth,
   ensureUserDatabase,
   getUserByUsername,

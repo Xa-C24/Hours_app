@@ -644,6 +644,7 @@ h2 {
 }
 
 .entry-form input,
+.entry-form select,
 .month-form input {
   width: 100%;
   border: 1px solid var(--border);
@@ -685,6 +686,7 @@ h2 {
 }
 
 .entry-form input:focus,
+.entry-form select:focus,
 .month-form input:focus,
 .entry-form textarea:focus,
 .login-form input:focus {
@@ -696,6 +698,73 @@ h2 {
 
 .entry-form .field.field-comment {
   grid-column: 1 / -1;
+}
+
+.comment-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.comment-emoji-picker {
+  position: relative;
+}
+
+.comment-emoji-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.48rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--secondary-link) 62%, #ffffff 38%);
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--secondary-link) 90%, #ffffff 10%),
+    var(--secondary-link-hover)
+  );
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  box-shadow:
+    0 10px 24px color-mix(in srgb, var(--shadow) 68%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.comment-emoji-summary::-webkit-details-marker {
+  display: none;
+}
+
+.comment-emoji-caret {
+  font-size: 0.78rem;
+  line-height: 1;
+  opacity: 0.88;
+  transition: transform 0.18s ease;
+}
+
+.comment-emoji-picker[open] .comment-emoji-caret {
+  transform: rotate(180deg);
+}
+
+.comment-emoji-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.65rem);
+  z-index: 6;
+}
+
+.comment-emoji-component {
+  width: min(100%, 360px);
+  height: 420px;
+  border-radius: 8px;
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--shadow) 72%, transparent);
+}
+
+.entry-form input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .form-actions {
@@ -739,6 +808,21 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.month-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.month-header-copy h2 {
+  margin: 0;
+}
+
+.month-period-label {
+  margin: 0;
+  color: var(--muted);
+}
+
 .month-tools {
   display: flex;
   gap: 0.6rem;
@@ -751,6 +835,50 @@ h2 {
   flex-wrap: wrap;
   gap: 0.7rem;
   align-items: end;
+}
+
+.day-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.day-filter-chip {
+  min-width: 0;
+  padding: 0.52rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 92%, #ffffff 8%);
+  color: var(--text);
+  box-shadow: none;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.day-filter-chip:hover {
+  transform: scale(1.03);
+  filter: brightness(1.02);
+}
+
+.day-filter-chip.is-active {
+  border-color: color-mix(in srgb, var(--primary) 58%, transparent);
+  background: color-mix(in srgb, var(--primary) 18%, var(--card-bg));
+}
+
+.day-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  margin-left: 0.45rem;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chip-bg) 88%, #ffffff 12%);
+  color: var(--chip-text);
 }
 
 button {
@@ -936,6 +1064,10 @@ tbody tr:not(.week-total-row):hover td {
   background: color-mix(in srgb, var(--card-bg-2) 76%, #ffffff 24%);
 }
 
+tr.is-filter-hidden {
+  display: none;
+}
+
 tr.week-total-row td {
   font-weight: 700;
   background: linear-gradient(180deg, color-mix(in srgb, var(--status-under-bg) 92%, #ffffff 8%), var(--status-under-bg));
@@ -1085,6 +1217,12 @@ tr.editing-row td:first-child {
   border-color: color-mix(in srgb, var(--status-ok-text) 20%, transparent);
 }
 
+.status-pill.neutral {
+  background: color-mix(in srgb, var(--chip-bg) 84%, #ffffff 16%);
+  color: var(--chip-text);
+  border-color: color-mix(in srgb, var(--chip-text) 20%, transparent);
+}
+
 tfoot th {
   font-size: 0.95rem;
   border-top: 2px solid var(--border);
@@ -1097,6 +1235,101 @@ tfoot th {
 tfoot tr.monthly-total-row th {
   text-align: right;
   font-weight: 800;
+}
+
+tfoot tr.monthly-total-row th.summary-pair-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.summary-pair-label,
+.summary-pair-value {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.summary-pair-value {
+  margin-left: 0.55rem;
+}
+
+tfoot tr.monthly-total-row th.salary-label-cell,
+tfoot tr.monthly-total-row th.salary-value-cell {
+  text-align: right;
+}
+
+tfoot tr.monthly-total-row th.salary-label-cell {
+  color: var(--muted);
+  position: relative;
+  overflow: visible;
+}
+
+.salary-editor {
+  position: relative;
+}
+
+.salary-editor-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  list-style: none;
+  cursor: pointer;
+}
+
+.salary-editor-summary::-webkit-details-marker {
+  display: none;
+}
+
+.salary-editor-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--secondary-link) 58%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 90%, #ffffff 10%);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.salary-editor[open] .salary-editor-trigger {
+  transform: rotate(45deg);
+}
+
+.salary-editor-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.75rem);
+  min-width: 220px;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card-bg) 94%, #ffffff 6%);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--shadow) 72%, transparent);
+  z-index: 5;
+}
+
+.salary-editor-panel label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.salary-editor-panel input {
+  min-width: 0;
+}
+
+.salary-editor-panel button {
+  min-width: 0;
+  width: 100%;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
 }
 
 .empty {

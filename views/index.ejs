@@ -10,6 +10,7 @@
     <title>Suivi des heures</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <script type="module" src="/vendor/emoji-picker-element/index.js"></script>
     <script>
       (() => {
         const key = "hours_theme";
@@ -83,6 +84,17 @@
           </div>
 
           <div class="field">
+            <label for="dayType">Type de journee</label>
+            <select id="dayType" name="dayType" required data-day-type-select>
+              <% dayTypeOptions.forEach((option) => { %>
+              <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
+                <%= option.label %>
+              </option>
+              <% }); %>
+            </select>
+          </div>
+
+          <div class="field">
             <label for="arrivalTime">Heure d'arrivee</label>
             <input
               id="arrivalTime"
@@ -90,6 +102,7 @@
               type="time"
               required
               value="<%= formData.arrivalTime %>"
+              data-worked-day-field
             />
           </div>
 
@@ -101,6 +114,7 @@
               type="time"
               required
               value="<%= formData.departureTime %>"
+              data-worked-day-field
             />
           </div>
 
@@ -113,17 +127,30 @@
               min="0"
               required
               value="<%= formData.lunchBreakMinutes %>"
+              data-worked-day-field
             />
           </div>
 
           <div class="field field-comment">
             <label for="commentText">Commentaire</label>
+            <div class="comment-toolbar">
+              <details class="comment-emoji-picker">
+                <summary class="comment-emoji-summary">
+                  <span>🙂</span>
+                  <span class="comment-emoji-caret" aria-hidden="true">▾</span>
+                </summary>
+                <div class="comment-emoji-popover">
+                  <emoji-picker class="comment-emoji-component" locale="fr"></emoji-picker>
+                </div>
+              </details>
+            </div>
             <textarea
               id="commentText"
               name="commentText"
               rows="3"
               maxlength="1000"
               placeholder="Ex: reunion client, deplacement, taches importantes..."
+              data-comment-target
             ><%= formData.commentText || "" %></textarea>
           </div>
 
@@ -137,12 +164,17 @@
           </div>
         </form>
       </section>
-
+<br>
       <div class="between-sections-spacer" aria-hidden="true"></div>
 
       <section class="card">
         <div class="month-header">
-          <h2>Mois selectioné</h2>
+          <div class="month-header-copy">
+            <h2>Periode de paie</h2>
+            <% if (payPeriodLabel) { %>
+            <p class="month-period-label"><%= payPeriodLabel %></p>
+            <% } %>
+          </div>
           <div class="month-tools">
             <form action="/" method="get" class="month-form">
               <label for="month">Choisir un mois</label>
@@ -155,11 +187,26 @@
           </div>
         </div>
 
+        <div class="day-filter-bar" data-day-filter-bar>
+          <% dayTypeFilters.forEach((filter, index) => { %>
+          <button
+            type="button"
+            class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
+            data-day-filter="<%= filter.value %>"
+            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+          >
+            <span><%= filter.label %></span>
+            <span class="day-filter-count"><%= filter.count %></span>
+          </button>
+          <% }); %>
+        </div>
+
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Type</th>
                 <th>Arrivee</th>
                 <th>Depart</th>
                 <th>Pause (min)</th>
@@ -174,14 +221,18 @@
             <tbody>
               <% if (displayEntries.length === 0) { %>
               <tr>
-                <td colspan="10" class="empty">Aucune journee enregistree pour ce mois.</td>
+                <td colspan="11" class="empty">Aucune journee enregistree pour cette periode.</td>
               </tr>
               <% } %>
 
               <% displayEntries.forEach((entry) => { %>
               <% if (entry.is_week_total) { %>
-              <tr class="<%= [entry.week_color_class, 'week-total-row'].filter(Boolean).join(' ') %>">
-                <td colspan="4">
+              <tr
+                class="<%= [entry.week_color_class, 'week-total-row'].filter(Boolean).join(' ') %>"
+                data-week-total-row
+                data-week-key="<%= entry.week_start || '' %>"
+              >
+                <td colspan="5">
                   <div class="week-total-main">
                     <div class="week-total-left">
                       <button
@@ -208,19 +259,23 @@
               <% } else { %>
               <tr
                 class="<%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
+                data-day-entry-row
+                data-day-type="<%= entry.day_type %>"
+                data-week-key="<%= entry.week_start || '' %>"
               >
                 <td>
                   <%= entry.work_date_display || (entry.work_date ? new Date(`${entry.work_date}T00:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "") %>
                 </td>
-                <td><%= entry.arrival_time %></td>
-                <td><%= entry.departure_time %></td>
-                <td><%= entry.lunch_break_minutes %></td>
+                <td><%= entry.day_type_display %></td>
+                <td><%= entry.arrival_time_display %></td>
+                <td><%= entry.departure_time_display %></td>
+                <td><%= entry.lunch_break_minutes_display %></td>
                 <td><%= entry.worked_hhmm %></td>
                 <td class="overtime-col"><%= entry.overtime_hhmm %></td>
                 <td class="recovered-col"><%= entry.recovered_minutes > 0 ? entry.recovered_hhmm : "" %></td>
                 <td>
-                  <span class="status-pill <%= entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
-                    <%= entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
+                  <span class="status-pill <%= !entry.is_worked_day ? 'neutral' : entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
+                    <%= !entry.is_worked_day ? entry.day_type_display : entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
                   </span>
                 </td>
                 <td class="comment-cell"><%= entry.comment_text || "" %></td>
@@ -245,15 +300,47 @@
               </tr>
               <% } %>
               <% }); %>
+              <% if (displayEntries.length > 0) { %>
+              <tr data-filter-empty-row hidden>
+                <td colspan="11" class="empty">Aucune journee pour ce filtre.</td>
+              </tr>
+              <% } %>
             </tbody>
             <tfoot>
               <tr class="monthly-total-row">
-                <th colspan="4"></th>
-                <th>Total mensuel</th>
+                <th colspan="3"></th>
+                <th colspan="2" class="summary-pair-cell">
+                  <span class="summary-pair-label">Jours travaillés</span>
+                  <span class="summary-pair-value"><%= workedDayCount %></span>
+                </th>
+                <th>Total periode</th>
                 <th><%= totalHHMM %></th>
                 <th class="overtime-col"><%= totalOvertimeHHMM %></th>
                 <th class="recovered-col"><%= totalRecoveredHHMM %></th>
-                <th colspan="2"></th>
+                <th class="salary-label-cell">
+                  <details class="salary-editor" <%= showSalaryEditor ? "open" : "" %>>
+                    <summary class="salary-editor-summary">
+                      <span>Salaire net</span>
+                      <span class="salary-editor-trigger" aria-hidden="true">+</span>
+                    </summary>
+                    <form action="/pay-period-salary" method="post" class="salary-editor-panel">
+                      <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                      <label for="salaryAmountInline">Montant</label>
+                      <input
+                        id="salaryAmountInline"
+                        name="salaryAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal"
+                        value="<%= salaryAmountInput %>"
+                        placeholder="Ex: 4850.00$"
+                      />
+                      <button type="submit">OK</button>
+                    </form>
+                  </details>
+                </th>
+                <th class="salary-value-cell"><%= salaryAmountDisplay %></th>
               </tr>
             </tfoot>
           </table>
@@ -262,6 +349,59 @@
     </main>
     <script src="/theme.js"></script>
     <script>
+      (() => {
+        const commentField = document.querySelector("[data-comment-target]");
+        const emojiPicker = document.querySelector(".comment-emoji-component");
+        const emojiPickerDetails = document.querySelector(".comment-emoji-picker");
+
+        if (!commentField || !emojiPicker || !emojiPickerDetails) {
+          return;
+        }
+
+        const insertEmoji = (emoji) => {
+          const start = commentField.selectionStart ?? commentField.value.length;
+          const end = commentField.selectionEnd ?? commentField.value.length;
+          const prefix = start > 0 && !/\s$/.test(commentField.value.slice(0, start)) ? " " : "";
+          const suffix = end < commentField.value.length && !/^\s/.test(commentField.value.slice(end)) ? " " : "";
+          const insertedText = `${prefix}${emoji}${suffix}`;
+
+          commentField.setRangeText(insertedText, start, end, "end");
+          commentField.focus();
+        };
+
+        emojiPicker.addEventListener("emoji-click", (event) => {
+          const emoji = event.detail && typeof event.detail.unicode === "string"
+            ? event.detail.unicode
+            : "";
+          if (!emoji) {
+            return;
+          }
+          insertEmoji(emoji);
+          emojiPickerDetails.open = false;
+        });
+      })();
+
+      (() => {
+        const dayTypeSelect = document.querySelector("[data-day-type-select]");
+        const workedDayFields = [...document.querySelectorAll("[data-worked-day-field]")];
+        const workedDayTypes = new Set(["office", "remote"]);
+
+        if (!dayTypeSelect || workedDayFields.length === 0) {
+          return;
+        }
+
+        const syncWorkedDayFields = () => {
+          const isWorkedDay = workedDayTypes.has(dayTypeSelect.value);
+          workedDayFields.forEach((field) => {
+            field.disabled = !isWorkedDay;
+            field.required = isWorkedDay;
+          });
+        };
+
+        dayTypeSelect.addEventListener("change", syncWorkedDayFields);
+        syncWorkedDayFields();
+      })();
+
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/sw.js").catch(() => {});

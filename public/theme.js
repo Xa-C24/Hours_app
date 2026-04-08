@@ -2,6 +2,7 @@
   const THEME_KEY = "hours_theme";
   const ENTRY_FORM_COLLAPSED_KEY = "hours_entry_form_collapsed";
   const WEEK_ROWS_COLLAPSED_BY_MONTH_KEY = "hours_week_rows_collapsed_by_month";
+  const DAY_FILTER_BY_MONTH_KEY = "hours_day_filter_by_month";
   const THEMES = [
     "light",
     "dark",
@@ -113,6 +114,48 @@
     }
   }
 
+  function readDayFilterStore() {
+    try {
+      const rawValue = localStorage.getItem(DAY_FILTER_BY_MONTH_KEY);
+      if (!rawValue) {
+        return {};
+      }
+      const parsed = JSON.parse(rawValue);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function persistDayFilterStore(store) {
+    try {
+      localStorage.setItem(DAY_FILTER_BY_MONTH_KEY, JSON.stringify(store));
+    } catch (error) {
+      // Ignore storage issues.
+    }
+  }
+
+  function readDayFilter(month) {
+    if (!month) {
+      return "all";
+    }
+    const store = readDayFilterStore();
+    return typeof store[month] === "string" && store[month] ? store[month] : "all";
+  }
+
+  function persistDayFilter(month, filterValue) {
+    if (!month) {
+      return;
+    }
+    const store = readDayFilterStore();
+    if (filterValue && filterValue !== "all") {
+      store[month] = filterValue;
+    } else {
+      delete store[month];
+    }
+    persistDayFilterStore(store);
+  }
+
   function getSelectedMonth() {
     const monthInput = document.getElementById("month");
     if (monthInput && typeof monthInput.value === "string" && monthInput.value) {
@@ -218,6 +261,72 @@
     });
   }
 
+  function initDayTypeFilter() {
+    const filterBar = document.querySelector("[data-day-filter-bar]");
+    const dayRows = Array.from(document.querySelectorAll("[data-day-entry-row]"));
+    const weekTotalRows = Array.from(document.querySelectorAll("[data-week-total-row]"));
+    const emptyRow = document.querySelector("[data-filter-empty-row]");
+    if (!filterBar || dayRows.length === 0) {
+      return;
+    }
+
+    const filterButtons = Array.from(filterBar.querySelectorAll("[data-day-filter]"));
+    const month = getSelectedMonth();
+
+    const applyFilter = (filterValue, persist = true) => {
+      const normalizedFilter = filterButtons.some(
+        (button) => button.dataset.dayFilter === filterValue
+      )
+        ? filterValue
+        : "all";
+
+      filterButtons.forEach((button) => {
+        const isActive = button.dataset.dayFilter === normalizedFilter;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      const visibleWeekKeys = new Set();
+      let visibleDayRowCount = 0;
+
+      dayRows.forEach((row) => {
+        const rowDayType = row.dataset.dayType || "";
+        const isVisible = normalizedFilter === "all" || rowDayType === normalizedFilter;
+        row.classList.toggle("is-filter-hidden", !isVisible);
+        if (isVisible) {
+          visibleDayRowCount += 1;
+          const weekKey = row.dataset.weekKey || "";
+          if (weekKey) {
+            visibleWeekKeys.add(weekKey);
+          }
+        }
+      });
+
+      weekTotalRows.forEach((row) => {
+        const weekKey = row.dataset.weekKey || "";
+        const isVisible = normalizedFilter === "all" || visibleWeekKeys.has(weekKey);
+        row.classList.toggle("is-filter-hidden", !isVisible);
+      });
+
+      if (emptyRow) {
+        emptyRow.hidden = visibleDayRowCount !== 0;
+      }
+
+      if (persist) {
+        persistDayFilter(month, normalizedFilter);
+      }
+    };
+
+    const initialFilter = readDayFilter(month);
+    applyFilter(initialFilter, false);
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        applyFilter(button.dataset.dayFilter || "all", true);
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     let storedTheme = "light";
     try {
@@ -232,5 +341,6 @@
     initThemeSelectors();
     initEntryFormToggle();
     initWeekRowsToggle();
+    initDayTypeFilter();
   });
 })();

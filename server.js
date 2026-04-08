@@ -17,11 +17,31 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const sessions = new Map();
+const DAY_TYPE_OPTIONS = [
+  { value: "office", label: "Bureau", isWorkedDay: true },
+  { value: "remote", label: "Télétravail", isWorkedDay: true },
+  { value: "leave", label: "Congés", isWorkedDay: false },
+  { value: "rtt", label: "RTT", isWorkedDay: false },
+  { value: "sick_leave", label: "Arret", isWorkedDay: false },
+  { value: "holiday", label: "Férié", isWorkedDay: false },
+];
+const DEFAULT_DAY_TYPE = "office";
+const DAY_TYPE_CONFIG_BY_VALUE = new Map(
+  DAY_TYPE_OPTIONS.map((option) => [option.value, option])
+);
+const DAY_TYPE_FILTERS = [
+  { value: "all", label: "Tous" },
+  ...DAY_TYPE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+];
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(express.urlencoded({ extended: false }));
+app.use(
+  "/vendor/emoji-picker-element",
+  express.static(path.join(__dirname, "node_modules", "emoji-picker-element"))
+);
 app.use(express.static(path.join(__dirname, "public")));
 
 function parseCookies(cookieHeader) {
@@ -118,6 +138,22 @@ function isDuplicateUsernameError(error) {
   );
 }
 
+function normalizeDayType(value) {
+  return typeof value === "string" && DAY_TYPE_CONFIG_BY_VALUE.has(value) ? value : "";
+}
+
+function getDayTypeConfig(dayType) {
+  return DAY_TYPE_CONFIG_BY_VALUE.get(normalizeDayType(dayType)) || DAY_TYPE_CONFIG_BY_VALUE.get(DEFAULT_DAY_TYPE);
+}
+
+function isWorkedDayType(dayType) {
+  return getDayTypeConfig(dayType).isWorkedDay;
+}
+
+function getTargetMinutesForDayType(dayType) {
+  return isWorkedDayType(dayType) ? DAILY_TARGET_MINUTES : 0;
+}
+
 function pad2(value) {
   return String(value).padStart(2, "0");
 }
@@ -166,9 +202,77 @@ function formatDateDayMonthFr(dateString) {
   });
 }
 
+function formatDateShortFr(dateString) {
+  if (typeof dateString !== "string" || !DATE_REGEX.test(dateString)) {
+    return "";
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return "";
+  }
+  return parsed.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatCurrencyFromCents(amountCents) {
+  const safeAmount = Number.isInteger(amountCents) ? amountCents : 0;
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(safeAmount / 100);
+}
+
+function parseCurrencyToCents(value) {
+  if (typeof value !== "string") {
+    return { valid: false, cents: null };
+  }
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return { valid: true, cents: null };
+  }
+  const normalizedValue = trimmedValue.replace(/\s+/g, "").replace(",", ".");
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalizedValue)) {
+    return { valid: false, cents: null };
+  }
+  const amount = Number(normalizedValue);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { valid: false, cents: null };
+  }
+  return {
+    valid: true,
+    cents: Math.round(amount * 100),
+  };
+}
+
+function getPayPeriodMonthForDate(dateString) {
+  if (typeof dateString !== "string" || !DATE_REGEX.test(dateString)) {
+    return "";
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return "";
+  }
+  if (day >= 15) {
+    parsed.setMonth(parsed.getMonth() + 1);
+  }
+  return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}`;
+}
+
 function getCurrentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+  return getPayPeriodMonthForDate(formatDate(new Date()));
 }
 
 function normalizeMonth(month) {
@@ -226,12 +330,23 @@ function normalizeExportText(value) {
 
 function getMonthBounds(month) {
   const [year, monthNumber] = month.split("-").map(Number);
-  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
-  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const startDate = new Date(year, monthNumber - 2, 15);
+  const endDate = new Date(year, monthNumber - 1, 15);
+  const inclusiveEndDate = new Date(year, monthNumber - 1, 14);
   return {
-    startDate: `${year}-${pad2(monthNumber)}-01`,
-    endDate: `${nextYear}-${pad2(nextMonth)}-01`,
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+    inclusiveEndDate: formatDate(inclusiveEndDate),
   };
+}
+
+function formatPayPeriodLabelFr(startDate, endDate) {
+  const startLabel = formatDateShortFr(startDate);
+  const endLabel = formatDateShortFr(endDate);
+  if (!startLabel && !endLabel) {
+    return "";
+  }
+  return `Du ${startLabel} au ${endLabel}`;
 }
 
 function getWeekStartMonday(dateString) {
@@ -290,25 +405,35 @@ function formatWeekSummaryLabelFr(startDate, endDate, weekNumber) {
 
 function getMonthData(username, month) {
   const normalizedMonth = normalizeMonth(month);
-  const { startDate, endDate } = getMonthBounds(normalizedMonth);
+  const { startDate, endDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
+  const salaryAmountCents = db.getPayPeriodSalary(username, normalizedMonth);
   let runningBalanceMinutes = 0;
   const baseEntries = db.getEntriesForMonth(username, startDate, endDate).map((entry) => {
-    const overtimeMinutes = getOvertimeMinutes(entry.worked_minutes);
-    const missingMinutes = getRecoveryMinutes(entry.worked_minutes);
+    const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
+    const targetMinutes = getTargetMinutesForDayType(dayType);
+    const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
+    const missingMinutes = Math.max(0, targetMinutes - entry.worked_minutes);
     const recoveredMinutes = Math.min(Math.max(0, runningBalanceMinutes), missingMinutes);
 
-    runningBalanceMinutes += entry.worked_minutes - DAILY_TARGET_MINUTES;
+    runningBalanceMinutes += entry.worked_minutes - targetMinutes;
 
     return {
       ...entry,
+      day_type: dayType,
+      day_type_display: getDayTypeConfig(dayType).label,
+      target_minutes: targetMinutes,
+      is_worked_day: isWorkedDayType(dayType),
       week_start: getWeekStartMonday(entry.work_date),
       work_date_display: formatDateDisplayFr(entry.work_date),
+      arrival_time_display: isWorkedDayType(dayType) ? entry.arrival_time : "",
+      departure_time_display: isWorkedDayType(dayType) ? entry.departure_time : "",
+      lunch_break_minutes_display: isWorkedDayType(dayType) ? entry.lunch_break_minutes : "",
       worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
       overtime_minutes: overtimeMinutes,
       overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
       recovered_minutes: recoveredMinutes,
       recovered_hhmm: formatMinutesToHHMM(recoveredMinutes),
-      under_target: entry.worked_minutes < DAILY_TARGET_MINUTES,
+      under_target: entry.worked_minutes < targetMinutes,
     };
   });
   const weekStarts = [...new Set(baseEntries.map((entry) => entry.week_start).filter(Boolean))];
@@ -322,7 +447,7 @@ function getMonthData(username, month) {
   const displayEntries = [];
   let weekTotalMinutes = 0;
   let weekRecoveredMinutes = 0;
-  let weekDayCount = 0;
+  let weekTargetMinutes = 0;
   let weekFirstWorkDate = "";
   let weekLastWorkDate = "";
 
@@ -335,15 +460,15 @@ function getMonthData(username, month) {
     weekLastWorkDate = entry.work_date;
     weekTotalMinutes += entry.worked_minutes;
     weekRecoveredMinutes += entry.recovered_minutes;
-    weekDayCount += 1;
+    weekTargetMinutes += entry.target_minutes;
     displayEntries.push(entry);
 
     if (!nextEntry || nextEntry.week_start !== entry.week_start) {
-      const weeklyTargetMinutes = weekDayCount * DAILY_TARGET_MINUTES;
-      const weekOvertimeMinutes = Math.max(0, weekTotalMinutes - weeklyTargetMinutes);
+      const weekOvertimeMinutes = Math.max(0, weekTotalMinutes - weekTargetMinutes);
       const weekNumber = getISOWeekNumber(entry.week_start || weekFirstWorkDate);
       displayEntries.push({
         is_week_total: true,
+        week_start: entry.week_start,
         week_color_class: entry.week_color_class,
         week_total_hhmm: formatMinutesToHHMM(weekTotalMinutes),
         week_total_overtime_hhmm: formatMinutesToHHMM(weekOvertimeMinutes),
@@ -356,19 +481,35 @@ function getMonthData(username, month) {
       });
       weekTotalMinutes = 0;
       weekRecoveredMinutes = 0;
-      weekDayCount = 0;
+      weekTargetMinutes = 0;
       weekFirstWorkDate = "";
       weekLastWorkDate = "";
     }
   }
 
   const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
-  const monthlyTargetMinutes = entries.length * DAILY_TARGET_MINUTES;
+  const monthlyTargetMinutes = entries.reduce((sum, entry) => sum + entry.target_minutes, 0);
   const totalOvertimeMinutes = Math.max(0, totalMinutes - monthlyTargetMinutes);
   const totalRecoveredMinutes = entries.reduce((sum, entry) => sum + entry.recovered_minutes, 0);
+  const workedDayCount = entries.reduce(
+    (sum, entry) => sum + (entry.is_worked_day ? 1 : 0),
+    0
+  );
+  const dayTypeCounts = Object.fromEntries(
+    DAY_TYPE_OPTIONS.map((option) => [
+      option.value,
+      entries.reduce((sum, entry) => sum + (entry.day_type === option.value ? 1 : 0), 0),
+    ])
+  );
   return {
     entries,
     displayEntries,
+    payPeriodStartDate: startDate,
+    payPeriodEndDate: inclusiveEndDate,
+    payPeriodLabel: formatPayPeriodLabelFr(startDate, inclusiveEndDate),
+    salaryAmountCents,
+    workedDayCount,
+    dayTypeCounts,
     totalHHMM: formatMinutesToHHMM(totalMinutes),
     totalOvertimeHHMM: formatMinutesToHHMM(totalOvertimeMinutes),
     totalRecoveredHHMM: formatMinutesToHHMM(totalRecoveredMinutes),
@@ -378,11 +519,24 @@ function getMonthData(username, month) {
 function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
-  const { entries, displayEntries, totalHHMM, totalOvertimeHHMM, totalRecoveredHHMM } =
+  const {
+    entries,
+    displayEntries,
+    payPeriodStartDate,
+    payPeriodEndDate,
+    payPeriodLabel,
+    salaryAmountCents,
+    workedDayCount,
+    dayTypeCounts,
+    totalHHMM,
+    totalOvertimeHHMM,
+    totalRecoveredHHMM,
+  } =
     getMonthData(username, month);
 
   const defaultFormData = {
     date: formatDate(new Date()),
+    dayType: DEFAULT_DAY_TYPE,
     arrivalTime: "09:00",
     departureTime: "17:00",
     lunchBreakMinutes: 60,
@@ -394,6 +548,7 @@ function renderIndex(res, options = {}) {
   const editFormData = entryToEdit
     ? {
         date: entryToEdit.work_date,
+        dayType: entryToEdit.day_type,
         arrivalTime: entryToEdit.arrival_time,
         departureTime: entryToEdit.departure_time,
         lunchBreakMinutes: entryToEdit.lunch_break_minutes,
@@ -410,11 +565,29 @@ function renderIndex(res, options = {}) {
     selectedMonth: month,
     entries,
     displayEntries,
+    payPeriodStartDate,
+    payPeriodEndDate,
+    payPeriodLabel,
+    salaryAmountDisplay:
+      salaryAmountCents === null ? "Non renseigne" : formatCurrencyFromCents(salaryAmountCents),
+    salaryAmountInput:
+      typeof options.salaryAmountInput === "string"
+        ? options.salaryAmountInput
+        : salaryAmountCents === null
+          ? ""
+          : (salaryAmountCents / 100).toFixed(2),
+    workedDayCount,
+    dayTypeFilters: DAY_TYPE_FILTERS.map((filter) => ({
+      ...filter,
+      count: filter.value === "all" ? entries.length : dayTypeCounts[filter.value] || 0,
+    })),
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
     error: options.error || "",
     formData: mergedFormData,
+    dayTypeOptions: DAY_TYPE_OPTIONS,
+    showSalaryEditor: Boolean(options.showSalaryEditor),
     isEditing: Boolean(editingWorkDate),
     editingWorkDate,
     authUser: res.locals.authUser || "",
@@ -567,21 +740,28 @@ app.get("/", (req, res) => {
 
 app.get("/entries/:workDate/edit", (req, res) => {
   const workDate = req.params.workDate;
-  const month = normalizeMonth(
-    req.query.month || (isValidDate(workDate) ? workDate.slice(0, 7) : "")
-  );
+  const month = normalizeMonth(req.query.month || getPayPeriodMonthForDate(workDate));
   renderIndex(res, { username: req.authUser, month, editDate: workDate });
 });
 
 app.get("/export.csv", (req, res) => {
   const month = normalizeMonth(req.query.month);
-  const { entries, totalHHMM, totalOvertimeHHMM, totalRecoveredHHMM } = getMonthData(
+  const {
+    entries,
+    payPeriodStartDate,
+    payPeriodEndDate,
+    salaryAmountCents,
+    totalHHMM,
+    totalOvertimeHHMM,
+    totalRecoveredHHMM,
+  } = getMonthData(
     req.authUser,
     month
   );
 
   const header = [
     "date",
+    "day_type",
     "arrival_time",
     "departure_time",
     "lunch_break_minutes",
@@ -598,9 +778,10 @@ app.get("/export.csv", (req, res) => {
     lines.push(
       [
         entry.work_date,
-        entry.arrival_time,
-        entry.departure_time,
-        entry.lunch_break_minutes,
+        entry.day_type_display,
+        entry.arrival_time_display,
+        entry.departure_time_display,
+        entry.lunch_break_minutes_display,
         normalizeExportText(entry.comment_text),
         entry.worked_hhmm,
         entry.overtime_hhmm,
@@ -613,9 +794,14 @@ app.get("/export.csv", (req, res) => {
   }
 
   lines.push("");
-  lines.push([escapeCsvValue("total_month"), escapeCsvValue(totalHHMM)].join(CSV_SEPARATOR));
+  lines.push([escapeCsvValue("pay_period"), escapeCsvValue(`${payPeriodStartDate} -> ${payPeriodEndDate}`)].join(CSV_SEPARATOR));
+  lines.push([escapeCsvValue("total_period"), escapeCsvValue(totalHHMM)].join(CSV_SEPARATOR));
   lines.push([escapeCsvValue("total_overtime"), escapeCsvValue(totalOvertimeHHMM)].join(CSV_SEPARATOR));
   lines.push([escapeCsvValue("total_recovered"), escapeCsvValue(totalRecoveredHHMM)].join(CSV_SEPARATOR));
+  lines.push([
+    escapeCsvValue("salary_amount"),
+    escapeCsvValue(salaryAmountCents === null ? "" : formatCurrencyFromCents(salaryAmountCents)),
+  ].join(CSV_SEPARATOR));
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="hours-${month}.csv"`);
@@ -623,9 +809,36 @@ app.get("/export.csv", (req, res) => {
   res.send(csvText);
 });
 
+app.post("/pay-period-salary", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const salaryAmountInput = typeof req.body.salaryAmount === "string" ? req.body.salaryAmount.trim() : "";
+  const parsedSalary = parseCurrencyToCents(salaryAmountInput);
+
+  if (!parsedSalary.valid) {
+    return renderIndex(res, {
+      month,
+      error: "Le montant du salaire doit etre un nombre positif avec deux decimales maximum.",
+      salaryAmountInput,
+      showSalaryEditor: true,
+    });
+  }
+
+  if (parsedSalary.cents === null) {
+    db.deletePayPeriodSalary(req.authUser, month);
+  } else {
+    db.upsertPayPeriodSalary(req.authUser, {
+      pay_period_month: month,
+      salary_amount_cents: parsedSalary.cents,
+    });
+  }
+
+  return res.redirect(`/?month=${encodeURIComponent(month)}`);
+});
+
 app.post("/entries", (req, res) => {
   const {
     date,
+    dayType,
     arrivalTime,
     departureTime,
     lunchBreakMinutes,
@@ -635,23 +848,26 @@ app.post("/entries", (req, res) => {
   } = req.body;
   const normalizedComment = typeof commentText === "string" ? commentText.trim() : "";
   const safeOriginalWorkDate = isValidDate(originalWorkDate) ? originalWorkDate : "";
-  const month = normalizeMonth(selectedMonth || (typeof date === "string" ? date.slice(0, 7) : ""));
+  const normalizedDayType = normalizeDayType(dayType) || DEFAULT_DAY_TYPE;
+  const isWorkedDay = isWorkedDayType(normalizedDayType);
+  const month = normalizeMonth(selectedMonth || getPayPeriodMonthForDate(date));
+  const entryMonth = normalizeMonth(getPayPeriodMonthForDate(date) || month);
   const errors = [];
 
   if (!isValidDate(date)) {
     errors.push("La date est invalide.");
   }
 
-  if (!isValidTime(arrivalTime)) {
+  if (isWorkedDay && !isValidTime(arrivalTime)) {
     errors.push("L'heure d'arrivee est invalide (format attendu HH:MM).");
   }
 
-  if (!isValidTime(departureTime)) {
+  if (isWorkedDay && !isValidTime(departureTime)) {
     errors.push("L'heure de depart est invalide (format attendu HH:MM).");
   }
 
-  const breakMinutes = Number(lunchBreakMinutes);
-  if (!Number.isInteger(breakMinutes) || breakMinutes < 0) {
+  const breakMinutes = isWorkedDay ? Number(lunchBreakMinutes) : 0;
+  if (isWorkedDay && (!Number.isInteger(breakMinutes) || breakMinutes < 0)) {
     errors.push("La pause dejeuner doit etre un entier positif ou nul.");
   }
 
@@ -665,6 +881,7 @@ app.post("/entries", (req, res) => {
       error: errors[0],
       formData: {
         date,
+        dayType: normalizedDayType,
         arrivalTime,
         departureTime,
         lunchBreakMinutes,
@@ -674,44 +891,56 @@ app.post("/entries", (req, res) => {
     });
   }
 
-  const arrivalMinutes = toMinutes(arrivalTime);
-  const departureMinutes = toMinutes(departureTime);
+  let safeArrivalTime = arrivalTime;
+  let safeDepartureTime = departureTime;
+  let workedMinutes = 0;
 
-  if (departureMinutes <= arrivalMinutes) {
-    return renderIndex(res, {
-      month,
-      error: "L'heure de depart doit etre apres l'heure d'arrivee.",
-      formData: {
-        date,
-        arrivalTime,
-        departureTime,
-        lunchBreakMinutes,
-        commentText: normalizedComment,
-        originalWorkDate: safeOriginalWorkDate,
-      },
-    });
-  }
+  if (isWorkedDay) {
+    const arrivalMinutes = toMinutes(arrivalTime);
+    const departureMinutes = toMinutes(departureTime);
 
-  const workedMinutes = departureMinutes - arrivalMinutes - breakMinutes;
-  if (workedMinutes < 0) {
-    return renderIndex(res, {
-      month,
-      error: "La pause dejeuner est trop longue pour ce creneau horaire.",
-      formData: {
-        date,
-        arrivalTime,
-        departureTime,
-        lunchBreakMinutes,
-        commentText: normalizedComment,
-        originalWorkDate: safeOriginalWorkDate,
-      },
-    });
+    if (departureMinutes <= arrivalMinutes) {
+      return renderIndex(res, {
+        month,
+        error: "L'heure de depart doit etre apres l'heure d'arrivee.",
+        formData: {
+          date,
+          dayType: normalizedDayType,
+          arrivalTime,
+          departureTime,
+          lunchBreakMinutes,
+          commentText: normalizedComment,
+          originalWorkDate: safeOriginalWorkDate,
+        },
+      });
+    }
+
+    workedMinutes = departureMinutes - arrivalMinutes - breakMinutes;
+    if (workedMinutes < 0) {
+      return renderIndex(res, {
+        month,
+        error: "La pause dejeuner est trop longue pour ce creneau horaire.",
+        formData: {
+          date,
+          dayType: normalizedDayType,
+          arrivalTime,
+          departureTime,
+          lunchBreakMinutes,
+          commentText: normalizedComment,
+          originalWorkDate: safeOriginalWorkDate,
+        },
+      });
+    }
+  } else {
+    safeArrivalTime = "00:00";
+    safeDepartureTime = "00:00";
   }
 
   db.upsertEntry(req.authUser, {
     work_date: date,
-    arrival_time: arrivalTime,
-    departure_time: departureTime,
+    day_type: normalizedDayType,
+    arrival_time: safeArrivalTime,
+    departure_time: safeDepartureTime,
     lunch_break_minutes: breakMinutes,
     worked_minutes: workedMinutes,
     comment_text: normalizedComment,
@@ -720,14 +949,12 @@ app.post("/entries", (req, res) => {
     db.deleteEntry(req.authUser, safeOriginalWorkDate);
   }
 
-  return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  return res.redirect(`/?month=${encodeURIComponent(entryMonth)}`);
 });
 
 app.post("/entries/:workDate/delete", (req, res) => {
   const workDate = req.params.workDate;
-  const month = normalizeMonth(
-    req.body.selectedMonth || (typeof workDate === "string" ? workDate.slice(0, 7) : "")
-  );
+  const month = normalizeMonth(req.body.selectedMonth || getPayPeriodMonthForDate(workDate));
 
   if (isValidDate(workDate)) {
     db.deleteEntry(req.authUser, workDate);

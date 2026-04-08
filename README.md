@@ -9,9 +9,10 @@ Application web Node.js/Express pour suivre les heures de travail par mois, avec
   date, heure d'arrivee, heure de depart, pause dejeuner et commentaire.
 - Calcul automatique des heures travaillees.
 - Calcul des ecarts par rapport a une cible journaliere de `7h00`.
-- Affichage des totaux hebdomadaires et du total mensuel.
+- Affichage des totaux hebdomadaires et du total de la periode de paie.
+- Saisie d'un montant de salaire par periode de paie.
 - Modification et suppression d'une journee existante.
-- Export CSV du mois selectionne.
+- Export CSV de la periode selectionnee.
 - Plusieurs themes visuels persistants en `localStorage`.
 - Repli/deroulement de la zone de saisie et des semaines dans le tableau.
 
@@ -102,12 +103,23 @@ Contient:
 - `created_at`
 - `updated_at`
 
+### Table `pay_period_salaries`
+
+Contient:
+
+- `pay_period_month`
+- `salary_amount_cents`
+- `created_at`
+- `updated_at`
+
 ## Regles de gestion
 
 - Une journee est identifiee par sa date.
 - Le depart doit etre strictement apres l'arrivee.
 - La pause dejeuner doit etre un entier positif ou nul.
 - Le commentaire est limite a `1000` caracteres.
+- Le selecteur `YYYY-MM` represente le mois de paie.
+- Une periode de paie va du `15` du mois precedent au `14` du mois selectionne inclus.
 - Les heures travaillees sont calculees ainsi:
 
 ```text
@@ -128,6 +140,7 @@ GET /export.csv?month=YYYY-MM
 
 Le fichier exporte contient notamment:
 
+- periode de paie
 - date
 - heure d'arrivee
 - heure de depart
@@ -137,6 +150,7 @@ Le fichier exporte contient notamment:
 - heures supplementaires
 - temps de recuperation
 - statut
+- montant du salaire de la periode
 
 Le separateur CSV est `;` et un BOM UTF-8 est ajoute pour une meilleure ouverture dans Excel.
 
