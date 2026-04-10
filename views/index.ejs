@@ -194,9 +194,19 @@
             class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
             data-day-filter="<%= filter.value %>"
             aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+            title="Periode: <%= filter.count %> | Annee en cours: <%= filter.yearCount %>"
           >
             <span><%= filter.label %></span>
-            <span class="day-filter-count"><%= filter.count %></span>
+            <span class="day-filter-counts">
+              <span class="day-filter-count" title="Periode">
+                <span class="day-filter-count-label">M</span>
+                <span><%= filter.count %></span>
+              </span>
+              <span class="day-filter-count day-filter-count-year" title="Annee en cours">
+                <span class="day-filter-count-label">A</span>
+                <span><%= filter.yearCount %></span>
+              </span>
+            </span>
           </button>
           <% }); %>
         </div>
@@ -310,11 +320,13 @@
               <tr class="monthly-total-row">
                 <th colspan="3"></th>
                 <th colspan="2" class="summary-pair-cell">
-                  <span class="summary-pair-label">Jours travaillés</span>
+                  <span class="summary-pair-label">Jours travaillés:</span>
                   <span class="summary-pair-value"><%= workedDayCount %></span>
                 </th>
-                <th>Total periode</th>
-                <th><%= totalHHMM %></th>
+                <th colspan="2" class="summary-pair-cell">
+                  <span class="summary-pair-label">Total Période:</span>
+                  <span class="summary-pair-value"><%= totalHHMM %></span>
+                </th>
                 <th class="overtime-col"><%= totalOvertimeHHMM %></th>
                 <th class="recovered-col"><%= totalRecoveredHHMM %></th>
                 <th class="salary-label-cell">
@@ -340,7 +352,12 @@
                     </form>
                   </details>
                 </th>
-                <th class="salary-value-cell"><%= salaryAmountDisplay %></th>
+                <th class="salary-value-cell">
+                  <div class="salary-value-main"><%= salaryAmountDisplay %></div>
+                  <% if (hourlyRateDisplay) { %>
+                  <div class="salary-value-sub"><%= hourlyRateDisplay %> sur <%= totalHHMM %></div>
+                  <% } %>
+                </th>
               </tr>
             </tfoot>
           </table>

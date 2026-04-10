@@ -230,6 +230,18 @@ function formatCurrencyFromCents(amountCents) {
   }).format(safeAmount / 100);
 }
 
+function formatHourlyRateFromCents(amountCents, hoursBase) {
+  const safeAmount = Number.isInteger(amountCents) ? amountCents : 0;
+  const safeHoursBase = Number(hoursBase);
+  if (!Number.isFinite(safeHoursBase) || safeHoursBase <= 0) {
+    return "";
+  }
+  return `${new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(safeAmount / 100 / safeHoursBase)} EUR/h`;
+}
+
 function parseCurrencyToCents(value) {
   if (typeof value !== "string") {
     return { valid: false, cents: null };
@@ -403,10 +415,19 @@ function formatWeekSummaryLabelFr(startDate, endDate, weekNumber) {
   return rangeLabel || weekLabel;
 }
 
+function getYearToDateBounds(endDateExclusive) {
+  const [year] = endDateExclusive.split("-").map(Number);
+  return {
+    startDate: `${year}-01-01`,
+    endDate: endDateExclusive,
+  };
+}
+
 function getMonthData(username, month) {
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
   const salaryAmountCents = db.getPayPeriodSalary(username, normalizedMonth);
+  const yearToDateBounds = getYearToDateBounds(endDate);
   let runningBalanceMinutes = 0;
   const baseEntries = db.getEntriesForMonth(username, startDate, endDate).map((entry) => {
     const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
@@ -501,6 +522,15 @@ function getMonthData(username, month) {
       entries.reduce((sum, entry) => sum + (entry.day_type === option.value ? 1 : 0), 0),
     ])
   );
+  const yearEntries = db
+    .getEntriesForMonth(username, yearToDateBounds.startDate, yearToDateBounds.endDate)
+    .map((entry) => normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE);
+  const yearDayTypeCounts = Object.fromEntries(
+    DAY_TYPE_OPTIONS.map((option) => [
+      option.value,
+      yearEntries.reduce((sum, dayType) => sum + (dayType === option.value ? 1 : 0), 0),
+    ])
+  );
   return {
     entries,
     displayEntries,
@@ -510,6 +540,9 @@ function getMonthData(username, month) {
     salaryAmountCents,
     workedDayCount,
     dayTypeCounts,
+    yearEntryCount: yearEntries.length,
+    yearDayTypeCounts,
+    totalMinutes,
     totalHHMM: formatMinutesToHHMM(totalMinutes),
     totalOvertimeHHMM: formatMinutesToHHMM(totalOvertimeMinutes),
     totalRecoveredHHMM: formatMinutesToHHMM(totalRecoveredMinutes),
@@ -528,6 +561,9 @@ function renderIndex(res, options = {}) {
     salaryAmountCents,
     workedDayCount,
     dayTypeCounts,
+    yearEntryCount,
+    yearDayTypeCounts,
+    totalMinutes,
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
@@ -570,6 +606,10 @@ function renderIndex(res, options = {}) {
     payPeriodLabel,
     salaryAmountDisplay:
       salaryAmountCents === null ? "Non renseigne" : formatCurrencyFromCents(salaryAmountCents),
+    hourlyRateDisplay:
+      salaryAmountCents === null || totalMinutes <= 0
+        ? ""
+        : formatHourlyRateFromCents(salaryAmountCents, totalMinutes / 60),
     salaryAmountInput:
       typeof options.salaryAmountInput === "string"
         ? options.salaryAmountInput
@@ -580,6 +620,7 @@ function renderIndex(res, options = {}) {
     dayTypeFilters: DAY_TYPE_FILTERS.map((filter) => ({
       ...filter,
       count: filter.value === "all" ? entries.length : dayTypeCounts[filter.value] || 0,
+      yearCount: filter.value === "all" ? yearEntryCount : yearDayTypeCounts[filter.value] || 0,
     })),
     totalHHMM,
     totalOvertimeHHMM,
@@ -971,3 +1012,4 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Hours app running on http://localhost:${PORT}`);
 });
+

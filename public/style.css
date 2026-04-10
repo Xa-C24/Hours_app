@@ -874,11 +874,30 @@ h2 {
   align-items: center;
   justify-content: center;
   min-width: 1.5rem;
-  margin-left: 0.45rem;
   padding: 0.08rem 0.42rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--chip-bg) 88%, #ffffff 12%);
   color: var(--chip-text);
+}
+
+.day-filter-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.45rem;
+}
+
+.day-filter-count-year {
+  background: color-mix(in srgb, var(--card-bg-2) 88%, #ffffff 12%);
+  color: var(--muted);
+}
+
+.day-filter-count-label {
+  margin-right: 0.22rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 button {
@@ -1255,6 +1274,21 @@ tfoot tr.monthly-total-row th.summary-pair-cell {
 tfoot tr.monthly-total-row th.salary-label-cell,
 tfoot tr.monthly-total-row th.salary-value-cell {
   text-align: right;
+}
+
+tfoot tr.monthly-total-row th.salary-value-cell {
+  white-space: nowrap;
+}
+
+.salary-value-main {
+  font-weight: 800;
+}
+
+.salary-value-sub {
+  margin-top: 0.18rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 tfoot tr.monthly-total-row th.salary-label-cell {
