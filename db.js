@@ -37,6 +37,18 @@ function ensureWorkEntriesDayTypeColumn(database) {
   }
 }
 
+function ensureUsersRecoveryColumns(database) {
+  const columns = database.prepare("PRAGMA table_info(users)").all();
+  const hasRecoverySaltColumn = columns.some((column) => column.name === "recovery_code_salt");
+  const hasRecoveryHashColumn = columns.some((column) => column.name === "recovery_code_hash");
+  if (!hasRecoverySaltColumn) {
+    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_salt TEXT").run();
+  }
+  if (!hasRecoveryHashColumn) {
+    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_hash TEXT").run();
+  }
+}
+
 function relaxWorkEntriesLunchBreakConstraint(database) {
   const tableDef = database
     .prepare(
@@ -115,17 +127,38 @@ CREATE TABLE IF NOT EXISTS pay_period_salaries (
 );
 `;
 
+const sessionsSchemaSql = `
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  expires_at_ms INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_username
+  ON sessions (username);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at_ms
+  ON sessions (expires_at_ms);
+`;
+
 ensureWorkEntriesCommentColumn(authDb);
 ensureWorkEntriesDayTypeColumn(authDb);
+ensureUsersRecoveryColumns(authDb);
 relaxWorkEntriesLunchBreakConstraint(authDb);
 authDb.exec(payPeriodSalariesSchemaSql);
+authDb.exec(sessionsSchemaSql);
 
 const getUserByUsernameStmt = authDb.prepare(`
   SELECT
     id,
     username,
     password_salt,
-    password_hash
+    password_hash,
+    recovery_code_salt,
+    recovery_code_hash
   FROM users
   WHERE username = ?
 `);
@@ -135,6 +168,8 @@ const createUserStmt = authDb.prepare(`
     username,
     password_salt,
     password_hash,
+    recovery_code_salt,
+    recovery_code_hash,
     created_at,
     updated_at
   )
@@ -142,9 +177,71 @@ const createUserStmt = authDb.prepare(`
     @username,
     @password_salt,
     @password_hash,
+    @recovery_code_salt,
+    @recovery_code_hash,
     datetime('now'),
     datetime('now')
   )
+`);
+
+const updateUserPasswordStmt = authDb.prepare(`
+  UPDATE users
+  SET
+    password_salt = @password_salt,
+    password_hash = @password_hash,
+    updated_at = datetime('now')
+  WHERE username = @username
+`);
+
+const updateUserPasswordAndRecoveryCodeStmt = authDb.prepare(`
+  UPDATE users
+  SET
+    password_salt = @password_salt,
+    password_hash = @password_hash,
+    recovery_code_salt = @recovery_code_salt,
+    recovery_code_hash = @recovery_code_hash,
+    updated_at = datetime('now')
+  WHERE username = @username
+`);
+
+const upsertSessionStmt = authDb.prepare(`
+  INSERT INTO sessions (
+    token,
+    username,
+    expires_at_ms,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    @token,
+    @username,
+    @expires_at_ms,
+    datetime('now'),
+    datetime('now')
+  )
+  ON CONFLICT(token) DO UPDATE SET
+    username = excluded.username,
+    expires_at_ms = excluded.expires_at_ms,
+    updated_at = datetime('now')
+`);
+
+const getSessionByTokenStmt = authDb.prepare(`
+  SELECT
+    token,
+    username,
+    expires_at_ms
+  FROM sessions
+  WHERE token = ?
+`);
+
+const deleteSessionStmt = authDb.prepare(`
+  DELETE FROM sessions
+  WHERE token = ?
+`);
+
+const deleteExpiredSessionsStmt = authDb.prepare(`
+  DELETE FROM sessions
+  WHERE expires_at_ms <= ?
 `);
 
 const workEntriesSchemaSql = `
@@ -252,6 +349,18 @@ function getUserStore(username) {
       DELETE FROM work_entries
       WHERE work_date = ?
     `),
+    getEntryByWorkDateStmt: userDb.prepare(`
+      SELECT
+        work_date,
+        day_type,
+        arrival_time,
+        departure_time,
+        lunch_break_minutes,
+        worked_minutes,
+        comment_text
+      FROM work_entries
+      WHERE work_date = ?
+    `),
     upsertPayPeriodSalaryStmt: userDb.prepare(`
       INSERT INTO pay_period_salaries (
         pay_period_month,
@@ -311,6 +420,11 @@ function deleteEntry(username, workDate) {
   store.deleteEntryStmt.run(workDate);
 }
 
+function getEntryByWorkDate(username, workDate) {
+  const store = getUserStore(username);
+  return store.getEntryByWorkDateStmt.get(workDate) || null;
+}
+
 function upsertPayPeriodSalary(username, payPeriodSalary) {
   const store = getUserStore(username);
   store.upsertPayPeriodSalaryStmt.run(payPeriodSalary);
@@ -340,9 +454,34 @@ function createUser(user) {
   createUserStmt.run(user);
 }
 
+function updateUserPassword(user) {
+  updateUserPasswordStmt.run(user);
+}
+
+function updateUserPasswordAndRecoveryCode(user) {
+  updateUserPasswordAndRecoveryCodeStmt.run(user);
+}
+
+function upsertSession(session) {
+  upsertSessionStmt.run(session);
+}
+
+function getSessionByToken(token) {
+  return getSessionByTokenStmt.get(token) || null;
+}
+
+function deleteSession(token) {
+  deleteSessionStmt.run(token);
+}
+
+function deleteExpiredSessions(nowMs) {
+  deleteExpiredSessionsStmt.run(nowMs);
+}
+
 module.exports = {
   upsertEntry,
   deleteEntry,
+  getEntryByWorkDate,
   upsertPayPeriodSalary,
   deletePayPeriodSalary,
   getPayPeriodSalary,
@@ -350,4 +489,10 @@ module.exports = {
   ensureUserDatabase,
   getUserByUsername,
   createUser,
+  updateUserPassword,
+  updateUserPasswordAndRecoveryCode,
+  upsertSession,
+  getSessionByToken,
+  deleteSession,
+  deleteExpiredSessions,
 };

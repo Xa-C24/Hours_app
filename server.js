@@ -16,7 +16,6 @@ const CSV_SEPARATOR = ";";
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const sessions = new Map();
 const DAY_TYPE_OPTIONS = [
   { value: "office", label: "Bureau", isWorkedDay: true },
   { value: "remote", label: "Télétravail", isWorkedDay: true },
@@ -33,6 +32,41 @@ const DAY_TYPE_FILTERS = [
   { value: "all", label: "Tous" },
   ...DAY_TYPE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
 ];
+
+function getCanonicalDayTypeLabel(dayType, fallbackLabel = "") {
+  switch (dayType) {
+    case "office":
+      return "Bureau";
+    case "remote":
+      return "Télétravail";
+    case "leave":
+      return "Congés";
+    case "rtt":
+      return "RTT";
+    case "sick_leave":
+      return "Arrêt";
+    case "holiday":
+      return "Férié";
+    default:
+      return fallbackLabel;
+  }
+}
+
+function normalizeDisplayLabel(label) {
+  const normalizedLabel = String(label ?? "");
+  switch (normalizedLabel) {
+    case "TÃ©lÃ©travail":
+      return "Télétravail";
+    case "CongÃ©s":
+      return "Congés";
+    case "Arret":
+      return "Arrêt";
+    case "FÃ©riÃ©":
+      return "Férié";
+    default:
+      return normalizedLabel;
+  }
+}
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -56,7 +90,11 @@ function parseCookies(cookieHeader) {
       continue;
     }
     const value = valueParts.join("=").trim();
-    cookies[name] = decodeURIComponent(value);
+    try {
+      cookies[name] = decodeURIComponent(value);
+    } catch (error) {
+      cookies[name] = value;
+    }
   }
   return cookies;
 }
@@ -68,9 +106,11 @@ function getSessionTokenFromRequest(req) {
 
 function createSession(username) {
   const token = crypto.randomBytes(24).toString("hex");
-  sessions.set(token, {
+  db.deleteExpiredSessions(Date.now());
+  db.upsertSession({
+    token,
     username,
-    expiresAt: Date.now() + SESSION_DURATION_MS,
+    expires_at_ms: Date.now() + SESSION_DURATION_MS,
   });
   return token;
 }
@@ -80,16 +120,19 @@ function getSessionFromRequest(req) {
   if (!token) {
     return null;
   }
-  const session = sessions.get(token);
+  const session = db.getSessionByToken(token);
   if (!session) {
     return null;
   }
-  if (session.expiresAt <= Date.now()) {
-    sessions.delete(token);
+  if (session.expires_at_ms <= Date.now()) {
+    db.deleteSession(token);
     return null;
   }
-  session.expiresAt = Date.now() + SESSION_DURATION_MS;
-  sessions.set(token, session);
+  db.upsertSession({
+    token,
+    username: session.username,
+    expires_at_ms: Date.now() + SESSION_DURATION_MS,
+  });
   return { token, username: session.username };
 }
 
@@ -112,6 +155,10 @@ function isValidPassword(value) {
 function hashPassword(password, saltHex = crypto.randomBytes(16).toString("hex")) {
   const hashHex = crypto.scryptSync(password, saltHex, 64).toString("hex");
   return { saltHex, hashHex };
+}
+
+function generateRecoveryCode() {
+  return crypto.randomBytes(6).toString("hex").toUpperCase();
 }
 
 function verifyPassword(password, saltHex, expectedHashHex) {
@@ -143,7 +190,13 @@ function normalizeDayType(value) {
 }
 
 function getDayTypeConfig(dayType) {
-  return DAY_TYPE_CONFIG_BY_VALUE.get(normalizeDayType(dayType)) || DAY_TYPE_CONFIG_BY_VALUE.get(DEFAULT_DAY_TYPE);
+  const config =
+    DAY_TYPE_CONFIG_BY_VALUE.get(normalizeDayType(dayType)) ||
+    DAY_TYPE_CONFIG_BY_VALUE.get(DEFAULT_DAY_TYPE);
+  return {
+    ...config,
+    label: getCanonicalDayTypeLabel(config.value, normalizeDisplayLabel(config.label)),
+  };
 }
 
 function isWorkedDayType(dayType) {
@@ -619,6 +672,10 @@ function renderIndex(res, options = {}) {
     workedDayCount,
     dayTypeFilters: DAY_TYPE_FILTERS.map((filter) => ({
       ...filter,
+      label:
+        filter.value === "all"
+          ? "Tous"
+          : getCanonicalDayTypeLabel(filter.value, normalizeDisplayLabel(filter.label)),
       count: filter.value === "all" ? entries.length : dayTypeCounts[filter.value] || 0,
       yearCount: filter.value === "all" ? yearEntryCount : yearDayTypeCounts[filter.value] || 0,
     })),
@@ -627,7 +684,11 @@ function renderIndex(res, options = {}) {
     totalRecoveredHHMM,
     error: options.error || "",
     formData: mergedFormData,
-    dayTypeOptions: DAY_TYPE_OPTIONS,
+    dayTypeOptions: DAY_TYPE_OPTIONS.map((option) => ({
+      ...option,
+      label: getCanonicalDayTypeLabel(option.value, normalizeDisplayLabel(option.label)),
+    })),
+    showReplaceConfirmation: Boolean(options.showReplaceConfirmation),
     showSalaryEditor: Boolean(options.showSalaryEditor),
     isEditing: Boolean(editingWorkDate),
     editingWorkDate,
@@ -646,6 +707,17 @@ function renderLogin(res, options = {}) {
 function renderRegister(res, options = {}) {
   res.render("register", {
     error: options.error || "",
+    success: options.success || "",
+    recoveryCode: options.recoveryCode || "",
+    formData: options.formData || { username: "" },
+  });
+}
+
+function renderForgotPassword(res, options = {}) {
+  res.render("forgot-password", {
+    error: options.error || "",
+    success: options.success || "",
+    recoveryCode: options.recoveryCode || "",
     formData: options.formData || { username: "" },
   });
 }
@@ -746,11 +818,15 @@ app.post("/register", (req, res) => {
   }
 
   const { saltHex, hashHex } = hashPassword(password);
+  const recoveryCode = generateRecoveryCode();
+  const { saltHex: recoverySaltHex, hashHex: recoveryHashHex } = hashPassword(recoveryCode);
   try {
     db.createUser({
       username,
       password_salt: saltHex,
       password_hash: hashHex,
+      recovery_code_salt: recoverySaltHex,
+      recovery_code_hash: recoveryHashHex,
     });
     db.ensureUserDatabase(username);
   } catch (error) {
@@ -762,12 +838,96 @@ app.post("/register", (req, res) => {
     }
     throw error;
   }
-  return res.redirect(`/login?registered=1&username=${encodeURIComponent(username)}`);
+  return renderRegister(res, {
+    success: "Compte cree avec succes. Conservez votre code de recuperation dans un endroit sur.",
+    recoveryCode,
+    formData: { username },
+  });
+});
+
+app.get("/forgot-password", (req, res) => {
+  if (req.authUser) {
+    return res.redirect("/");
+  }
+  const username = typeof req.query.username === "string" ? req.query.username.trim() : "";
+  return renderForgotPassword(res, {
+    formData: { username },
+  });
+});
+
+app.post("/forgot-password", (req, res) => {
+  if (req.authUser) {
+    return res.redirect("/");
+  }
+
+  const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
+  const recoveryCode = typeof req.body.recoveryCode === "string" ? req.body.recoveryCode.trim().toUpperCase() : "";
+  const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
+  const confirmPassword = typeof req.body.confirmPassword === "string" ? req.body.confirmPassword : "";
+
+  if (!username || !recoveryCode || !newPassword || !confirmPassword) {
+    return renderForgotPassword(res, {
+      error: "Tous les champs sont obligatoires.",
+      formData: { username },
+    });
+  }
+
+  if (!isValidPassword(newPassword)) {
+    return renderForgotPassword(res, {
+      error: `Le nouveau mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.`,
+      formData: { username },
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return renderForgotPassword(res, {
+      error: "La confirmation du nouveau mot de passe ne correspond pas.",
+      formData: { username },
+    });
+  }
+
+  const user = db.getUserByUsername(username);
+  const hasRecoveryCode =
+    user &&
+    typeof user.recovery_code_salt === "string" &&
+    user.recovery_code_salt &&
+    typeof user.recovery_code_hash === "string" &&
+    user.recovery_code_hash;
+  if (
+    !hasRecoveryCode ||
+    !verifyPassword(recoveryCode, user.recovery_code_salt, user.recovery_code_hash)
+  ) {
+    return renderForgotPassword(res, {
+      error: "Nom utilisateur ou code de recuperation invalide.",
+      formData: { username },
+    });
+  }
+
+  const { saltHex, hashHex } = hashPassword(newPassword);
+  const nextRecoveryCode = generateRecoveryCode();
+  const {
+    saltHex: nextRecoverySaltHex,
+    hashHex: nextRecoveryHashHex,
+  } = hashPassword(nextRecoveryCode);
+
+  db.updateUserPasswordAndRecoveryCode({
+    username,
+    password_salt: saltHex,
+    password_hash: hashHex,
+    recovery_code_salt: nextRecoverySaltHex,
+    recovery_code_hash: nextRecoveryHashHex,
+  });
+
+  return renderForgotPassword(res, {
+    success: "Mot de passe reinitialise. Conservez votre nouveau code de recuperation.",
+    recoveryCode: nextRecoveryCode,
+    formData: { username },
+  });
 });
 
 app.post("/logout", (req, res) => {
   if (req.authSessionToken) {
-    sessions.delete(req.authSessionToken);
+    db.deleteSession(req.authSessionToken);
   }
   clearSessionCookie(res);
   return res.redirect("/login");
@@ -886,6 +1046,7 @@ app.post("/entries", (req, res) => {
     commentText,
     selectedMonth,
     originalWorkDate,
+    confirmReplace,
   } = req.body;
   const normalizedComment = typeof commentText === "string" ? commentText.trim() : "";
   const safeOriginalWorkDate = isValidDate(originalWorkDate) ? originalWorkDate : "";
@@ -977,6 +1138,27 @@ app.post("/entries", (req, res) => {
     safeDepartureTime = "00:00";
   }
 
+  const isDateChange = safeOriginalWorkDate && safeOriginalWorkDate !== date;
+  const existingEntryAtTargetDate = db.getEntryByWorkDate(req.authUser, date);
+  const hasConflictAtTargetDate = Boolean(existingEntryAtTargetDate) && (!safeOriginalWorkDate || isDateChange);
+
+  if (hasConflictAtTargetDate && confirmReplace !== "1") {
+    return renderIndex(res, {
+      month,
+      error: "Une entree existe deja a cette date. Confirmez si vous voulez la remplacer.",
+      showReplaceConfirmation: true,
+      formData: {
+        date,
+        dayType: normalizedDayType,
+        arrivalTime,
+        departureTime,
+        lunchBreakMinutes,
+        commentText: normalizedComment,
+        originalWorkDate: safeOriginalWorkDate,
+      },
+    });
+  }
+
   db.upsertEntry(req.authUser, {
     work_date: date,
     day_type: normalizedDayType,
@@ -986,7 +1168,7 @@ app.post("/entries", (req, res) => {
     worked_minutes: workedMinutes,
     comment_text: normalizedComment,
   });
-  if (safeOriginalWorkDate && safeOriginalWorkDate !== date) {
+  if (isDateChange) {
     db.deleteEntry(req.authUser, safeOriginalWorkDate);
   }
 

@@ -45,8 +45,20 @@
           <h1>Creer un compte</h1>
           <p class="login-subtitle">Entrez un nom utilisateur et un mot de passe.</p>
 
+          <% if (success) { %>
+          <p class="alert alert-success"><%= success %></p>
+          <% } %>
+
           <% if (error) { %>
           <p class="alert"><%= error %></p>
+          <% } %>
+
+          <% if (recoveryCode) { %>
+          <div class="alert alert-success recovery-code-box">
+            <strong>Code de recuperation :</strong>
+            <div class="recovery-code-value"><%= recoveryCode %></div>
+            <div>Conservez-le. Il servira si vous oubliez votre mot de passe.</div>
+          </div>
           <% } %>
 
           <form action="/register" method="post" class="login-form">

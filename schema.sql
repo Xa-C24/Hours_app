@@ -32,9 +32,26 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  recovery_code_salt TEXT,
+  recovery_code_hash TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username
   ON users (username);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  expires_at_ms INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_username
+  ON sessions (username);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at_ms
+  ON sessions (expires_at_ms);

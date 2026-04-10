@@ -27,6 +27,8 @@
   </head>
   <body>
     <main class="container">
+      <br>
+      <br>
       <header class="page-header">
         <h1>Suivi mensuel des heures de travail</h1>
         <div class="header-actions">
@@ -156,6 +158,11 @@
 
           <div class="form-actions">
             <button type="submit"><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
+            <% if (showReplaceConfirmation) { %>
+            <button type="submit" name="confirmReplace" value="1" class="danger">
+              Remplacer l'entrée existante
+            </button>
+            <% } %>
             <% if (_isEditing) { %>
             <a class="button-link button-neutral" href="/?month=<%= encodeURIComponent(selectedMonth) %>">
               Annuler
@@ -170,23 +177,31 @@
       <section class="card">
         <div class="month-header">
           <div class="month-header-copy">
-            <h2>Periode de paie</h2>
+            <h2>Période de paie</h2>
             <% if (payPeriodLabel) { %>
             <p class="month-period-label"><%= payPeriodLabel %></p>
             <% } %>
           </div>
+     
           <div class="month-tools">
             <form action="/" method="get" class="month-form">
-              <label for="month">Choisir un mois</label>
-              <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
-              <button type="submit">Afficher</button>
+              <div class="month-form-row">
+                <label for="month">Choisir un mois</label>
+                <div class="month-form-controls">
+                  <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
+                  <button type="submit">Afficher</button>
+                  <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>">
+                    Export CSV
+                  </a>
+                </div>
+              </div>
             </form>
-            <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>">
-              Export CSV
-            </a>
           </div>
         </div>
 
+        <br>
+        <br>
+        
         <div class="day-filter-bar" data-day-filter-bar>
           <% dayTypeFilters.forEach((filter, index) => { %>
           <button
@@ -194,16 +209,16 @@
             class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
             data-day-filter="<%= filter.value %>"
             aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-            title="Periode: <%= filter.count %> | Annee en cours: <%= filter.yearCount %>"
+            title="Période: <%= filter.count %> | Année affichée: <%= filter.yearCount %>"
           >
             <span><%= filter.label %></span>
             <span class="day-filter-counts">
-              <span class="day-filter-count" title="Periode">
-                <span class="day-filter-count-label">M</span>
+              <span class="day-filter-count" title="Période">
+                <span class="day-filter-count-label" title="Mois" aria-label="Mois">M</span>
                 <span><%= filter.count %></span>
               </span>
-              <span class="day-filter-count day-filter-count-year" title="Annee en cours">
-                <span class="day-filter-count-label">A</span>
+              <span class="day-filter-count day-filter-count-year" title="Année affichée">
+                <span class="day-filter-count-label" title="Ann&eacute;e" aria-label="Ann&eacute;e">A</span>
                 <span><%= filter.yearCount %></span>
               </span>
             </span>
@@ -231,7 +246,7 @@
             <tbody>
               <% if (displayEntries.length === 0) { %>
               <tr>
-                <td colspan="11" class="empty">Aucune journee enregistree pour cette periode.</td>
+                <td colspan="11" class="empty">Aucune journée enregistrée pour cette période.</td>
               </tr>
               <% } %>
 
