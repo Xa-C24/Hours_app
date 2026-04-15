@@ -10,6 +10,7 @@ const SESSION_COOKIE_NAME = "hours_session";
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 6;
+const RECOVERY_CODE_REGEX = /^\d{6}$/;
 const MAX_COMMENT_LENGTH = 1000;
 const CSV_SEPARATOR = ";";
 
@@ -152,13 +153,21 @@ function isValidPassword(value) {
   return typeof value === "string" && value.length >= MIN_PASSWORD_LENGTH;
 }
 
+function normalizeRecoveryCode(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isValidRecoveryCode(value) {
+  return typeof value === "string" && RECOVERY_CODE_REGEX.test(value);
+}
+
 function hashPassword(password, saltHex = crypto.randomBytes(16).toString("hex")) {
   const hashHex = crypto.scryptSync(password, saltHex, 64).toString("hex");
   return { saltHex, hashHex };
 }
 
 function generateRecoveryCode() {
-  return crypto.randomBytes(6).toString("hex").toUpperCase();
+  return String(crypto.randomInt(0, 1000000)).padStart(6, "0");
 }
 
 function verifyPassword(password, saltHex, expectedHashHex) {
@@ -709,7 +718,7 @@ function renderRegister(res, options = {}) {
     error: options.error || "",
     success: options.success || "",
     recoveryCode: options.recoveryCode || "",
-    formData: options.formData || { username: "" },
+    formData: options.formData || { username: "", recoveryCode: "" },
   });
 }
 
@@ -794,18 +803,26 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
+  const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
 
   if (!isValidUsername(username)) {
     return renderRegister(res, {
       error: "Le nom utilisateur doit contenir 3 a 32 caracteres (lettres, chiffres, . _ -).",
-      formData: { username },
+      formData: { username, recoveryCode },
     });
   }
 
   if (!isValidPassword(password)) {
     return renderRegister(res, {
       error: `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.`,
-      formData: { username },
+      formData: { username, recoveryCode },
+    });
+  }
+
+  if (!isValidRecoveryCode(recoveryCode)) {
+    return renderRegister(res, {
+      error: "Le code de recuperation doit contenir exactement 6 chiffres.",
+      formData: { username, recoveryCode },
     });
   }
 
@@ -813,12 +830,11 @@ app.post("/register", (req, res) => {
   if (existingUser) {
     return renderRegister(res, {
       error: "Ce nom utilisateur existe deja.",
-      formData: { username },
+      formData: { username, recoveryCode },
     });
   }
 
   const { saltHex, hashHex } = hashPassword(password);
-  const recoveryCode = generateRecoveryCode();
   const { saltHex: recoverySaltHex, hashHex: recoveryHashHex } = hashPassword(recoveryCode);
   try {
     db.createUser({
@@ -833,16 +849,12 @@ app.post("/register", (req, res) => {
     if (isDuplicateUsernameError(error)) {
       return renderRegister(res, {
         error: "Ce nom utilisateur existe deja.",
-        formData: { username },
+        formData: { username, recoveryCode },
       });
     }
     throw error;
   }
-  return renderRegister(res, {
-    success: "Compte cree avec succes. Conservez votre code de recuperation dans un endroit sur.",
-    recoveryCode,
-    formData: { username },
-  });
+  return res.redirect(`/login?registered=1&username=${encodeURIComponent(username)}`);
 });
 
 app.get("/forgot-password", (req, res) => {
@@ -861,7 +873,7 @@ app.post("/forgot-password", (req, res) => {
   }
 
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
-  const recoveryCode = typeof req.body.recoveryCode === "string" ? req.body.recoveryCode.trim().toUpperCase() : "";
+  const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
   const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
   const confirmPassword = typeof req.body.confirmPassword === "string" ? req.body.confirmPassword : "";
 
@@ -1145,7 +1157,7 @@ app.post("/entries", (req, res) => {
   if (hasConflictAtTargetDate && confirmReplace !== "1") {
     return renderIndex(res, {
       month,
-      error: "Une entree existe deja a cette date. Confirmez si vous voulez la remplacer.",
+      error: "Une entrée existe déjà a cette date. Confirmez si vous voulez la remplacer.",
       showReplaceConfirmation: true,
       formData: {
         date,
@@ -1194,4 +1206,3 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Hours app running on http://localhost:${PORT}`);
 });
-

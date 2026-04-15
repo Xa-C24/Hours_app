@@ -41,7 +41,7 @@
             </select>
           </div>
         </div>
-        <section class="login-card">
+        <section class="login-card login-card-header-centered">
           <h1>Connexion</h1>
           <p class="login-subtitle">Accedez au suivi des heures.</p>
 
@@ -84,7 +84,10 @@
             Pas de compte ? <a href="/register">Creer un compte</a>
           </p>
           <p class="auth-switch auth-switch-compact">
-            Mot de passe oublie ? <a href="/forgot-password<%= formData.username ? `?username=${encodeURIComponent(formData.username)}` : '' %>">Utiliser un code de recuperation</a>
+            Mot de passe oublie ? <a href="/forgot-password<%= formData.username ? `?username=${encodeURIComponent(formData.username)}` : '' %>">Utiliser un code de récupération</a>
+          </p>
+          <p class="auth-switch auth-switch-compact auth-switch-centered">
+            <a href="mailto:xperienceweb@protonmail.com">Contacter support technique</a>
           </p>
         </section>
       </div>

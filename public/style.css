@@ -1486,6 +1486,13 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   max-width: 26ch;
 }
 
+.login-card-header-centered h1,
+.login-card-header-centered .login-subtitle {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .login-form {
   display: grid;
   gap: 1rem;
@@ -1541,6 +1548,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 .auth-switch-compact {
   margin-top: 0.8rem;
   padding-top: 0.8rem;
+}
+
+.auth-switch-centered {
+  text-align: center;
 }
 
 .auth-switch a {

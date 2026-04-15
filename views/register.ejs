@@ -41,9 +41,9 @@
             </select>
           </div>
         </div>
-        <section class="login-card">
+        <section class="login-card login-card-header-centered">
           <h1>Creer un compte</h1>
-          <p class="login-subtitle">Entrez un nom utilisateur et un mot de passe.</p>
+          <p class="login-subtitle">Entrez un nom utilisateur, un mot de passe et votre numero de récupération.</p>
 
           <% if (success) { %>
           <p class="alert alert-success"><%= success %></p>
@@ -51,14 +51,6 @@
 
           <% if (error) { %>
           <p class="alert"><%= error %></p>
-          <% } %>
-
-          <% if (recoveryCode) { %>
-          <div class="alert alert-success recovery-code-box">
-            <strong>Code de recuperation :</strong>
-            <div class="recovery-code-value"><%= recoveryCode %></div>
-            <div>Conservez-le. Il servira si vous oubliez votre mot de passe.</div>
-          </div>
           <% } %>
 
           <form action="/register" method="post" class="login-form">
@@ -85,11 +77,33 @@
               />
             </div>
 
+            <div class="field">
+              <label for="recoveryCode">Numero de recuperation</label>
+              <input
+                id="recoveryCode"
+                name="recoveryCode"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="off"
+                placeholder="6 chiffres"
+                required
+                value="<%= formData.recoveryCode || '' %>"
+              />
+              <small class="field-hint"
+                >Ce numero de récupération sera demande lors d'un oubli de mot de passe, pensez a le conserver !</small
+              >
+            </div>
+
             <button type="submit">Creer mon compte</button>
           </form>
 
           <p class="auth-switch">
             Vous avez deja un compte ? <a href="/login">Se connecter</a>
+          </p>
+          <p class="auth-switch auth-switch-compact auth-switch-centered">
+            <a href="mailto:xperienceweb@protonmail.com">Contacter support technique</a>
           </p>
         </section>
       </div>
