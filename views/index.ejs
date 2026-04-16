@@ -25,12 +25,18 @@
     </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body>
+
+  <br>
+  <br>
+
+  <body class="home-premium-page">
     <main class="container">
-      <br>
-      <br>
-      <header class="page-header">
-        <h1>Suivi mensuel des heures de travail</h1>
+      <header class="page-header page-header-premium">
+        <div class="page-header-copy">
+        
+          <h1>Suivi mensuel des heures de travail</h1>
+          <p class="page-subtitle">Un tableau de bord plus net, plus premium, pour piloter votre temps sur la periode de paie.</p>
+        </div>
         <div class="header-actions">
           <div class="theme-picker">
             <label for="themeSelectApp">Theme</label>
@@ -48,27 +54,31 @@
             <% if (authUser) { %>
             <span class="user-chip"><%= authUser %></span>
             <% } %>
-            <button type="submit" class="secondary">Deconnexion</button>
+            <button type="submit" class="secondary" data-ripple>Deconnexion</button>
           </form>
         </div>
       </header>
 
-      <div class="header-spacer" aria-hidden="true"></div>
-
-      
       <% if (error) { %>
       <p class="alert"><%= error %></p>
       <% } %>
       <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
       <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
-      <section class="card entry-card" data-entry-card>
+      <section class="card entry-card premium-surface" data-entry-card>
         <div class="entry-card-top">
           <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
           <button
             type="button"
             class="card-toggle"
             data-entry-toggle
+            data-ripple
             aria-expanded="true"
             aria-controls="entryFormPanel"
             title="Replier ou ouvrir la saisie"
@@ -157,24 +167,30 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit"><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
+            <button type="submit" data-ripple><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
             <% if (showReplaceConfirmation) { %>
-            <button type="submit" name="confirmReplace" value="1" class="danger">
+            <button type="submit" name="confirmReplace" value="1" class="danger" data-ripple>
               Remplacer l'entrée existante
             </button>
             <% } %>
             <% if (_isEditing) { %>
-            <a class="button-link button-neutral" href="/?month=<%= encodeURIComponent(selectedMonth) %>">
+            <a class="button-link button-neutral" href="/?month=<%= encodeURIComponent(selectedMonth) %>" data-ripple>
               Annuler
             </a>
             <% } %>
           </div>
         </form>
       </section>
-<br>
-      <div class="between-sections-spacer" aria-hidden="true"></div>
 
-      <section class="card">
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+
+      <section class="card premium-surface premium-surface-wide">
         <div class="month-header">
           <div class="month-header-copy">
             <h2>Période de paie</h2>
@@ -189,8 +205,8 @@
                 <label for="month">Choisir un mois</label>
                 <div class="month-form-controls">
                   <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
-                  <button type="submit">Afficher</button>
-                  <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>">
+                  <button type="submit" data-ripple>Afficher</button>
+                  <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>" data-ripple>
                     Export CSV
                   </a>
                 </div>
@@ -198,9 +214,6 @@
             </form>
           </div>
         </div>
-
-        <br>
-        <br>
         
         <div class="day-filter-bar" data-day-filter-bar>
           <% dayTypeFilters.forEach((filter, index) => { %>
@@ -208,6 +221,7 @@
             type="button"
             class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
             data-day-filter="<%= filter.value %>"
+            data-ripple
             aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
             title="Période: <%= filter.count %> | Année affichée: <%= filter.yearCount %>"
           >
@@ -264,6 +278,7 @@
                         type="button"
                         class="week-toggle"
                         data-week-toggle
+                        data-ripple
                         aria-expanded="true"
                         title="Replier ou ouvrir la semaine"
                       >
@@ -308,6 +323,7 @@
                   <div class="row-actions">
                     <a
                       class="button-link secondary-link"
+                      data-ripple
                       href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>"
                     >
                       Modifier
@@ -318,7 +334,7 @@
                       onsubmit="return confirm('Supprimer cette journee ?');"
                     >
                       <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                      <button type="submit" class="danger">Supprimer</button>
+                      <button type="submit" class="danger" data-ripple>Supprimer</button>
                     </form>
                   </div>
                 </td>
@@ -363,7 +379,7 @@
                         value="<%= salaryAmountInput %>"
                         placeholder="Ex: 4850.00$"
                       />
-                      <button type="submit">OK</button>
+                      <button type="submit" data-ripple>OK</button>
                     </form>
                   </details>
                 </th>

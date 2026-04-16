@@ -24,7 +24,7 @@
     </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body>
+  <body class="auth-premium-page">
     <main class="login-page">
       <div class="login-shell">
         <div class="login-topbar">
@@ -41,9 +41,10 @@
             </select>
           </div>
         </div>
-        <section class="login-card login-card-header-centered">
+        <section class="login-card login-card-header-centered login-card-premium">
+          
           <h1>Connexion</h1>
-          <p class="login-subtitle">Accedez au suivi des heures.</p>
+          <p class="login-subtitle">Accedez a votre espace de suivi des heures.</p>
 
           <% if (success) { %>
           <p class="alert alert-success"><%= success %></p>
@@ -77,17 +78,17 @@
               />
             </div>
 
-            <button type="submit">Se connecter</button>
+            <button type="submit" data-ripple>Se connecter</button>
           </form>
 
           <p class="auth-switch">
-            Pas de compte ? <a href="/register">Creer un compte</a>
+            Pas de compte ? <a href="/register" data-ripple>Creer un compte</a>
           </p>
           <p class="auth-switch auth-switch-compact">
-            Mot de passe oublie ? <a href="/forgot-password<%= formData.username ? `?username=${encodeURIComponent(formData.username)}` : '' %>">Utiliser un code de récupération</a>
+            Mot de passe oublie ? <a href="/forgot-password<%= formData.username ? `?username=${encodeURIComponent(formData.username)}` : '' %>" data-ripple>Utiliser un code de recuperation</a>
           </p>
           <p class="auth-switch auth-switch-compact auth-switch-centered">
-            <a href="mailto:xperienceweb@protonmail.com">Contacter support technique</a>
+            <a href="mailto:xperienceweb@protonmail.com" data-ripple>Contacter support technique</a>
           </p>
         </section>
       </div>

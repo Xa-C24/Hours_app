@@ -24,7 +24,7 @@
     </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body>
+  <body class="auth-premium-page">
     <main class="login-page">
       <div class="login-shell">
         <div class="login-topbar">
@@ -41,9 +41,10 @@
             </select>
           </div>
         </div>
-        <section class="login-card login-card-header-centered">
+        <section class="login-card login-card-header-centered login-card-premium">
+          
           <h1>Creer un compte</h1>
-          <p class="login-subtitle">Entrez un nom utilisateur, un mot de passe et votre numero de récupération.</p>
+          <p class="login-subtitle">Ouvrez un acces elegant et securise a votre espace de suivi.</p>
 
           <% if (success) { %>
           <p class="alert alert-success"><%= success %></p>
@@ -91,19 +92,17 @@
                 required
                 value="<%= formData.recoveryCode || '' %>"
               />
-              <small class="field-hint"
-                >Ce numero de récupération sera demande lors d'un oubli de mot de passe, pensez a le conserver !</small
-              >
+              <small class="field-hint">Conservez ce code: il sera demande si vous devez reinitialiser votre mot de passe.</small>
             </div>
 
-            <button type="submit">Creer mon compte</button>
+            <button type="submit" data-ripple>Creer mon compte</button>
           </form>
 
           <p class="auth-switch">
-            Vous avez deja un compte ? <a href="/login">Se connecter</a>
+            Vous avez deja un compte ? <a href="/login" data-ripple>Se connecter</a>
           </p>
           <p class="auth-switch auth-switch-compact auth-switch-centered">
-            <a href="mailto:xperienceweb@protonmail.com">Contacter support technique</a>
+            <a href="mailto:xperienceweb@protonmail.com" data-ripple>Contacter support technique</a>
           </p>
         </section>
       </div>

@@ -327,6 +327,93 @@
     });
   }
 
+  function initAuthPremiumEffects() {
+    if (!document.body.classList.contains("auth-premium-page")) {
+      return;
+    }
+
+    const card = document.querySelector(".login-card-premium");
+    if (card) {
+      card.addEventListener("pointermove", (event) => {
+        const bounds = card.getBoundingClientRect();
+        const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+        const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+        card.style.setProperty("--pointer-x", `${x}%`);
+        card.style.setProperty("--pointer-y", `${y}%`);
+      });
+
+      card.addEventListener("pointerleave", () => {
+        card.style.removeProperty("--pointer-x");
+        card.style.removeProperty("--pointer-y");
+      });
+    }
+
+    document.querySelectorAll("[data-ripple]").forEach((element) => {
+      element.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          return;
+        }
+
+        element.classList.remove("is-pressed");
+        void element.offsetWidth;
+        element.classList.add("is-pressed");
+        window.setTimeout(() => element.classList.remove("is-pressed"), 260);
+
+        const bounds = element.getBoundingClientRect();
+        const dot = document.createElement("span");
+        dot.className = "ripple-dot";
+        dot.style.left = `${event.clientX - bounds.left}px`;
+        dot.style.top = `${event.clientY - bounds.top}px`;
+        element.appendChild(dot);
+        window.setTimeout(() => dot.remove(), 650);
+      });
+    });
+  }
+
+  function initHomePremiumEffects() {
+    if (!document.body.classList.contains("home-premium-page")) {
+      return;
+    }
+
+    document
+      .querySelectorAll(".page-header-premium, .premium-surface")
+      .forEach((surface) => {
+        surface.addEventListener("pointermove", (event) => {
+          const bounds = surface.getBoundingClientRect();
+          const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+          const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+          surface.style.setProperty("--pointer-x", `${x}%`);
+          surface.style.setProperty("--pointer-y", `${y}%`);
+        });
+
+        surface.addEventListener("pointerleave", () => {
+          surface.style.removeProperty("--pointer-x");
+          surface.style.removeProperty("--pointer-y");
+        });
+      });
+
+    document.querySelectorAll(".home-premium-page [data-ripple]").forEach((element) => {
+      element.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          return;
+        }
+
+        element.classList.remove("is-pressed");
+        void element.offsetWidth;
+        element.classList.add("is-pressed");
+        window.setTimeout(() => element.classList.remove("is-pressed"), 260);
+
+        const bounds = element.getBoundingClientRect();
+        const dot = document.createElement("span");
+        dot.className = "ripple-dot";
+        dot.style.left = `${event.clientX - bounds.left}px`;
+        dot.style.top = `${event.clientY - bounds.top}px`;
+        element.appendChild(dot);
+        window.setTimeout(() => dot.remove(), 650);
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     let storedTheme = "light";
     try {
@@ -342,5 +429,7 @@
     initEntryFormToggle();
     initWeekRowsToggle();
     initDayTypeFilter();
+    initAuthPremiumEffects();
+    initHomePremiumEffects();
   });
 })();
