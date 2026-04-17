@@ -11,6 +11,7 @@
     "orange-sunset",
     "forest-green",
     "light-green",
+    "futuristic-robot",
   ];
 
   function normalizeTheme(theme) {

@@ -14,7 +14,7 @@
     <script>
       (() => {
         const key = "hours_theme";
-        const allowed = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green"];
+        const allowed = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "futuristic-robot"];
         try {
           const theme = localStorage.getItem(key) || "light";
           document.documentElement.setAttribute("data-theme", allowed.includes(theme) ? theme : "light");
@@ -45,6 +45,7 @@
               <option value="orange-sunset">Sable cuivre</option>
               <option value="forest-green">Sauge profonde</option>
               <option value="light-green">Celadon</option>
+              <option value="futuristic-robot">Robot </option>
             </select>
           </div>
           <form action="/logout" method="post" class="logout-form">
