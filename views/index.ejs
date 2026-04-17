@@ -25,15 +25,12 @@
     </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
-
-  <br>
-  <br>
-
   <body class="home-premium-page">
     <main class="container">
+       <div style="height: 5rem;"></div>
       <header class="page-header page-header-premium">
         <div class="page-header-copy">
-        
+          <p class="page-eyebrow">Hours Atelier</p>
           <h1>Suivi mensuel des heures de travail</h1>
           <p class="page-subtitle">Un tableau de bord plus net, plus premium, pour piloter votre temps sur la periode de paie.</p>
         </div>
@@ -59,6 +56,29 @@
         </div>
       </header>
 
+      <section class="premium-summary-grid" aria-label="Resume de la periode">
+        <article class="premium-mini-card">
+          <span class="premium-mini-label">Periode</span>
+          <strong class="premium-mini-value"><%= payPeriodLabel || selectedMonth %></strong>
+          <span class="premium-mini-meta">Vue active</span>
+        </article>
+        <article class="premium-mini-card">
+          <span class="premium-mini-label">Jours travailles</span>
+          <strong class="premium-mini-value"><%= workedDayCount %></strong>
+          <span class="premium-mini-meta">Sur la periode</span>
+        </article>
+        <article class="premium-mini-card">
+          <span class="premium-mini-label">Total cumule</span>
+          <strong class="premium-mini-value"><%= totalHHMM %></strong>
+          <span class="premium-mini-meta">Temps enregistre</span>
+        </article>
+        <article class="premium-mini-card">
+          <span class="premium-mini-label">Salaire net</span>
+          <strong class="premium-mini-value"><%= salaryAmountDisplay %></strong>
+          <span class="premium-mini-meta"><%= hourlyRateDisplay || "Taux calcule automatiquement" %></span>
+        </article>
+      </section>
+
       <% if (error) { %>
       <p class="alert"><%= error %></p>
       <% } %>
@@ -67,13 +87,12 @@
 <br>
 <br>
 <br>
-<br>
-<br>
-<br>
-
       <section class="card entry-card premium-surface" data-entry-card>
         <div class="entry-card-top">
-          <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
+          <div class="section-heading">
+            <p class="section-eyebrow">Saisie</p>
+            <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
+          </div>
           <button
             type="button"
             class="card-toggle"
@@ -182,17 +201,14 @@
         </form>
       </section>
 
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
+      <%# Espace  %> 
+
+      <div style="height: 10rem;"></div>
 
       <section class="card premium-surface premium-surface-wide">
         <div class="month-header">
           <div class="month-header-copy">
+            <p class="section-eyebrow">Pilotage</p>
             <h2>Période de paie</h2>
             <% if (payPeriodLabel) { %>
             <p class="month-period-label"><%= payPeriodLabel %></p>

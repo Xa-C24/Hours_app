@@ -336,15 +336,21 @@
     if (card) {
       card.addEventListener("pointermove", (event) => {
         const bounds = card.getBoundingClientRect();
-        const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-        const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+        const ratioX = (event.clientX - bounds.left) / bounds.width;
+        const ratioY = (event.clientY - bounds.top) / bounds.height;
+        const x = ratioX * 100;
+        const y = ratioY * 100;
         card.style.setProperty("--pointer-x", `${x}%`);
         card.style.setProperty("--pointer-y", `${y}%`);
+        card.style.setProperty("--tilt-x", `${(0.5 - ratioY) * 4}deg`);
+        card.style.setProperty("--tilt-y", `${(ratioX - 0.5) * 6}deg`);
       });
 
       card.addEventListener("pointerleave", () => {
         card.style.removeProperty("--pointer-x");
         card.style.removeProperty("--pointer-y");
+        card.style.removeProperty("--tilt-x");
+        card.style.removeProperty("--tilt-y");
       });
     }
 
@@ -376,19 +382,25 @@
     }
 
     document
-      .querySelectorAll(".page-header-premium, .premium-surface")
+      .querySelectorAll(".page-header-premium, .premium-surface, .premium-mini-card")
       .forEach((surface) => {
         surface.addEventListener("pointermove", (event) => {
           const bounds = surface.getBoundingClientRect();
-          const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-          const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+          const ratioX = (event.clientX - bounds.left) / bounds.width;
+          const ratioY = (event.clientY - bounds.top) / bounds.height;
+          const x = ratioX * 100;
+          const y = ratioY * 100;
           surface.style.setProperty("--pointer-x", `${x}%`);
           surface.style.setProperty("--pointer-y", `${y}%`);
+          surface.style.setProperty("--tilt-x", `${(0.5 - ratioY) * 3.5}deg`);
+          surface.style.setProperty("--tilt-y", `${(ratioX - 0.5) * 5.5}deg`);
         });
 
         surface.addEventListener("pointerleave", () => {
           surface.style.removeProperty("--pointer-x");
           surface.style.removeProperty("--pointer-y");
+          surface.style.removeProperty("--tilt-x");
+          surface.style.removeProperty("--tilt-y");
         });
       });
 
