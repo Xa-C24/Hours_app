@@ -12,13 +12,20 @@
     <link rel="manifest" href="/manifest.json" />
     <script>
       (() => {
-        const key = "hours_theme";
-        const allowed = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "futuristic-robot"];
+        const themeKey = "hours_theme";
+        const styleKey = "hours_style";
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "robot"];
+        const allowedStyles = ["premium", "robot", "retro"];
         try {
-          const theme = localStorage.getItem(key) || "light";
-          document.documentElement.setAttribute("data-theme", allowed.includes(theme) ? theme : "light");
+          const storedTheme = localStorage.getItem(themeKey) || "light";
+          const theme = storedTheme === "futuristic-robot" ? "robot" : storedTheme;
+          const storedStyle = localStorage.getItem(styleKey) || "";
+          const style = allowedStyles.includes(storedStyle) ? storedStyle : theme === "robot" ? "robot" : "premium";
+          document.documentElement.setAttribute("data-theme", allowedThemes.includes(theme) ? theme : "light");
+          document.documentElement.setAttribute("data-style", style);
         } catch (error) {
           document.documentElement.setAttribute("data-theme", "light");
+          document.documentElement.setAttribute("data-style", "premium");
         }
       })();
     </script>
@@ -38,7 +45,14 @@
               <option value="orange-sunset">Sable cuivre</option>
               <option value="forest-green">Sauge profonde</option>
               <option value="light-green">Celadon</option>
-              <option value="futuristic-robot">Robot</option>
+            </select>
+          </div>
+          <div class="theme-picker">
+            <label for="styleSelectLogin">Style</label>
+            <select id="styleSelectLogin" data-style-selector>
+              <option value="premium">Premium</option>
+              <option value="robot">Robot</option>
+              <option value="retro">SEGA</option>
             </select>
           </div>
         </div>

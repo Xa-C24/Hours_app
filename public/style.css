@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;800&family=Press+Start+2P&display=swap");
 
 :root {
   color-scheme: light;
@@ -17,6 +17,14 @@
   --focus-ring: rgba(53, 91, 132, 0.18);
   --danger: #b14a3a;
   --danger-hover: #933b2d;
+  --robot-orange: #ff9b4a;
+  --robot-orange-soft: rgba(255, 155, 74, 0.18);
+  --retro-pink: #ff4fd8;
+  --retro-cyan: #38e4ff;
+  --retro-yellow: #ffe66d;
+  --retro-lime: #7dff9b;
+  --retro-violet: #6f4bff;
+  --retro-ink: #180f2e;
   --week-1: #f7efe3;
   --week-2: #e6edf5;
   --week-3: #e9f1eb;
@@ -326,7 +334,7 @@
   --status-under-text: #8b4539;
 }
 
-:root[data-theme="futuristic-robot"] {
+:root[data-theme="robot"] {
   color-scheme: dark;
   --bg-top: #061225;
   --bg: #040a17;
@@ -374,7 +382,7 @@
   --status-under-text: #ffc3cb;
 }
 
-:root[data-theme="futuristic-robot"] body {
+:root[data-style="robot"] body {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
   letter-spacing: 0.01em;
   background:
@@ -405,42 +413,42 @@
   background-blend-mode: screen, normal, normal, screen, screen, normal;
 }
 
-:root[data-theme="futuristic-robot"] body::before {
+:root[data-style="robot"] body::before {
   background: linear-gradient(160deg, rgba(73, 185, 255, 0.78), transparent 70%);
   opacity: 0.42;
 }
 
-:root[data-theme="futuristic-robot"] body::after {
+:root[data-style="robot"] body::after {
   background: linear-gradient(160deg, rgba(124, 104, 255, 0.28), rgba(105, 255, 142, 0.42) 48%, transparent 72%);
   opacity: 0.34;
 }
 
-:root[data-theme="futuristic-robot"] h1,
-:root[data-theme="futuristic-robot"] h2 {
+:root[data-style="robot"] h1,
+:root[data-style="robot"] h2 {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
   text-transform: uppercase;
   letter-spacing: -0.04em;
 }
 
-:root[data-theme="futuristic-robot"] .home-premium-page .page-header h1,
-:root[data-theme="futuristic-robot"] .home-premium-page .month-header-copy h2,
-:root[data-theme="futuristic-robot"] .home-premium-page .entry-card-top h2,
-:root[data-theme="futuristic-robot"] .home-premium-page .premium-mini-value,
-:root[data-theme="futuristic-robot"] .auth-premium-page .login-card-premium h1 {
+:root[data-style="robot"] .home-premium-page .page-header h1,
+:root[data-style="robot"] .home-premium-page .month-header-copy h2,
+:root[data-style="robot"] .home-premium-page .entry-card-top h2,
+:root[data-style="robot"] .home-premium-page .premium-mini-value,
+:root[data-style="robot"] .auth-premium-page .login-card-premium h1 {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
 }
 
-:root[data-theme="futuristic-robot"] h1 {
+:root[data-style="robot"] h1 {
   font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.45rem);
 }
 
-:root[data-theme="futuristic-robot"] h2 {
+:root[data-style="robot"] h2 {
   font-size: clamp(1.7rem, 1.3rem + 1vw, 2.35rem);
 }
 
-:root[data-theme="futuristic-robot"] .page-header,
-:root[data-theme="futuristic-robot"] .card,
-:root[data-theme="futuristic-robot"] .login-card {
+:root[data-style="robot"] .page-header,
+:root[data-style="robot"] .card,
+:root[data-style="robot"] .login-card {
   border-color: color-mix(in srgb, var(--border) 74%, #69ff8e 26%);
   background:
     linear-gradient(135deg, rgba(71, 200, 255, 0.08), transparent 28%),
@@ -451,39 +459,39 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-:root[data-theme="futuristic-robot"] .page-eyebrow,
-:root[data-theme="futuristic-robot"] .section-eyebrow,
-:root[data-theme="futuristic-robot"] .login-eyebrow,
-:root[data-theme="futuristic-robot"] .theme-picker label,
-:root[data-theme="futuristic-robot"] .entry-form label,
-:root[data-theme="futuristic-robot"] .month-form label,
-:root[data-theme="futuristic-robot"] .login-form .field label {
+:root[data-style="robot"] .page-eyebrow,
+:root[data-style="robot"] .section-eyebrow,
+:root[data-style="robot"] .login-eyebrow,
+:root[data-style="robot"] .theme-picker label,
+:root[data-style="robot"] .entry-form label,
+:root[data-style="robot"] .month-form label,
+:root[data-style="robot"] .login-form .field label {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
   color: #7dffad;
   letter-spacing: 0.2em;
 }
 
-:root[data-theme="futuristic-robot"] .page-eyebrow,
-:root[data-theme="futuristic-robot"] .login-eyebrow {
+:root[data-style="robot"] .page-eyebrow,
+:root[data-style="robot"] .login-eyebrow {
   text-shadow: 0 0 12px rgba(255, 155, 74, 0.18);
 }
 
-:root[data-theme="futuristic-robot"] .page-subtitle,
-:root[data-theme="futuristic-robot"] .login-subtitle,
-:root[data-theme="futuristic-robot"] .premium-mini-meta,
-:root[data-theme="futuristic-robot"] .month-period-label,
-:root[data-theme="futuristic-robot"] .salary-value-sub {
+:root[data-style="robot"] .page-subtitle,
+:root[data-style="robot"] .login-subtitle,
+:root[data-style="robot"] .premium-mini-meta,
+:root[data-style="robot"] .month-period-label,
+:root[data-style="robot"] .salary-value-sub {
   color: var(--muted);
 }
 
-:root[data-theme="futuristic-robot"] .premium-mini-value,
-:root[data-theme="futuristic-robot"] .salary-value-main {
+:root[data-style="robot"] .premium-mini-value,
+:root[data-style="robot"] .salary-value-main {
   text-shadow: 0 0 16px rgba(255, 155, 74, 0.08);
 }
 
-:root[data-theme="futuristic-robot"] button,
-:root[data-theme="futuristic-robot"] .button-link,
-:root[data-theme="futuristic-robot"] .comment-emoji-summary {
+:root[data-style="robot"] button,
+:root[data-style="robot"] .button-link,
+:root[data-style="robot"] .comment-emoji-summary {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
   border-color: color-mix(in srgb, var(--primary) 52%, #7dffad 16%);
   background:
@@ -496,64 +504,64 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-:root[data-theme="futuristic-robot"] button.secondary,
-:root[data-theme="futuristic-robot"] .button-link.secondary-link,
-:root[data-theme="futuristic-robot"] .button-link.button-neutral {
+:root[data-style="robot"] button.secondary,
+:root[data-style="robot"] .button-link.secondary-link,
+:root[data-style="robot"] .button-link.button-neutral {
   background:
     linear-gradient(135deg, rgba(124, 104, 255, 0.18), rgba(73, 185, 255, 0.1)),
     linear-gradient(135deg, #0a1830, #10233c);
 }
 
-:root[data-theme="futuristic-robot"] button.danger {
+:root[data-style="robot"] button.danger {
   background:
     linear-gradient(135deg, rgba(255, 95, 109, 0.22), rgba(255, 161, 86, 0.14)),
     linear-gradient(135deg, #29160c, #3a1f0f);
 }
 
-:root[data-theme="futuristic-robot"] .day-filter-chip.is-active,
-:root[data-theme="futuristic-robot"] .status-pill.ok {
+:root[data-style="robot"] .day-filter-chip.is-active,
+:root[data-style="robot"] .status-pill.ok {
   background: linear-gradient(135deg, rgba(125, 255, 173, 0.18), rgba(73, 185, 255, 0.14));
   color: #dcffea;
 }
 
-:root[data-theme="futuristic-robot"] .status-pill.under,
-:root[data-theme="futuristic-robot"] .week-total-row td {
+:root[data-style="robot"] .status-pill.under,
+:root[data-style="robot"] .week-total-row td {
   background: linear-gradient(135deg, rgba(255, 95, 109, 0.16), rgba(255, 161, 86, 0.1));
   color: #ffd2c4;
 }
 
-:root[data-theme="futuristic-robot"] .status-pill.neutral,
-:root[data-theme="futuristic-robot"] .user-chip,
-:root[data-theme="futuristic-robot"] .salary-editor-trigger {
+:root[data-style="robot"] .status-pill.neutral,
+:root[data-style="robot"] .user-chip,
+:root[data-style="robot"] .salary-editor-trigger {
   background: linear-gradient(135deg, rgba(124, 104, 255, 0.16), rgba(255, 255, 255, 0.08));
   color: #efeaff;
 }
 
-:root[data-theme="futuristic-robot"] .premium-mini-card::before,
-:root[data-theme="futuristic-robot"] .premium-surface::before,
-:root[data-theme="futuristic-robot"] .page-header-premium::before,
-:root[data-theme="futuristic-robot"] .login-card-premium::before {
+:root[data-style="robot"] .premium-mini-card::before,
+:root[data-style="robot"] .premium-surface::before,
+:root[data-style="robot"] .page-header-premium::before,
+:root[data-style="robot"] .login-card-premium::before {
   background: linear-gradient(90deg, transparent 0%, var(--robot-orange) 18%, #8ed9ff 58%, transparent 100%);
 }
 
-:root[data-theme="futuristic-robot"] .day-filter-count,
-:root[data-theme="futuristic-robot"] .week-meta {
+:root[data-style="robot"] .day-filter-count,
+:root[data-style="robot"] .week-meta {
   border-color: rgba(255, 155, 74, 0.22);
   box-shadow: inset 0 0 0 1px rgba(255, 155, 74, 0.08);
 }
 
-:root[data-theme="futuristic-robot"] .overtime-col,
-:root[data-theme="futuristic-robot"] td.overtime-col {
+:root[data-style="robot"] .overtime-col,
+:root[data-style="robot"] td.overtime-col {
   background: linear-gradient(180deg, rgba(255, 155, 74, 0.12), rgba(255, 155, 74, 0.05));
   color: #ffd6b3;
 }
 
-:root[data-theme="futuristic-robot"] .theme-picker select,
-:root[data-theme="futuristic-robot"] .entry-form input,
-:root[data-theme="futuristic-robot"] .entry-form select,
-:root[data-theme="futuristic-robot"] .entry-form textarea,
-:root[data-theme="futuristic-robot"] .month-form input,
-:root[data-theme="futuristic-robot"] .login-form input {
+:root[data-style="robot"] .theme-picker select,
+:root[data-style="robot"] .entry-form input,
+:root[data-style="robot"] .entry-form select,
+:root[data-style="robot"] .entry-form textarea,
+:root[data-style="robot"] .month-form input,
+:root[data-style="robot"] .login-form input {
   font-family: "Orbitron", "Bahnschrift", "Agency FB", "Segoe UI", sans-serif;
   background:
     linear-gradient(180deg, rgba(73, 185, 255, 0.06), rgba(255, 255, 255, 0.02)),
@@ -562,9 +570,517 @@
   color: var(--text);
 }
 
-:root[data-theme="futuristic-robot"] .auth-switch a,
-:root[data-theme="futuristic-robot"] .button-link.secondary-link {
+:root[data-style="robot"] .theme-picker select {
+  background-image:
+    linear-gradient(
+      175deg,
+      color-mix(in srgb, #f5fbff 88%, #d9f2ff 12%),
+      color-mix(in srgb, #e7f6ff 92%, #cdeaff 8%)
+    ),
+    linear-gradient(45deg, transparent 50%, rgba(10, 31, 54, 0.72) 50%),
+    linear-gradient(135deg, rgba(10, 31, 54, 0.72) 50%, transparent 50%);
+  color: #0d2136;
+  border-color: color-mix(in srgb, #c8eaff 78%, var(--primary) 22%);
+  box-shadow:
+    0 14px 30px rgba(0, 5, 14, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+:root[data-style="robot"] .entry-form input,
+:root[data-style="robot"] .entry-form select,
+:root[data-style="robot"] .entry-form textarea,
+:root[data-style="robot"] .month-form input,
+:root[data-style="robot"] .login-form input {
+  background:
+    linear-gradient(
+      175deg,
+      color-mix(in srgb, #f7fcff 90%, #d8f0ff 10%),
+      color-mix(in srgb, #e8f5ff 92%, #cfe8ff 8%)
+    );
+  color: #11263d;
+  border-color: color-mix(in srgb, #c8eaff 76%, var(--primary) 24%);
+  box-shadow:
+    0 14px 30px rgba(0, 5, 14, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+:root[data-style="robot"] .entry-form input::placeholder,
+:root[data-style="robot"] .entry-form textarea::placeholder,
+:root[data-style="robot"] .month-form input::placeholder,
+:root[data-style="robot"] .login-form input::placeholder {
+  color: rgba(17, 38, 61, 0.58);
+}
+
+:root[data-style="robot"] .entry-form input::-webkit-calendar-picker-indicator,
+:root[data-style="robot"] .entry-form input::-webkit-inner-spin-button,
+:root[data-style="robot"] .entry-form input::-webkit-clear-button,
+:root[data-style="robot"] .month-form input::-webkit-calendar-picker-indicator,
+:root[data-style="robot"] .login-form input::-webkit-calendar-picker-indicator {
+  filter: invert(0.12);
+}
+
+:root[data-style="robot"] .auth-switch a,
+:root[data-style="robot"] .button-link.secondary-link {
   color: #dfeeff;
+}
+
+:root[data-style="retro"] body {
+  font-family: "Press Start 2P", "Trebuchet MS", "Segoe UI", sans-serif;
+  line-height: 1.7;
+  letter-spacing: 0.015em;
+  text-rendering: geometricPrecision;
+  background:
+    linear-gradient(180deg, rgba(255, 84, 194, 0.2) 0%, rgba(56, 228, 255, 0.14) 36%, rgba(255, 230, 109, 0.12) 100%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 2px, rgba(6, 9, 26, 0.06) 2px 4px),
+    radial-gradient(circle at 15% 12%, rgba(255, 79, 216, 0.2) 0%, transparent 28%),
+    radial-gradient(circle at 84% 18%, rgba(56, 228, 255, 0.18) 0%, transparent 30%),
+    radial-gradient(circle at 52% 88%, rgba(255, 230, 109, 0.14) 0%, transparent 34%),
+    linear-gradient(180deg, #fff8ea 0%, #f8f1dd 42%, #efe6d5 100%);
+  background-attachment: fixed;
+}
+
+:root[data-style="retro"] body::before {
+  width: 34rem;
+  height: 34rem;
+  top: -10rem;
+  right: -9rem;
+  border-radius: 2rem;
+  filter: blur(42px);
+  background: radial-gradient(circle, rgba(255, 79, 216, 0.52) 0%, rgba(111, 75, 255, 0.12) 48%, transparent 72%);
+  opacity: 0.4;
+}
+
+:root[data-style="retro"] body::after {
+  width: 28rem;
+  height: 28rem;
+  bottom: -7rem;
+  left: -7rem;
+  border-radius: 2rem;
+  filter: blur(38px);
+  background: radial-gradient(circle, rgba(56, 228, 255, 0.34) 0%, rgba(255, 230, 109, 0.14) 52%, transparent 74%);
+  opacity: 0.42;
+}
+
+:root[data-style="retro"] h1,
+:root[data-style="retro"] h2,
+:root[data-style="retro"] .page-eyebrow,
+:root[data-style="retro"] .section-eyebrow,
+:root[data-style="retro"] .login-eyebrow,
+:root[data-style="retro"] .theme-picker label,
+:root[data-style="retro"] .entry-form label,
+:root[data-style="retro"] .month-form label,
+:root[data-style="retro"] .login-form .field label,
+:root[data-style="retro"] button,
+:root[data-style="retro"] .button-link,
+:root[data-style="retro"] .comment-emoji-summary {
+  font-family: "Press Start 2P", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+:root[data-style="retro"] h1,
+:root[data-style="retro"] h2 {
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #3f2a22;
+  text-shadow:
+    2px 2px 0 rgba(255, 79, 216, 0.18),
+    0 0 18px rgba(56, 228, 255, 0.1);
+}
+
+:root[data-style="retro"] h1 {
+  font-size: clamp(0.92rem, 0.8rem + 0.46vw, 1.26rem);
+}
+
+:root[data-style="retro"] h2 {
+  font-size: clamp(1.02rem, 0.88rem + 0.5vw, 1.32rem);
+}
+
+:root[data-style="retro"] .page-header,
+:root[data-style="retro"] .card,
+:root[data-style="retro"] .login-card,
+:root[data-style="retro"] .premium-mini-card,
+:root[data-style="retro"] .premium-surface,
+:root[data-style="retro"] .page-header-premium {
+  border: 3px solid color-mix(in srgb, var(--retro-violet) 28%, #7fdcff 24%);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 246, 223, 0.9) 100%),
+    linear-gradient(135deg, rgba(255, 79, 216, 0.08), rgba(56, 228, 255, 0.06));
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.58) inset,
+    0 10px 0 rgba(63, 42, 34, 0.12),
+    0 24px 34px rgba(42, 28, 66, 0.18),
+    0 0 24px rgba(56, 228, 255, 0.1);
+}
+
+:root[data-style="retro"] .premium-mini-card::before,
+:root[data-style="retro"] .premium-surface::before,
+:root[data-style="retro"] .page-header-premium::before,
+:root[data-style="retro"] .login-card-premium::before {
+  background: linear-gradient(90deg, transparent 0%, var(--retro-pink) 16%, var(--retro-cyan) 52%, var(--retro-yellow) 84%, transparent 100%);
+}
+
+:root[data-style="retro"] .page-eyebrow,
+:root[data-style="retro"] .section-eyebrow,
+:root[data-style="retro"] .login-eyebrow,
+:root[data-style="retro"] .theme-picker label,
+:root[data-style="retro"] .entry-form label,
+:root[data-style="retro"] .month-form label,
+:root[data-style="retro"] .login-form .field label {
+  color: #0e7f8e;
+  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.44);
+}
+
+:root[data-style="retro"] .page-subtitle,
+:root[data-style="retro"] .login-subtitle,
+:root[data-style="retro"] .premium-mini-meta,
+:root[data-style="retro"] .month-period-label,
+:root[data-style="retro"] .salary-value-sub {
+  color: #5c5a67;
+}
+
+:root[data-style="retro"] .premium-mini-value,
+:root[data-style="retro"] .salary-value-main,
+:root[data-style="retro"] .status-pill,
+:root[data-style="retro"] .user-chip {
+  font-family: "Press Start 2P", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+:root[data-style="retro"] .home-premium-page .page-header h1,
+:root[data-style="retro"] .home-premium-page .month-header-copy h2,
+:root[data-style="retro"] .home-premium-page .entry-card-top h2,
+:root[data-style="retro"] .auth-premium-page .login-card-premium h1,
+:root[data-style="retro"] .home-premium-page .month-form label,
+:root[data-style="retro"] .home-premium-page .theme-picker label,
+:root[data-style="retro"] .auth-premium-page .theme-picker label,
+:root[data-style="retro"] .auth-premium-page .login-form .field label,
+:root[data-style="retro"] .auth-premium-page .login-eyebrow {
+  font-family: "Press Start 2P", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+:root[data-style="retro"] .home-premium-page .page-header h1 {
+  font-size: clamp(0.92rem, 0.8rem + 0.46vw, 1.26rem);
+  line-height: 1.12;
+}
+
+:root[data-style="retro"] .home-premium-page .entry-card-top h2 {
+  font-size: clamp(0.86rem, 0.76rem + 0.28vw, 1.02rem);
+  line-height: 1.25;
+}
+
+:root[data-style="retro"] .home-premium-page .month-header-copy h2 {
+  font-size: clamp(0.78rem, 0.72rem + 0.24vw, 0.94rem);
+  line-height: 1.28;
+}
+
+:root[data-style="retro"] .home-premium-page .section-eyebrow,
+:root[data-style="retro"] .home-premium-page .entry-form label,
+:root[data-style="retro"] .home-premium-page .month-form label {
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+
+:root[data-style="retro"] .premium-mini-value {
+  display: block;
+  font-size: clamp(0.98rem, 0.88rem + 0.38vw, 1.26rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+:root[data-style="retro"] button,
+:root[data-style="retro"] .button-link,
+:root[data-style="retro"] .comment-emoji-summary,
+:root[data-style="retro"] .day-filter-chip,
+:root[data-style="retro"] .salary-editor-summary {
+  font-size: 0.68rem;
+  line-height: 1.55;
+  border: 3px solid rgba(61, 43, 87, 0.78);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, transparent 28%),
+    linear-gradient(135deg, #2948b6 0%, #5532ca 48%, #ec4fc2 100%);
+  color: #fffdf3;
+  box-shadow:
+    0 6px 0 rgba(48, 29, 71, 0.42),
+    0 14px 28px rgba(42, 28, 66, 0.2);
+}
+
+:root[data-style="retro"] button.secondary,
+:root[data-style="retro"] .button-link.secondary-link,
+:root[data-style="retro"] .button-link.button-neutral {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 28%),
+    linear-gradient(135deg, #18a6bb 0%, #2f6dff 55%, #5f3dff 100%);
+}
+
+:root[data-style="retro"] button.danger {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, transparent 28%),
+    linear-gradient(135deg, #d45439 0%, #ff7e48 52%, #ffcc58 100%);
+  color: #fff7ee;
+}
+
+:root[data-style="retro"] .theme-picker select,
+:root[data-style="retro"] .entry-form input,
+:root[data-style="retro"] .entry-form select,
+:root[data-style="retro"] .entry-form textarea,
+:root[data-style="retro"] .month-form input,
+:root[data-style="retro"] .login-form input {
+  font-family: "Press Start 2P", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 0.68rem;
+  line-height: 1.65;
+  border: 3px solid rgba(58, 39, 86, 0.72);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 249, 230, 0.96) 100%);
+  color: #312846;
+  box-shadow:
+    inset 0 0 0 2px rgba(56, 228, 255, 0.12),
+    0 7px 0 rgba(54, 36, 77, 0.12);
+}
+
+:root[data-style="retro"] .home-premium-page .entry-form input,
+:root[data-style="retro"] .home-premium-page .entry-form select,
+:root[data-style="retro"] .home-premium-page .entry-form textarea {
+  font-size: 0.58rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.62rem;
+}
+
+:root[data-style="retro"] .home-premium-page .month-form input,
+:root[data-style="retro"] .home-premium-page .month-form button,
+:root[data-style="retro"] .home-premium-page .month-form .button-link {
+  font-size: 0.58rem;
+  line-height: 1.45;
+  padding: 0.5rem 0.68rem;
+}
+
+:root[data-style="retro"] .home-premium-page .entry-form textarea {
+  min-height: 7.5rem;
+}
+
+:root[data-style="retro"] .theme-picker select {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 249, 230, 0.96)),
+    linear-gradient(45deg, transparent 50%, rgba(49, 40, 70, 0.8) 50%),
+    linear-gradient(135deg, rgba(49, 40, 70, 0.8) 50%, transparent 50%);
+  color: #312846;
+}
+
+:root[data-style="retro"] .entry-form input::placeholder,
+:root[data-style="retro"] .entry-form textarea::placeholder,
+:root[data-style="retro"] .month-form input::placeholder,
+:root[data-style="retro"] .login-form input::placeholder {
+  color: rgba(49, 40, 70, 0.52);
+}
+
+:root[data-style="retro"] .entry-form input::-webkit-calendar-picker-indicator,
+:root[data-style="retro"] .entry-form input::-webkit-inner-spin-button,
+:root[data-style="retro"] .entry-form input::-webkit-clear-button,
+:root[data-style="retro"] .month-form input::-webkit-calendar-picker-indicator,
+:root[data-style="retro"] .login-form input::-webkit-calendar-picker-indicator {
+  filter: sepia(0.5) saturate(2) hue-rotate(180deg);
+}
+
+:root[data-style="retro"] .table-wrapper {
+  border-width: 3px;
+  border-color: color-mix(in srgb, var(--retro-violet) 34%, #5bdfff 24%);
+  box-shadow:
+    0 12px 28px rgba(42, 28, 66, 0.16),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.48);
+}
+
+:root[data-style="retro"] thead th {
+  background:
+    linear-gradient(180deg, rgba(111, 75, 255, 0.16) 0%, rgba(255, 79, 216, 0.08) 100%),
+    color-mix(in srgb, var(--card-bg-2) 90%, #fff2d5 10%);
+  color: #5b2e69;
+}
+
+:root[data-style="retro"] tbody tr:not(.week-total-row):hover td {
+  background: color-mix(in srgb, #fff1d2 78%, #d9f9ff 22%);
+}
+
+:root[data-style="retro"] .status-pill.ok {
+  background: linear-gradient(135deg, rgba(125, 255, 155, 0.22), rgba(56, 228, 255, 0.16));
+  color: #26543a;
+}
+
+:root[data-style="retro"] .status-pill.under,
+:root[data-style="retro"] .week-total-row td {
+  background: linear-gradient(135deg, rgba(255, 126, 72, 0.18), rgba(255, 230, 109, 0.18));
+  color: #7a3f24;
+}
+
+:root[data-style="retro"] .status-pill.neutral,
+:root[data-style="retro"] .user-chip,
+:root[data-style="retro"] .salary-editor-trigger,
+:root[data-style="retro"] .day-filter-count,
+:root[data-style="retro"] .week-meta {
+  background: linear-gradient(135deg, rgba(56, 228, 255, 0.16), rgba(111, 75, 255, 0.12));
+  color: #2e466a;
+  border-color: rgba(111, 75, 255, 0.18);
+}
+
+:root[data-style="retro"] .status-pill,
+:root[data-style="retro"] .day-filter-count,
+:root[data-style="retro"] .week-meta,
+:root[data-style="retro"] .user-chip,
+:root[data-style="retro"] .premium-mini-meta,
+:root[data-style="retro"] .premium-mini-label,
+:root[data-style="retro"] .salary-value-sub {
+  font-size: 0.62rem;
+  line-height: 1.55;
+}
+
+:root[data-style="retro"] tfoot tr.monthly-total-row th {
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+:root[data-style="retro"] tfoot tr.monthly-total-row th.summary-pair-cell,
+:root[data-style="retro"] tfoot tr.monthly-total-row th.salary-value-cell {
+  white-space: normal;
+}
+
+:root[data-style="retro"] tfoot tr.monthly-total-row th.salary-value-cell {
+  min-width: 7.4rem;
+}
+
+:root[data-style="retro"] th.action-col,
+:root[data-style="retro"] td.action-cell {
+  min-width: 9.2rem;
+}
+
+:root[data-style="retro"] th.action-col {
+  text-align: center;
+}
+
+:root[data-style="retro"] .summary-pair-label,
+:root[data-style="retro"] .summary-pair-value {
+  display: block;
+}
+
+:root[data-style="retro"] .summary-pair-value {
+  margin-top: 0.2rem;
+  margin-left: 0;
+}
+
+:root[data-style="retro"] .salary-editor-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.38rem 0.46rem;
+  min-width: 7.6rem;
+  width: auto;
+  max-width: 100%;
+  font-size: 0.46rem;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+}
+
+:root[data-style="retro"] .salary-value-main {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+:root[data-style="retro"] .salary-value-sub {
+  white-space: normal;
+}
+
+:root[data-style="retro"] .row-actions {
+  justify-content: center;
+  align-items: center;
+}
+
+:root[data-style="retro"] td.action-cell {
+  text-align: center;
+}
+
+:root[data-style="retro"] .salary-editor-summary > span:first-child {
+  display: inline-block;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+:root[data-style="retro"] .salary-editor-trigger {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+:root[data-style="retro"] .home-premium-page .card-toggle {
+  width: 1.8rem;
+  min-width: 1.8rem;
+  height: 1.8rem;
+}
+
+:root[data-style="retro"] .home-premium-page .card-toggle-icon {
+  font-size: 0.8rem;
+}
+
+:root[data-style="retro"] .home-premium-page .comment-emoji-summary,
+:root[data-style="retro"] .home-premium-page .form-actions button,
+:root[data-style="retro"] .home-premium-page .form-actions .button-link {
+  font-size: 0.58rem;
+  line-height: 1.45;
+  padding: 0.5rem 0.72rem;
+}
+
+:root[data-style="retro"] .home-premium-page thead th {
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+
+:root[data-style="retro"] .home-premium-page tbody td,
+:root[data-style="retro"] .home-premium-page tbody th,
+:root[data-style="retro"] .home-premium-page .status-pill,
+:root[data-style="retro"] .home-premium-page .row-actions .button-link,
+:root[data-style="retro"] .home-premium-page .row-actions button {
+  font-size: 0.56rem;
+  line-height: 1.4;
+}
+
+:root[data-style="retro"] .home-premium-page .row-actions .button-link,
+:root[data-style="retro"] .home-premium-page .row-actions button {
+  padding: 0.42rem 0.58rem;
+}
+
+:root[data-style="retro"] .home-premium-page .day-filter-chip {
+  font-size: 0.56rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.72rem;
+}
+
+:root[data-style="retro"] .overtime-col,
+:root[data-style="retro"] td.overtime-col {
+  background: linear-gradient(180deg, rgba(255, 79, 216, 0.1), rgba(255, 230, 109, 0.1));
+  color: #7f3373;
+}
+
+:root[data-style="retro"] .auth-switch a,
+:root[data-style="retro"] a {
+  color: #5137ca;
+}
+
+:root[data-style="retro"] .auth-switch::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 79, 216, 0.22) 22%, rgba(56, 228, 255, 0.24) 50%, rgba(255, 230, 109, 0.24) 78%, transparent 100%);
+}
+
+:root[data-style="retro"] .ripple-dot {
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.86) 58%, var(--retro-yellow) 42%);
 }
 
 * {
@@ -1136,6 +1652,10 @@ h2 {
 }
 
 .day-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
   min-width: 0;
   padding: 0.52rem 0.8rem;
   border-radius: 999px;
@@ -1173,9 +1693,11 @@ h2 {
 
 .day-filter-counts {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 0.35rem;
   margin-left: 0.45rem;
+  white-space: nowrap;
 }
 
 .day-filter-count-year {
@@ -1345,7 +1867,27 @@ tbody tr {
 }
 
 th.comment-col {
-  min-width: 0;
+  min-width: 8.5rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+th.action-col,
+td.action-cell {
+  min-width: 8.5rem;
+}
+
+td.date-cell {
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+th.action-col {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 td.comment-cell {
@@ -1496,6 +2038,7 @@ tr.editing-row td:first-child {
   font-size: 0.8rem;
   padding: 0.45rem 0.72rem;
   min-width: 92px;
+  white-space: nowrap;
 }
 
 .status-pill {
@@ -1680,6 +2223,9 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 .login-topbar {
   display: flex;
   justify-content: flex-end;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 0.95rem;
 }
 
@@ -2686,6 +3232,98 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     gap: 0.72rem;
   }
 
+  .day-filter-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .day-filter-chip {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .day-filter-chip > span:first-child {
+    min-width: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .day-filter-counts {
+    margin-left: 0;
+  }
+
+  :root[data-style="retro"] h1 {
+    font-size: 1.02rem;
+  }
+
+  :root[data-style="retro"] h2 {
+    font-size: 0.94rem;
+  }
+
+  :root[data-style="retro"] .theme-picker select,
+  :root[data-style="retro"] .entry-form input,
+  :root[data-style="retro"] .entry-form select,
+  :root[data-style="retro"] .entry-form textarea,
+  :root[data-style="retro"] .month-form input,
+  :root[data-style="retro"] .login-form input,
+  :root[data-style="retro"] .button-link,
+  :root[data-style="retro"] button,
+  :root[data-style="retro"] .day-filter-chip,
+  :root[data-style="retro"] .status-pill,
+  :root[data-style="retro"] .user-chip {
+    font-size: 0.64rem;
+    line-height: 1.6;
+  }
+
+  :root[data-style="retro"] .salary-editor-summary {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.36rem 0.42rem;
+    font-size: 0.5rem;
+    line-height: 1.35;
+  }
+
+  :root[data-style="retro"] .salary-editor-trigger {
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: 0.82rem;
+  }
+
+  :root[data-style="retro"] .salary-value-main {
+    font-size: 0.62rem;
+  }
+
+  :root[data-style="retro"] .salary-value-sub {
+    font-size: 0.52rem;
+    line-height: 1.45;
+  }
+
+  :root[data-style="retro"] .row-actions .button-link,
+  :root[data-style="retro"] .row-actions button {
+    width: auto;
+    min-width: 0;
+    padding: 0.42rem 0.56rem;
+    font-size: 0.56rem;
+    line-height: 1.35;
+  }
+
+  :root[data-style="retro"] th.action-col,
+  :root[data-style="retro"] td.action-cell {
+    min-width: 7.8rem;
+  }
+
+  :root[data-style="retro"] .row-actions {
+    align-items: center;
+  }
+
+  :root[data-style="retro"] td,
+  :root[data-style="retro"] th {
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
   .form-actions {
     flex-direction: column;
     align-items: stretch;
@@ -2776,6 +3414,14 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   table {
     min-width: 640px;
+  }
+
+  :root[data-style="retro"] table {
+    min-width: 560px;
+  }
+
+  :root[data-style="retro"] .salary-editor-summary {
+    justify-content: center;
   }
 
   .header-spacer,

@@ -1,5 +1,6 @@
 (() => {
   const THEME_KEY = "hours_theme";
+  const STYLE_KEY = "hours_style";
   const ENTRY_FORM_COLLAPSED_KEY = "hours_entry_form_collapsed";
   const WEEK_ROWS_COLLAPSED_BY_MONTH_KEY = "hours_week_rows_collapsed_by_month";
   const DAY_FILTER_BY_MONTH_KEY = "hours_day_filter_by_month";
@@ -11,11 +12,22 @@
     "orange-sunset",
     "forest-green",
     "light-green",
-    "futuristic-robot",
+    "robot",
   ];
+  const STYLES = ["premium", "robot", "retro"];
 
   function normalizeTheme(theme) {
+    if (theme === "futuristic-robot") {
+      return "robot";
+    }
     return THEMES.includes(theme) ? theme : "light";
+  }
+
+  function normalizeStyle(style, fallbackTheme = "light") {
+    if (STYLES.includes(style)) {
+      return style;
+    }
+    return fallbackTheme === "robot" ? "robot" : "premium";
   }
 
   function applyTheme(theme, persist = true) {
@@ -33,6 +45,24 @@
     });
   }
 
+  function applyStyle(style, persist = true) {
+    const currentTheme = normalizeTheme(
+      document.documentElement.getAttribute("data-theme") || "light"
+    );
+    const normalizedStyle = normalizeStyle(style, currentTheme);
+    document.documentElement.setAttribute("data-style", normalizedStyle);
+    if (persist) {
+      try {
+        localStorage.setItem(STYLE_KEY, normalizedStyle);
+      } catch (error) {
+        // Ignore storage issues (private mode, browser policies).
+      }
+    }
+    document.querySelectorAll("[data-style-selector]").forEach((selector) => {
+      selector.value = normalizedStyle;
+    });
+  }
+
   function initThemeSelectors() {
     document.querySelectorAll("[data-theme-selector]").forEach((selector) => {
       selector.value = normalizeTheme(
@@ -40,6 +70,18 @@
       );
       selector.addEventListener("change", (event) => {
         applyTheme(event.target.value, true);
+      });
+    });
+  }
+
+  function initStyleSelectors() {
+    document.querySelectorAll("[data-style-selector]").forEach((selector) => {
+      selector.value = normalizeStyle(
+        document.documentElement.getAttribute("data-style") || "premium",
+        normalizeTheme(document.documentElement.getAttribute("data-theme") || "light")
+      );
+      selector.addEventListener("change", (event) => {
+        applyStyle(event.target.value, true);
       });
     });
   }
@@ -429,16 +471,25 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     let storedTheme = "light";
+    let storedStyle = "premium";
     try {
       storedTheme = localStorage.getItem(THEME_KEY) || "light";
+      storedStyle = localStorage.getItem(STYLE_KEY) || "";
     } catch (error) {
       storedTheme = "light";
+      storedStyle = "";
     }
-    applyTheme(
-      document.documentElement.getAttribute("data-theme") || storedTheme,
+    const initialTheme = normalizeTheme(
+      document.documentElement.getAttribute("data-theme") || storedTheme
+    );
+    applyTheme(initialTheme, false);
+    applyStyle(
+      document.documentElement.getAttribute("data-style") ||
+        normalizeStyle(storedStyle, initialTheme),
       false
     );
     initThemeSelectors();
+    initStyleSelectors();
     initEntryFormToggle();
     initWeekRowsToggle();
     initDayTypeFilter();
