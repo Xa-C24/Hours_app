@@ -12,6 +12,7 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 6;
 const RECOVERY_CODE_REGEX = /^\d{6}$/;
 const MAX_COMMENT_LENGTH = 1000;
+const MAX_CLIENT_FIELD_LENGTH = 500;
 const CSV_SEPARATOR = ";";
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -356,6 +357,30 @@ function normalizeMonth(month) {
   return getCurrentMonth();
 }
 
+function normalizeClientId(value) {
+  const parsedValue = Number.parseInt(String(value ?? "").trim(), 10);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
+}
+
+function getClientSelection(username, requestedClientId) {
+  const clients = db.getAllClients(username);
+  if (clients.length === 0) {
+    return {
+      clients,
+      selectedClient: null,
+    };
+  }
+
+  const normalizedRequestedClientId = normalizeClientId(requestedClientId);
+  const selectedClient =
+    clients.find((client) => client.id === normalizedRequestedClientId) || clients[0];
+
+  return {
+    clients,
+    selectedClient,
+  };
+}
+
 function isValidDate(value) {
   if (typeof value !== "string" || !DATE_REGEX.test(value)) {
     return false;
@@ -485,40 +510,67 @@ function getYearToDateBounds(endDateExclusive) {
   };
 }
 
-function getMonthData(username, month) {
+function getEmptyMonthData(month) {
+  const normalizedMonth = normalizeMonth(month);
+  const { startDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
+  return {
+    entries: [],
+    displayEntries: [],
+    payPeriodStartDate: startDate,
+    payPeriodEndDate: inclusiveEndDate,
+    payPeriodLabel: formatPayPeriodLabelFr(startDate, inclusiveEndDate),
+    salaryAmountCents: null,
+    workedDayCount: 0,
+    dayTypeCounts: Object.fromEntries(DAY_TYPE_OPTIONS.map((option) => [option.value, 0])),
+    yearEntryCount: 0,
+    yearDayTypeCounts: Object.fromEntries(DAY_TYPE_OPTIONS.map((option) => [option.value, 0])),
+    totalMinutes: 0,
+    totalHHMM: "00:00",
+    totalOvertimeHHMM: "00:00",
+    totalRecoveredHHMM: "00:00",
+  };
+}
+
+function getMonthData(username, clientId, month) {
+  if (!clientId) {
+    return getEmptyMonthData(month);
+  }
+
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
-  const salaryAmountCents = db.getPayPeriodSalary(username, normalizedMonth);
+  const salaryAmountCents = db.getPayPeriodSalary(username, clientId, normalizedMonth);
   const yearToDateBounds = getYearToDateBounds(endDate);
   let runningBalanceMinutes = 0;
-  const baseEntries = db.getEntriesForMonth(username, startDate, endDate).map((entry) => {
-    const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
-    const targetMinutes = getTargetMinutesForDayType(dayType);
-    const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
-    const missingMinutes = Math.max(0, targetMinutes - entry.worked_minutes);
-    const recoveredMinutes = Math.min(Math.max(0, runningBalanceMinutes), missingMinutes);
+  const baseEntries = db
+    .getWorkEntriesByClient(username, clientId, startDate, endDate)
+    .map((entry) => {
+      const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
+      const targetMinutes = getTargetMinutesForDayType(dayType);
+      const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
+      const missingMinutes = Math.max(0, targetMinutes - entry.worked_minutes);
+      const recoveredMinutes = Math.min(Math.max(0, runningBalanceMinutes), missingMinutes);
 
-    runningBalanceMinutes += entry.worked_minutes - targetMinutes;
+      runningBalanceMinutes += entry.worked_minutes - targetMinutes;
 
-    return {
-      ...entry,
-      day_type: dayType,
-      day_type_display: getDayTypeConfig(dayType).label,
-      target_minutes: targetMinutes,
-      is_worked_day: isWorkedDayType(dayType),
-      week_start: getWeekStartMonday(entry.work_date),
-      work_date_display: formatDateDisplayFr(entry.work_date),
-      arrival_time_display: isWorkedDayType(dayType) ? entry.arrival_time : "",
-      departure_time_display: isWorkedDayType(dayType) ? entry.departure_time : "",
-      lunch_break_minutes_display: isWorkedDayType(dayType) ? entry.lunch_break_minutes : "",
-      worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
-      overtime_minutes: overtimeMinutes,
-      overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
-      recovered_minutes: recoveredMinutes,
-      recovered_hhmm: formatMinutesToHHMM(recoveredMinutes),
-      under_target: entry.worked_minutes < targetMinutes,
-    };
-  });
+      return {
+        ...entry,
+        day_type: dayType,
+        day_type_display: getDayTypeConfig(dayType).label,
+        target_minutes: targetMinutes,
+        is_worked_day: isWorkedDayType(dayType),
+        week_start: getWeekStartMonday(entry.work_date),
+        work_date_display: formatDateDisplayFr(entry.work_date),
+        arrival_time_display: isWorkedDayType(dayType) ? entry.arrival_time : "",
+        departure_time_display: isWorkedDayType(dayType) ? entry.departure_time : "",
+        lunch_break_minutes_display: isWorkedDayType(dayType) ? entry.lunch_break_minutes : "",
+        worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
+        overtime_minutes: overtimeMinutes,
+        overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
+        recovered_minutes: recoveredMinutes,
+        recovered_hhmm: formatMinutesToHHMM(recoveredMinutes),
+        under_target: entry.worked_minutes < targetMinutes,
+      };
+    });
   const weekStarts = [...new Set(baseEntries.map((entry) => entry.week_start).filter(Boolean))];
   const weekClassByStart = new Map(
     weekStarts.map((weekStart, index) => [weekStart, `week-${(index % 4) + 1}`])
@@ -585,7 +637,12 @@ function getMonthData(username, month) {
     ])
   );
   const yearEntries = db
-    .getEntriesForMonth(username, yearToDateBounds.startDate, yearToDateBounds.endDate)
+    .getWorkEntriesByClient(
+      username,
+      clientId,
+      yearToDateBounds.startDate,
+      yearToDateBounds.endDate
+    )
     .map((entry) => normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE);
   const yearDayTypeCounts = Object.fromEntries(
     DAY_TYPE_OPTIONS.map((option) => [
@@ -614,6 +671,7 @@ function getMonthData(username, month) {
 function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
+  const { clients, selectedClient } = getClientSelection(username, options.clientId);
   const {
     entries,
     displayEntries,
@@ -629,8 +687,7 @@ function renderIndex(res, options = {}) {
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
-  } =
-    getMonthData(username, month);
+  } = getMonthData(username, selectedClient ? selectedClient.id : null, month);
 
   const defaultFormData = {
     date: formatDate(new Date()),
@@ -660,6 +717,8 @@ function renderIndex(res, options = {}) {
     : "";
 
   res.render("index", {
+    clients,
+    selectedClient,
     selectedMonth: month,
     entries,
     displayEntries,
@@ -692,6 +751,17 @@ function renderIndex(res, options = {}) {
     totalOvertimeHHMM,
     totalRecoveredHHMM,
     error: options.error || "",
+    clientError: options.clientError || "",
+    clientFormData: options.clientFormData || {
+      company_name: "",
+      contact_name: "",
+      email: "",
+      phone: "",
+      address: "",
+      notes: "",
+    },
+    showClientModal: Boolean(options.showClientModal),
+    showClientInfoModal: Boolean(options.showClientInfoModal),
     formData: mergedFormData,
     dayTypeOptions: DAY_TYPE_OPTIONS.map((option) => ({
       ...option,
@@ -948,17 +1018,138 @@ app.post("/logout", (req, res) => {
 app.use(requireAuth);
 
 app.get("/", (req, res) => {
-  renderIndex(res, { username: req.authUser, month: req.query.month, editDate: req.query.editDate });
+  renderIndex(res, {
+    username: req.authUser,
+    month: req.query.month,
+    clientId: req.query.clientId,
+    editDate: req.query.editDate,
+  });
 });
 
 app.get("/entries/:workDate/edit", (req, res) => {
   const workDate = req.params.workDate;
   const month = normalizeMonth(req.query.month || getPayPeriodMonthForDate(workDate));
-  renderIndex(res, { username: req.authUser, month, editDate: workDate });
+  renderIndex(res, {
+    username: req.authUser,
+    month,
+    clientId: req.query.clientId,
+    editDate: workDate,
+  });
+});
+
+app.post("/clients", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const clientFormData = {
+    company_name: typeof req.body.company_name === "string" ? req.body.company_name.trim() : "",
+    contact_name: typeof req.body.contact_name === "string" ? req.body.contact_name.trim() : "",
+    email: typeof req.body.email === "string" ? req.body.email.trim() : "",
+    phone: typeof req.body.phone === "string" ? req.body.phone.trim() : "",
+    address: typeof req.body.address === "string" ? req.body.address.trim() : "",
+    notes: typeof req.body.notes === "string" ? req.body.notes.trim() : "",
+  };
+
+  if (!clientFormData.company_name) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientError: "Le nom de l'entreprise est obligatoire.",
+      clientFormData,
+      showClientModal: true,
+    });
+  }
+
+  const hasOversizedField = Object.values(clientFormData).some(
+    (value) => value.length > MAX_CLIENT_FIELD_LENGTH
+  );
+  if (hasOversizedField) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientError: `Les champs client ne doivent pas depasser ${MAX_CLIENT_FIELD_LENGTH} caracteres.`,
+      clientFormData,
+      showClientModal: true,
+    });
+  }
+
+  const client = db.createClient(req.authUser, clientFormData);
+  return res.redirect(
+    `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
+  );
+});
+
+app.post("/clients/:clientId/update", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const clientId = normalizeClientId(req.params.clientId);
+  const existingClient = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const clientFormData = {
+    company_name: typeof req.body.company_name === "string" ? req.body.company_name.trim() : "",
+    contact_name: typeof req.body.contact_name === "string" ? req.body.contact_name.trim() : "",
+    email: typeof req.body.email === "string" ? req.body.email.trim() : "",
+    phone: typeof req.body.phone === "string" ? req.body.phone.trim() : "",
+    address: typeof req.body.address === "string" ? req.body.address.trim() : "",
+    notes: typeof req.body.notes === "string" ? req.body.notes.trim() : "",
+  };
+
+  if (!existingClient) {
+    return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  }
+
+  if (!clientFormData.company_name) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientId: existingClient.id,
+      clientError: "Le nom de l'entreprise est obligatoire.",
+      showClientInfoModal: true,
+    });
+  }
+
+  const hasOversizedField = Object.values(clientFormData).some(
+    (value) => value.length > MAX_CLIENT_FIELD_LENGTH
+  );
+  if (hasOversizedField) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientId: existingClient.id,
+      clientError: `Les champs client ne doivent pas depasser ${MAX_CLIENT_FIELD_LENGTH} caracteres.`,
+      showClientInfoModal: true,
+    });
+  }
+
+  db.updateClient(req.authUser, existingClient.id, clientFormData);
+  return res.redirect(
+    `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(existingClient.id)}`
+  );
+});
+
+app.post("/clients/:clientId/delete", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const clientId = normalizeClientId(req.params.clientId);
+  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+
+  if (!client) {
+    return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  }
+
+  db.deleteClient(req.authUser, client.id);
+  const remainingClients = db.getAllClients(req.authUser);
+
+  if (remainingClients.length > 0) {
+    return res.redirect(
+      `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(remainingClients[0].id)}`
+    );
+  }
+
+  return res.redirect(`/?month=${encodeURIComponent(month)}`);
 });
 
 app.get("/export.csv", (req, res) => {
   const month = normalizeMonth(req.query.month);
+  const { selectedClient } = getClientSelection(req.authUser, req.query.clientId);
+  if (!selectedClient) {
+    return res.status(400).send("Aucun client selectionne.");
+  }
   const {
     entries,
     payPeriodStartDate,
@@ -967,10 +1158,7 @@ app.get("/export.csv", (req, res) => {
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
-  } = getMonthData(
-    req.authUser,
-    month
-  );
+  } = getMonthData(req.authUser, selectedClient.id, month);
 
   const header = [
     "date",
@@ -1017,19 +1205,37 @@ app.get("/export.csv", (req, res) => {
   ].join(CSV_SEPARATOR));
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="hours-${month}.csv"`);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="hours-${selectedClient.company_name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() || "client"}-${month}.csv"`
+  );
   const csvText = `\uFEFF${lines.join("\r\n")}`;
   res.send(csvText);
 });
 
 app.post("/pay-period-salary", (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
+  const clientId = normalizeClientId(req.body.clientId);
   const salaryAmountInput = typeof req.body.salaryAmount === "string" ? req.body.salaryAmount.trim() : "";
   const parsedSalary = parseCurrencyToCents(salaryAmountInput);
+  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+
+  if (!client) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientId,
+      error: "Selectionnez un client avant d'enregistrer un salaire.",
+      salaryAmountInput,
+      showSalaryEditor: true,
+    });
+  }
 
   if (!parsedSalary.valid) {
     return renderIndex(res, {
+      username: req.authUser,
       month,
+      clientId: client.id,
       error: "Le montant du salaire doit etre un nombre positif avec deux decimales maximum.",
       salaryAmountInput,
       showSalaryEditor: true,
@@ -1037,19 +1243,23 @@ app.post("/pay-period-salary", (req, res) => {
   }
 
   if (parsedSalary.cents === null) {
-    db.deletePayPeriodSalary(req.authUser, month);
+    db.deletePayPeriodSalary(req.authUser, client.id, month);
   } else {
     db.upsertPayPeriodSalary(req.authUser, {
+      client_id: client.id,
       pay_period_month: month,
       salary_amount_cents: parsedSalary.cents,
     });
   }
 
-  return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  return res.redirect(
+    `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
+  );
 });
 
 app.post("/entries", (req, res) => {
   const {
+    clientId,
     date,
     dayType,
     arrivalTime,
@@ -1060,6 +1270,8 @@ app.post("/entries", (req, res) => {
     originalWorkDate,
     confirmReplace,
   } = req.body;
+  const normalizedClientId = normalizeClientId(clientId);
+  const client = normalizedClientId ? db.getClientById(req.authUser, normalizedClientId) : null;
   const normalizedComment = typeof commentText === "string" ? commentText.trim() : "";
   const safeOriginalWorkDate = isValidDate(originalWorkDate) ? originalWorkDate : "";
   const normalizedDayType = normalizeDayType(dayType) || DEFAULT_DAY_TYPE;
@@ -1067,6 +1279,10 @@ app.post("/entries", (req, res) => {
   const month = normalizeMonth(selectedMonth || getPayPeriodMonthForDate(date));
   const entryMonth = normalizeMonth(getPayPeriodMonthForDate(date) || month);
   const errors = [];
+
+  if (!client) {
+    errors.push("Selectionnez un client avant d'enregistrer une journée.");
+  }
 
   if (!isValidDate(date)) {
     errors.push("La date est invalide.");
@@ -1091,7 +1307,9 @@ app.post("/entries", (req, res) => {
 
   if (errors.length > 0) {
     return renderIndex(res, {
+      username: req.authUser,
       month,
+      clientId: normalizedClientId,
       error: errors[0],
       formData: {
         date,
@@ -1115,7 +1333,9 @@ app.post("/entries", (req, res) => {
 
     if (departureMinutes <= arrivalMinutes) {
       return renderIndex(res, {
+        username: req.authUser,
         month,
+        clientId: client.id,
         error: "L'heure de depart doit etre apres l'heure d'arrivee.",
         formData: {
           date,
@@ -1132,7 +1352,9 @@ app.post("/entries", (req, res) => {
     workedMinutes = departureMinutes - arrivalMinutes - breakMinutes;
     if (workedMinutes < 0) {
       return renderIndex(res, {
+        username: req.authUser,
         month,
+        clientId: client.id,
         error: "La pause dejeuner est trop longue pour ce creneau horaire.",
         formData: {
           date,
@@ -1151,13 +1373,14 @@ app.post("/entries", (req, res) => {
   }
 
   const isDateChange = safeOriginalWorkDate && safeOriginalWorkDate !== date;
-  const existingEntryAtTargetDate = db.getEntryByWorkDate(req.authUser, date);
+  const existingEntryAtTargetDate = db.getWorkEntryByDate(req.authUser, client.id, date);
   const hasConflictAtTargetDate = Boolean(existingEntryAtTargetDate) && (!safeOriginalWorkDate || isDateChange);
 
   if (hasConflictAtTargetDate && confirmReplace !== "1") {
     return renderIndex(res, {
       month,
       error: "Une entrée existe déjà a cette date. Confirmez si vous voulez la remplacer.",
+      clientId: client.id,
       showReplaceConfirmation: true,
       formData: {
         date,
@@ -1171,7 +1394,8 @@ app.post("/entries", (req, res) => {
     });
   }
 
-  db.upsertEntry(req.authUser, {
+  db.upsertWorkEntry(req.authUser, {
+    client_id: client.id,
     work_date: date,
     day_type: normalizedDayType,
     arrival_time: safeArrivalTime,
@@ -1181,18 +1405,28 @@ app.post("/entries", (req, res) => {
     comment_text: normalizedComment,
   });
   if (isDateChange) {
-    db.deleteEntry(req.authUser, safeOriginalWorkDate);
+    db.deleteWorkEntry(req.authUser, client.id, safeOriginalWorkDate);
   }
 
-  return res.redirect(`/?month=${encodeURIComponent(entryMonth)}`);
+  return res.redirect(
+    `/?month=${encodeURIComponent(entryMonth)}&clientId=${encodeURIComponent(client.id)}`
+  );
 });
 
 app.post("/entries/:workDate/delete", (req, res) => {
   const workDate = req.params.workDate;
+  const clientId = normalizeClientId(req.body.clientId);
   const month = normalizeMonth(req.body.selectedMonth || getPayPeriodMonthForDate(workDate));
+  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
 
-  if (isValidDate(workDate)) {
-    db.deleteEntry(req.authUser, workDate);
+  if (client && isValidDate(workDate)) {
+    db.deleteWorkEntry(req.authUser, client.id, workDate);
+  }
+
+  if (client) {
+    return res.redirect(
+      `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
+    );
   }
 
   return res.redirect(`/?month=${encodeURIComponent(month)}`);

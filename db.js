@@ -5,7 +5,6 @@ const Database = require("better-sqlite3");
 
 const defaultDbPath = path.join(__dirname, "data", "hours.db");
 const dbPath = process.env.DB_PATH || defaultDbPath;
-const schemaPath = path.join(__dirname, "schema.sql");
 const userDbsDir = path.join(path.dirname(dbPath), "users");
 
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -13,121 +12,23 @@ fs.mkdirSync(userDbsDir, { recursive: true });
 
 const authDb = new Database(dbPath);
 authDb.pragma("journal_mode = WAL");
+authDb.pragma("foreign_keys = ON");
 
-const schemaSql = fs.readFileSync(schemaPath, "utf8");
-authDb.exec(schemaSql);
-
-function ensureWorkEntriesCommentColumn(database) {
-  const columns = database.prepare("PRAGMA table_info(work_entries)").all();
-  const hasCommentColumn = columns.some((column) => column.name === "comment_text");
-  if (!hasCommentColumn) {
-    database
-      .prepare("ALTER TABLE work_entries ADD COLUMN comment_text TEXT NOT NULL DEFAULT ''")
-      .run();
-  }
-}
-
-function ensureWorkEntriesDayTypeColumn(database) {
-  const columns = database.prepare("PRAGMA table_info(work_entries)").all();
-  const hasDayTypeColumn = columns.some((column) => column.name === "day_type");
-  if (!hasDayTypeColumn) {
-    database
-      .prepare("ALTER TABLE work_entries ADD COLUMN day_type TEXT NOT NULL DEFAULT 'office'")
-      .run();
-  }
-}
-
-function ensureUsersRecoveryColumns(database) {
-  const columns = database.prepare("PRAGMA table_info(users)").all();
-  const hasRecoverySaltColumn = columns.some((column) => column.name === "recovery_code_salt");
-  const hasRecoveryHashColumn = columns.some((column) => column.name === "recovery_code_hash");
-  if (!hasRecoverySaltColumn) {
-    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_salt TEXT").run();
-  }
-  if (!hasRecoveryHashColumn) {
-    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_hash TEXT").run();
-  }
-}
-
-function relaxWorkEntriesLunchBreakConstraint(database) {
-  const tableDef = database
-    .prepare(
-      `
-        SELECT sql
-        FROM sqlite_master
-        WHERE type = 'table' AND name = 'work_entries'
-      `
-    )
-    .get();
-  const createTableSql =
-    tableDef && typeof tableDef.sql === "string" ? tableDef.sql.toLowerCase() : "";
-  if (!createTableSql.includes("lunch_break_minutes <= 480")) {
-    return;
-  }
-
-  database.exec(`
-    BEGIN;
-    CREATE TABLE work_entries_new (
-      work_date TEXT PRIMARY KEY
-        CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
-      day_type TEXT NOT NULL DEFAULT 'office',
-      arrival_time TEXT NOT NULL
-        CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
-      departure_time TEXT NOT NULL
-        CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
-      lunch_break_minutes INTEGER NOT NULL
-        CHECK (lunch_break_minutes >= 0),
-      worked_minutes INTEGER NOT NULL
-        CHECK (worked_minutes >= 0),
-      comment_text TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    INSERT INTO work_entries_new (
-      work_date,
-      day_type,
-      arrival_time,
-      departure_time,
-      lunch_break_minutes,
-      worked_minutes,
-      comment_text,
-      created_at,
-      updated_at
-    )
-    SELECT
-      work_date,
-      day_type,
-      arrival_time,
-      departure_time,
-      lunch_break_minutes,
-      worked_minutes,
-      comment_text,
-      created_at,
-      updated_at
-    FROM work_entries;
-
-    DROP TABLE work_entries;
-    ALTER TABLE work_entries_new RENAME TO work_entries;
-
-    CREATE INDEX IF NOT EXISTS idx_work_entries_work_date
-      ON work_entries (work_date);
-    COMMIT;
-  `);
-}
-
-const payPeriodSalariesSchemaSql = `
-CREATE TABLE IF NOT EXISTS pay_period_salaries (
-  pay_period_month TEXT PRIMARY KEY
-    CHECK (pay_period_month GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
-  salary_amount_cents INTEGER NOT NULL
-    CHECK (salary_amount_cents >= 0),
+const authSchemaSql = `
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  recovery_code_salt TEXT,
+  recovery_code_hash TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-`;
 
-const sessionsSchemaSql = `
+CREATE INDEX IF NOT EXISTS idx_users_username
+  ON users (username);
+
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,
   username TEXT NOT NULL,
@@ -144,12 +45,330 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at_ms
   ON sessions (expires_at_ms);
 `;
 
-ensureWorkEntriesCommentColumn(authDb);
-ensureWorkEntriesDayTypeColumn(authDb);
+const clientsSchemaSql = `
+CREATE TABLE IF NOT EXISTS clients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL,
+  contact_name TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  address TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_clients_company_name
+  ON clients (company_name);
+`;
+
+const workEntriesSchemaSql = `
+CREATE TABLE IF NOT EXISTS work_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL,
+  work_date TEXT NOT NULL
+    CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+  day_type TEXT NOT NULL DEFAULT 'office',
+  arrival_time TEXT NOT NULL
+    CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+  departure_time TEXT NOT NULL
+    CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+  lunch_break_minutes INTEGER NOT NULL
+    CHECK (lunch_break_minutes >= 0),
+  worked_minutes INTEGER NOT NULL
+    CHECK (worked_minutes >= 0),
+  comment_text TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+  UNIQUE (client_id, work_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_entries_client_date
+  ON work_entries (client_id, work_date);
+`;
+
+const payPeriodSalariesSchemaSql = `
+CREATE TABLE IF NOT EXISTS pay_period_salaries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL,
+  pay_period_month TEXT NOT NULL
+    CHECK (pay_period_month GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+  salary_amount_cents INTEGER NOT NULL
+    CHECK (salary_amount_cents >= 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+  UNIQUE (client_id, pay_period_month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pay_period_salaries_client_month
+  ON pay_period_salaries (client_id, pay_period_month);
+`;
+
+authDb.exec(authSchemaSql);
+
+function tableExists(database, tableName) {
+  const row = database
+    .prepare(
+      `
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+      `
+    )
+    .get(tableName);
+  return Boolean(row);
+}
+
+function getTableColumns(database, tableName) {
+  if (!tableExists(database, tableName)) {
+    return [];
+  }
+  return database.prepare(`PRAGMA table_info(${tableName})`).all();
+}
+
+function ensureUsersRecoveryColumns(database) {
+  const columns = getTableColumns(database, "users");
+  const hasRecoverySaltColumn = columns.some((column) => column.name === "recovery_code_salt");
+  const hasRecoveryHashColumn = columns.some((column) => column.name === "recovery_code_hash");
+
+  if (!hasRecoverySaltColumn) {
+    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_salt TEXT").run();
+  }
+  if (!hasRecoveryHashColumn) {
+    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_hash TEXT").run();
+  }
+}
+
+function ensureClientsTable(database) {
+  database.exec(clientsSchemaSql);
+}
+
+function getOrCreateDefaultClientId(database) {
+  ensureClientsTable(database);
+  const existingClient = database
+    .prepare(
+      `
+        SELECT id
+        FROM clients
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+      `
+    )
+    .get();
+
+  if (existingClient) {
+    return existingClient.id;
+  }
+
+  const result = database
+    .prepare(
+      `
+        INSERT INTO clients (
+          company_name,
+          contact_name,
+          email,
+          phone,
+          address,
+          notes,
+          created_at
+        )
+        VALUES (
+          'Client principal',
+          '',
+          '',
+          '',
+          '',
+          '',
+          datetime('now')
+        )
+      `
+    )
+    .run();
+
+  return Number(result.lastInsertRowid);
+}
+
+function migrateWorkEntriesTable(database) {
+  if (!tableExists(database, "work_entries")) {
+    database.exec(workEntriesSchemaSql);
+    return;
+  }
+
+  const columns = getTableColumns(database, "work_entries");
+  const hasClientId = columns.some((column) => column.name === "client_id");
+  const hasCommentColumn = columns.some((column) => column.name === "comment_text");
+  const hasDayTypeColumn = columns.some((column) => column.name === "day_type");
+  const hasIdColumn = columns.some((column) => column.name === "id");
+  const hasPrimaryKeyOnWorkDate = columns.some(
+    (column) => column.name === "work_date" && Number(column.pk) === 1
+  );
+
+  const indexList = database.prepare("PRAGMA index_list(work_entries)").all();
+  const hasUniqueClientDateIndex = indexList.some((index) => {
+    if (!index.unique) {
+      return false;
+    }
+    const indexInfo = database.prepare(`PRAGMA index_info(${index.name})`).all();
+    const indexedColumns = indexInfo.map((column) => column.name).join(",");
+    return indexedColumns === "client_id,work_date";
+  });
+
+  if (hasClientId && hasIdColumn && !hasPrimaryKeyOnWorkDate && hasUniqueClientDateIndex) {
+    database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_work_entries_client_date
+        ON work_entries (client_id, work_date);
+    `);
+    return;
+  }
+
+  const defaultClientId = getOrCreateDefaultClientId(database);
+  const dayTypeSelect = hasDayTypeColumn ? "day_type" : "'office'";
+  const commentSelect = hasCommentColumn ? "comment_text" : "''";
+  const clientIdSelect = hasClientId ? "client_id" : String(defaultClientId);
+
+  database.exec(`
+    BEGIN;
+
+    CREATE TABLE work_entries_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      work_date TEXT NOT NULL
+        CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+      day_type TEXT NOT NULL DEFAULT 'office',
+      arrival_time TEXT NOT NULL
+        CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+      departure_time TEXT NOT NULL
+        CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
+      lunch_break_minutes INTEGER NOT NULL
+        CHECK (lunch_break_minutes >= 0),
+      worked_minutes INTEGER NOT NULL
+        CHECK (worked_minutes >= 0),
+      comment_text TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+      UNIQUE (client_id, work_date)
+    );
+
+    INSERT INTO work_entries_new (
+      client_id,
+      work_date,
+      day_type,
+      arrival_time,
+      departure_time,
+      lunch_break_minutes,
+      worked_minutes,
+      comment_text,
+      created_at,
+      updated_at
+    )
+    SELECT
+      ${clientIdSelect},
+      work_date,
+      ${dayTypeSelect},
+      arrival_time,
+      departure_time,
+      lunch_break_minutes,
+      worked_minutes,
+      ${commentSelect},
+      created_at,
+      updated_at
+    FROM work_entries;
+
+    DROP TABLE work_entries;
+    ALTER TABLE work_entries_new RENAME TO work_entries;
+
+    CREATE INDEX IF NOT EXISTS idx_work_entries_client_date
+      ON work_entries (client_id, work_date);
+
+    COMMIT;
+  `);
+}
+
+function migratePayPeriodSalariesTable(database) {
+  if (!tableExists(database, "pay_period_salaries")) {
+    database.exec(payPeriodSalariesSchemaSql);
+    return;
+  }
+
+  const columns = getTableColumns(database, "pay_period_salaries");
+  const hasClientId = columns.some((column) => column.name === "client_id");
+  const hasIdColumn = columns.some((column) => column.name === "id");
+  const hasPrimaryKeyOnMonth = columns.some(
+    (column) => column.name === "pay_period_month" && Number(column.pk) === 1
+  );
+  const indexList = database.prepare("PRAGMA index_list(pay_period_salaries)").all();
+  const hasUniqueClientMonthIndex = indexList.some((index) => {
+    if (!index.unique) {
+      return false;
+    }
+    const indexInfo = database.prepare(`PRAGMA index_info(${index.name})`).all();
+    const indexedColumns = indexInfo.map((column) => column.name).join(",");
+    return indexedColumns === "client_id,pay_period_month";
+  });
+
+  if (hasClientId && hasIdColumn && !hasPrimaryKeyOnMonth && hasUniqueClientMonthIndex) {
+    database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_pay_period_salaries_client_month
+        ON pay_period_salaries (client_id, pay_period_month);
+    `);
+    return;
+  }
+
+  const defaultClientId = getOrCreateDefaultClientId(database);
+  const clientIdSelect = hasClientId ? "client_id" : String(defaultClientId);
+
+  database.exec(`
+    BEGIN;
+
+    CREATE TABLE pay_period_salaries_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      pay_period_month TEXT NOT NULL
+        CHECK (pay_period_month GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+      salary_amount_cents INTEGER NOT NULL
+        CHECK (salary_amount_cents >= 0),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+      UNIQUE (client_id, pay_period_month)
+    );
+
+    INSERT INTO pay_period_salaries_new (
+      client_id,
+      pay_period_month,
+      salary_amount_cents,
+      created_at,
+      updated_at
+    )
+    SELECT
+      ${clientIdSelect},
+      pay_period_month,
+      salary_amount_cents,
+      created_at,
+      updated_at
+    FROM pay_period_salaries;
+
+    DROP TABLE pay_period_salaries;
+    ALTER TABLE pay_period_salaries_new RENAME TO pay_period_salaries;
+
+    CREATE INDEX IF NOT EXISTS idx_pay_period_salaries_client_month
+      ON pay_period_salaries (client_id, pay_period_month);
+
+    COMMIT;
+  `);
+}
+
+function initializeUserDatabase(database) {
+  database.pragma("journal_mode = WAL");
+  database.pragma("foreign_keys = ON");
+  ensureClientsTable(database);
+  migrateWorkEntriesTable(database);
+  migratePayPeriodSalariesTable(database);
+}
+
 ensureUsersRecoveryColumns(authDb);
-relaxWorkEntriesLunchBreakConstraint(authDb);
-authDb.exec(payPeriodSalariesSchemaSql);
-authDb.exec(sessionsSchemaSql);
 
 const getUserByUsernameStmt = authDb.prepare(`
   SELECT
@@ -244,44 +463,18 @@ const deleteExpiredSessionsStmt = authDb.prepare(`
   WHERE expires_at_ms <= ?
 `);
 
-const workEntriesSchemaSql = `
-CREATE TABLE IF NOT EXISTS work_entries (
-  work_date TEXT PRIMARY KEY
-    CHECK (work_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
-  day_type TEXT NOT NULL DEFAULT 'office',
-  arrival_time TEXT NOT NULL
-    CHECK (arrival_time GLOB '[0-2][0-9]:[0-5][0-9]'),
-  departure_time TEXT NOT NULL
-    CHECK (departure_time GLOB '[0-2][0-9]:[0-5][0-9]'),
-  lunch_break_minutes INTEGER NOT NULL
-    CHECK (lunch_break_minutes >= 0),
-  worked_minutes INTEGER NOT NULL
-    CHECK (worked_minutes >= 0),
-  comment_text TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_work_entries_work_date
-  ON work_entries (work_date);
-`;
-
 const userStores = new Map();
 
 function migrateExistingUserDbs() {
   if (!fs.existsSync(userDbsDir)) {
     return;
   }
+
   const files = fs.readdirSync(userDbsDir).filter((file) => file.endsWith(".db"));
   for (const file of files) {
     const filePath = path.join(userDbsDir, file);
     const userDb = new Database(filePath);
-    userDb.pragma("journal_mode = WAL");
-    userDb.exec(workEntriesSchemaSql);
-    userDb.exec(payPeriodSalariesSchemaSql);
-    ensureWorkEntriesCommentColumn(userDb);
-    ensureWorkEntriesDayTypeColumn(userDb);
-    relaxWorkEntriesLunchBreakConstraint(userDb);
+    initializeUserDatabase(userDb);
     userDb.close();
   }
 }
@@ -305,16 +498,73 @@ function getUserStore(username) {
 
   const userDbPath = getUserDbPath(safeUsername);
   const userDb = new Database(userDbPath);
-  userDb.pragma("journal_mode = WAL");
-  userDb.exec(workEntriesSchemaSql);
-  userDb.exec(payPeriodSalariesSchemaSql);
-  ensureWorkEntriesCommentColumn(userDb);
-  ensureWorkEntriesDayTypeColumn(userDb);
-  relaxWorkEntriesLunchBreakConstraint(userDb);
+  initializeUserDatabase(userDb);
 
   const store = {
-    upsertEntryStmt: userDb.prepare(`
+    getAllClientsStmt: userDb.prepare(`
+      SELECT
+        id,
+        company_name,
+        contact_name,
+        email,
+        phone,
+        address,
+        notes,
+        created_at
+      FROM clients
+      ORDER BY company_name COLLATE NOCASE ASC, id ASC
+    `),
+    getClientByIdStmt: userDb.prepare(`
+      SELECT
+        id,
+        company_name,
+        contact_name,
+        email,
+        phone,
+        address,
+        notes,
+        created_at
+      FROM clients
+      WHERE id = ?
+    `),
+    createClientStmt: userDb.prepare(`
+      INSERT INTO clients (
+        company_name,
+        contact_name,
+        email,
+        phone,
+        address,
+        notes,
+        created_at
+      )
+      VALUES (
+        @company_name,
+        @contact_name,
+        @email,
+        @phone,
+        @address,
+        @notes,
+        datetime('now')
+      )
+    `),
+    updateClientStmt: userDb.prepare(`
+      UPDATE clients
+      SET
+        company_name = @company_name,
+        contact_name = @contact_name,
+        email = @email,
+        phone = @phone,
+        address = @address,
+        notes = @notes
+      WHERE id = @id
+    `),
+    deleteClientStmt: userDb.prepare(`
+      DELETE FROM clients
+      WHERE id = ?
+    `),
+    upsertWorkEntryStmt: userDb.prepare(`
       INSERT INTO work_entries (
+        client_id,
         work_date,
         day_type,
         arrival_time,
@@ -326,6 +576,7 @@ function getUserStore(username) {
         updated_at
       )
       VALUES (
+        @client_id,
         @work_date,
         @day_type,
         @arrival_time,
@@ -336,7 +587,7 @@ function getUserStore(username) {
         datetime('now'),
         datetime('now')
       )
-      ON CONFLICT(work_date) DO UPDATE SET
+      ON CONFLICT(client_id, work_date) DO UPDATE SET
         day_type = excluded.day_type,
         arrival_time = excluded.arrival_time,
         departure_time = excluded.departure_time,
@@ -345,12 +596,15 @@ function getUserStore(username) {
         comment_text = excluded.comment_text,
         updated_at = datetime('now')
     `),
-    deleteEntryStmt: userDb.prepare(`
+    deleteWorkEntryStmt: userDb.prepare(`
       DELETE FROM work_entries
-      WHERE work_date = ?
+      WHERE client_id = @client_id
+        AND work_date = @work_date
     `),
-    getEntryByWorkDateStmt: userDb.prepare(`
+    getWorkEntryByDateStmt: userDb.prepare(`
       SELECT
+        id,
+        client_id,
         work_date,
         day_type,
         arrival_time,
@@ -359,46 +613,70 @@ function getUserStore(username) {
         worked_minutes,
         comment_text
       FROM work_entries
-      WHERE work_date = ?
+      WHERE client_id = ?
+        AND work_date = ?
+    `),
+    getWorkEntriesByClientStmt: userDb.prepare(`
+      SELECT
+        id,
+        client_id,
+        work_date,
+        day_type,
+        arrival_time,
+        departure_time,
+        lunch_break_minutes,
+        worked_minutes,
+        comment_text
+      FROM work_entries
+      WHERE client_id = ?
+      ORDER BY work_date ASC
+    `),
+    getWorkEntriesByClientRangeStmt: userDb.prepare(`
+      SELECT
+        id,
+        client_id,
+        work_date,
+        day_type,
+        arrival_time,
+        departure_time,
+        lunch_break_minutes,
+        worked_minutes,
+        comment_text
+      FROM work_entries
+      WHERE client_id = ?
+        AND work_date >= ?
+        AND work_date < ?
+      ORDER BY work_date ASC
     `),
     upsertPayPeriodSalaryStmt: userDb.prepare(`
       INSERT INTO pay_period_salaries (
+        client_id,
         pay_period_month,
         salary_amount_cents,
         created_at,
         updated_at
       )
       VALUES (
+        @client_id,
         @pay_period_month,
         @salary_amount_cents,
         datetime('now'),
         datetime('now')
       )
-      ON CONFLICT(pay_period_month) DO UPDATE SET
+      ON CONFLICT(client_id, pay_period_month) DO UPDATE SET
         salary_amount_cents = excluded.salary_amount_cents,
         updated_at = datetime('now')
     `),
     deletePayPeriodSalaryStmt: userDb.prepare(`
       DELETE FROM pay_period_salaries
-      WHERE pay_period_month = ?
+      WHERE client_id = ?
+        AND pay_period_month = ?
     `),
     getPayPeriodSalaryStmt: userDb.prepare(`
       SELECT salary_amount_cents
       FROM pay_period_salaries
-      WHERE pay_period_month = ?
-    `),
-    getEntriesForMonthStmt: userDb.prepare(`
-      SELECT
-        work_date,
-        day_type,
-        arrival_time,
-        departure_time,
-        lunch_break_minutes,
-        worked_minutes,
-        comment_text
-      FROM work_entries
-      WHERE work_date >= ? AND work_date < ?
-      ORDER BY work_date ASC
+      WHERE client_id = ?
+        AND pay_period_month = ?
     `),
   };
 
@@ -406,23 +684,76 @@ function getUserStore(username) {
   return store;
 }
 
+function normalizeClientPayload(client) {
+  return {
+    company_name:
+      typeof client.company_name === "string" ? client.company_name.trim() : "",
+    contact_name:
+      typeof client.contact_name === "string" ? client.contact_name.trim() : "",
+    email: typeof client.email === "string" ? client.email.trim() : "",
+    phone: typeof client.phone === "string" ? client.phone.trim() : "",
+    address: typeof client.address === "string" ? client.address.trim() : "",
+    notes: typeof client.notes === "string" ? client.notes.trim() : "",
+  };
+}
+
 function ensureUserDatabase(username) {
   getUserStore(username);
 }
 
-function upsertEntry(username, entry) {
+function getAllClients(username) {
   const store = getUserStore(username);
-  store.upsertEntryStmt.run(entry);
+  return store.getAllClientsStmt.all();
 }
 
-function deleteEntry(username, workDate) {
+function getClientById(username, id) {
   const store = getUserStore(username);
-  store.deleteEntryStmt.run(workDate);
+  return store.getClientByIdStmt.get(id) || null;
 }
 
-function getEntryByWorkDate(username, workDate) {
+function createClient(username, client) {
   const store = getUserStore(username);
-  return store.getEntryByWorkDateStmt.get(workDate) || null;
+  const payload = normalizeClientPayload(client);
+  const result = store.createClientStmt.run(payload);
+  return getClientById(username, Number(result.lastInsertRowid));
+}
+
+function updateClient(username, clientId, client) {
+  const store = getUserStore(username);
+  const payload = normalizeClientPayload(client);
+  store.updateClientStmt.run({
+    id: clientId,
+    ...payload,
+  });
+  return getClientById(username, clientId);
+}
+
+function deleteClient(username, clientId) {
+  const store = getUserStore(username);
+  store.deleteClientStmt.run(clientId);
+}
+
+function getWorkEntriesByClient(username, clientId, startDate = null, endDate = null) {
+  const store = getUserStore(username);
+  if (typeof startDate === "string" && typeof endDate === "string") {
+    return store.getWorkEntriesByClientRangeStmt.all(clientId, startDate, endDate);
+  }
+  return store.getWorkEntriesByClientStmt.all(clientId);
+}
+
+function getWorkEntryByDate(username, clientId, workDate) {
+  const store = getUserStore(username);
+  return store.getWorkEntryByDateStmt.get(clientId, workDate) || null;
+}
+
+function upsertWorkEntry(username, entry) {
+  const store = getUserStore(username);
+  store.upsertWorkEntryStmt.run(entry);
+}
+
+function deleteWorkEntry(username, clientId, workDate) {
+  const store = getUserStore(username);
+  store.deleteWorkEntryStmt.run({ client_id: clientId, work_date: workDate });
 }
 
 function upsertPayPeriodSalary(username, payPeriodSalary) {
@@ -430,20 +761,15 @@ function upsertPayPeriodSalary(username, payPeriodSalary) {
   store.upsertPayPeriodSalaryStmt.run(payPeriodSalary);
 }
 
-function deletePayPeriodSalary(username, payPeriodMonth) {
+function deletePayPeriodSalary(username, clientId, payPeriodMonth) {
   const store = getUserStore(username);
-  store.deletePayPeriodSalaryStmt.run(payPeriodMonth);
+  store.deletePayPeriodSalaryStmt.run(clientId, payPeriodMonth);
 }
 
-function getPayPeriodSalary(username, payPeriodMonth) {
+function getPayPeriodSalary(username, clientId, payPeriodMonth) {
   const store = getUserStore(username);
-  const row = store.getPayPeriodSalaryStmt.get(payPeriodMonth);
+  const row = store.getPayPeriodSalaryStmt.get(clientId, payPeriodMonth);
   return row ? row.salary_amount_cents : null;
-}
-
-function getEntriesForMonth(username, startDate, endDate) {
-  const store = getUserStore(username);
-  return store.getEntriesForMonthStmt.all(startDate, endDate);
 }
 
 function getUserByUsername(username) {
@@ -479,14 +805,19 @@ function deleteExpiredSessions(nowMs) {
 }
 
 module.exports = {
-  upsertEntry,
-  deleteEntry,
-  getEntryByWorkDate,
+  ensureUserDatabase,
+  getAllClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient,
+  getWorkEntriesByClient,
+  getWorkEntryByDate,
+  upsertWorkEntry,
+  deleteWorkEntry,
   upsertPayPeriodSalary,
   deletePayPeriodSalary,
   getPayPeriodSalary,
-  getEntriesForMonth,
-  ensureUserDatabase,
   getUserByUsername,
   createUser,
   updateUserPassword,

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -31,17 +31,261 @@
       })();
     </script>
     <link rel="stylesheet" href="/style.css" />
+    <style>
+      .client-switch-form {
+        display: flex;
+        align-items: end;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+
+      .client-switch-form .theme-picker {
+        min-width: 230px;
+      }
+
+      .client-add-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 3rem;
+        min-height: 3rem;
+        padding-inline: 0.95rem;
+      }
+
+      .client-view-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 3rem;
+        min-height: 3rem;
+        padding-inline: 0.95rem;
+      }
+
+      .client-empty-card {
+        margin-top: 2rem;
+        padding: 1.4rem;
+      }
+
+      .client-empty-card p {
+        margin: 0.5rem 0 0;
+      }
+
+      .client-modal[hidden] {
+        display: none;
+      }
+
+      .client-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+      }
+
+      .client-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 15, 27, 0.62);
+        backdrop-filter: blur(8px);
+      }
+
+      .client-modal-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 720px);
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+        padding: 1.2rem;
+      }
+
+      .client-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .client-modal-header h2 {
+        margin: 0;
+      }
+
+      .client-modal-close {
+        width: 2.2rem;
+        min-width: 2.2rem;
+        height: 2.2rem;
+        padding: 0;
+      }
+
+      .client-modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.8rem;
+      }
+
+      .client-modal-grid .field-full {
+        grid-column: 1 / -1;
+      }
+
+      .client-info-list {
+        display: grid;
+        gap: 0.8rem;
+      }
+
+      .client-info-item {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+      }
+
+      .client-info-item strong {
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .client-info-item span {
+        word-break: break-word;
+      }
+
+      @media (max-width: 700px) {
+        .client-switch-form {
+          width: 100%;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          align-items: end;
+          gap: 0.55rem;
+        }
+
+        .client-switch-form .theme-picker {
+          min-width: 0;
+        }
+
+        .client-view-button,
+        .client-add-button {
+          width: 2.9rem;
+          min-width: 2.9rem;
+          min-height: 2.9rem;
+          padding-inline: 0;
+        }
+
+        .client-modal {
+          align-items: end;
+          padding:
+            max(0.75rem, env(safe-area-inset-top))
+            max(0.7rem, env(safe-area-inset-right))
+            max(0.75rem, env(safe-area-inset-bottom))
+            max(0.7rem, env(safe-area-inset-left));
+        }
+
+        .client-modal-dialog {
+          width: 100%;
+          max-height: min(84vh, calc(100vh - 1.5rem));
+          padding: 1rem 0.9rem;
+          border-radius: 18px;
+        }
+
+        .client-modal-header {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          padding-bottom: 0.4rem;
+          background: inherit;
+        }
+
+        .client-modal-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .client-switch-form {
+          grid-template-columns: minmax(0, 1fr) auto auto;
+        }
+
+        .client-modal-dialog {
+          max-height: min(88vh, calc(100vh - 1rem));
+          padding: 0.92rem 0.82rem;
+        }
+
+        .client-modal-header h2 {
+          font-size: 1.35rem;
+        }
+
+        .client-info-item {
+          padding: 0.78rem 0.82rem;
+        }
+      }
+    </style>
   </head>
   <body class="home-premium-page">
+    <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
+    <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
+    <% const _selectedClientId = selectedClient ? selectedClient.id : ""; %>
     <main class="container">
-       <div style="height: 5rem;"></div>
+      <div style="height: 5rem;"></div>
       <header class="page-header page-header-premium">
         <div class="page-header-copy">
-          
           <h1>Suivi mensuel des heures de travail</h1>
-          
         </div>
         <div class="header-actions">
+          <form action="/" method="get" class="client-switch-form">
+            <input type="hidden" name="month" value="<%= selectedMonth %>" />
+            <div class="theme-picker">
+              <label for="clientSelectApp">Client</label>
+              <select id="clientSelectApp" name="clientId" onchange="this.form.submit()">
+                <% if (clients.length === 0) { %>
+                <option value="">Aucun client</option>
+                <% } %>
+                <% clients.forEach((client) => { %>
+                <option value="<%= client.id %>" <%= selectedClient && selectedClient.id === client.id ? "selected" : "" %>>
+                  <%= client.company_name %>
+                </option>
+                <% }); %>
+              </select>
+            </div>
+            <button
+              type="button"
+              class="client-view-button secondary"
+              data-open-client-info-modal
+              data-ripple
+              aria-label="Voir les informations du client"
+              title="Afficher détail"
+              <%= selectedClient ? "" : "disabled" %>
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="client-add-button"
+              data-open-client-modal
+              data-ripple
+              aria-label="Ajouter un client"
+              title="Ajouter un client"
+            >+</button>
+          </form>
           <div class="theme-picker">
             <label for="themeSelectApp">Theme</label>
             <select id="themeSelectApp" data-theme-selector>
@@ -71,7 +315,21 @@
         </div>
       </header>
 
+      <% if (clientError) { %>
+      <p class="alert"><%= clientError %></p>
+      <% } %>
+
+      <% if (error) { %>
+      <p class="alert"><%= error %></p>
+      <% } %>
+
+      <% if (selectedClient) { %>
       <section class="premium-summary-grid" aria-label="Resume de la periode">
+        <article class="premium-mini-card">
+          <span class="premium-mini-label">Client</span>
+          <strong class="premium-mini-value"><%= selectedClient.company_name %></strong>
+          <span class="premium-mini-meta"><%= selectedClient.contact_name || "Client actif" %></span>
+        </article>
         <article class="premium-mini-card">
           <span class="premium-mini-label">Periode</span>
           <strong class="premium-mini-value"><%= payPeriodLabel || selectedMonth %></strong>
@@ -87,21 +345,8 @@
           <strong class="premium-mini-value"><%= totalHHMM %></strong>
           <span class="premium-mini-meta">Total heures sur la période</span>
         </article>
-        <article class="premium-mini-card">
-          <span class="premium-mini-label">Salaire net</span>
-          <strong class="premium-mini-value"><%= salaryAmountDisplay %></strong>
-          <span class="premium-mini-meta"><%= hourlyRateDisplay || "Taux calcule automatiquement" %></span>
-        </article>
       </section>
 
-      <% if (error) { %>
-      <p class="alert"><%= error %></p>
-      <% } %>
-      <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
-      <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
-<br>
-<br>
-<br>
       <section class="card entry-card premium-surface" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
@@ -122,6 +367,7 @@
         </div>
         <form action="/entries" method="post" class="entry-form" id="entryFormPanel" data-entry-form>
           <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+          <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
           <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
 
           <div class="field">
@@ -208,7 +454,11 @@
             </button>
             <% } %>
             <% if (_isEditing) { %>
-            <a class="button-link button-neutral" href="/?month=<%= encodeURIComponent(selectedMonth) %>" data-ripple>
+            <a
+              class="button-link button-neutral"
+              href="/?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+              data-ripple
+            >
               Annuler
             </a>
             <% } %>
@@ -216,28 +466,30 @@
         </form>
       </section>
 
-      <%# Espace  %> 
-
-      <div style="height: 10rem;"></div>
+      <div style="height: 4rem;"></div>
 
       <section class="card premium-surface premium-surface-wide">
         <div class="month-header">
           <div class="month-header-copy">
-            
             <h2>Période de paie</h2>
             <% if (payPeriodLabel) { %>
             <p class="month-period-label"><%= payPeriodLabel %></p>
             <% } %>
           </div>
-     
+
           <div class="month-tools">
             <form action="/" method="get" class="month-form">
+              <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
               <div class="month-form-row">
                 <label for="month">Choisir un mois</label>
                 <div class="month-form-controls">
                   <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
                   <button type="submit" data-ripple>Afficher</button>
-                  <a class="button-link" href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>" data-ripple>
+                  <a
+                    class="button-link"
+                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                    data-ripple
+                  >
                     Export CSV
                   </a>
                 </div>
@@ -245,7 +497,7 @@
             </form>
           </div>
         </div>
-        
+
         <div class="day-filter-bar" data-day-filter-bar>
           <% dayTypeFilters.forEach((filter, index) => { %>
           <button
@@ -263,7 +515,7 @@
                 <span><%= filter.count %></span>
               </span>
               <span class="day-filter-count day-filter-count-year" title="Année affichée">
-                <span class="day-filter-count-label" title="Ann&eacute;e" aria-label="Ann&eacute;e">A</span>
+                <span class="day-filter-count-label" title="Année" aria-label="Année">A</span>
                 <span><%= filter.yearCount %></span>
               </span>
             </span>
@@ -291,7 +543,7 @@
             <tbody>
               <% if (displayEntries.length === 0) { %>
               <tr>
-                <td colspan="11" class="empty">Aucune journée enregistrée pour cette période.</td>
+                <td colspan="11" class="empty">Aucune journée enregistrée pour ce client sur cette période.</td>
               </tr>
               <% } %>
 
@@ -355,7 +607,7 @@
                     <a
                       class="button-link secondary-link"
                       data-ripple
-                      href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>"
+                      href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
                     >
                       Modifier
                     </a>
@@ -365,6 +617,7 @@
                       onsubmit="return confirm('Supprimer cette journee ?');"
                     >
                       <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                      <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
                       <button type="submit" class="danger" data-ripple>Supprimer</button>
                     </form>
                   </div>
@@ -399,6 +652,7 @@
                     </summary>
                     <form action="/pay-period-salary" method="post" class="salary-editor-panel">
                       <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                      <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
                       <label for="salaryAmountInline">Montant</label>
                       <input
                         id="salaryAmountInline"
@@ -408,7 +662,7 @@
                         step="0.01"
                         inputmode="decimal"
                         value="<%= salaryAmountInput %>"
-                        placeholder="Ex: 4850.00$"
+                        placeholder="Ex: 4850.00"
                       />
                       <button type="submit" data-ripple>OK</button>
                     </form>
@@ -425,7 +679,126 @@
           </table>
         </div>
       </section>
+      <% } else { %>
+      <section class="card premium-surface client-empty-card">
+        <div class="section-heading">
+          <p class="section-eyebrow">Clients</p>
+          <h2>Créez votre premier client</h2>
+        </div>
+        <p>Ajoutez une entreprise pour commencer à enregistrer des journées de travail séparées par client.</p>
+        <div class="form-actions">
+          <button type="button" data-open-client-modal data-ripple>Ajouter un client</button>
+        </div>
+      </section>
+      <% } %>
     </main>
+
+    <div class="client-modal" data-client-modal <%= showClientModal ? "" : "hidden" %>>
+      <div class="client-modal-backdrop" data-close-client-modal></div>
+      <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="clientModalTitle">
+        <div class="client-modal-header">
+          <div class="section-heading">
+            <p class="section-eyebrow">Nouveau client</p>
+            <h2 id="clientModalTitle">Créer une société</h2>
+          </div>
+          <button type="button" class="client-modal-close secondary" data-close-client-modal aria-label="Fermer">×</button>
+        </div>
+        <form action="/clients" method="post" class="login-form">
+          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+          <div class="client-modal-grid">
+            <div class="field">
+              <label for="clientCompanyName">Entreprise</label>
+              <input id="clientCompanyName" name="company_name" type="text" required value="<%= clientFormData.company_name || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientContactName">Contact</label>
+              <input id="clientContactName" name="contact_name" type="text" value="<%= clientFormData.contact_name || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientEmail">Email</label>
+              <input id="clientEmail" name="email" type="email" value="<%= clientFormData.email || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientPhone">Téléphone</label>
+              <input id="clientPhone" name="phone" type="text" value="<%= clientFormData.phone || '' %>" />
+            </div>
+            <div class="field field-full">
+              <label for="clientAddress">Adresse</label>
+              <textarea id="clientAddress" name="address" rows="2"><%= clientFormData.address || '' %></textarea>
+            </div>
+            <div class="field field-full">
+              <label for="clientNotes">Notes</label>
+              <textarea id="clientNotes" name="notes" rows="4"><%= clientFormData.notes || '' %></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" data-ripple>Créer le client</button>
+            <button type="button" class="button-link button-neutral" data-close-client-modal data-ripple>Annuler</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="client-modal" data-client-info-modal <%= showClientInfoModal ? "" : "hidden" %>>
+      <div class="client-modal-backdrop" data-close-client-info-modal></div>
+      <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="clientInfoModalTitle">
+        <div class="client-modal-header">
+          <div class="section-heading">
+            <p class="section-eyebrow">Informations client</p>
+            <h2 id="clientInfoModalTitle"><%= selectedClient ? selectedClient.company_name : "Client" %></h2>
+          </div>
+          <button type="button" class="client-modal-close secondary" data-close-client-info-modal aria-label="Fermer">×</button>
+        </div>
+        <% if (selectedClient) { %>
+        <form action="/clients/<%= selectedClient.id %>/update" method="post" class="login-form">
+          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+          <div class="client-modal-grid">
+            <div class="field">
+              <label for="clientInfoCompanyName">Entreprise</label>
+              <input id="clientInfoCompanyName" name="company_name" type="text" required value="<%= selectedClient.company_name || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientInfoContactName">Contact</label>
+              <input id="clientInfoContactName" name="contact_name" type="text" value="<%= selectedClient.contact_name || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientInfoEmail">Email</label>
+              <input id="clientInfoEmail" name="email" type="email" value="<%= selectedClient.email || '' %>" />
+            </div>
+            <div class="field">
+              <label for="clientInfoPhone">Téléphone</label>
+              <input id="clientInfoPhone" name="phone" type="text" value="<%= selectedClient.phone || '' %>" />
+            </div>
+            <div class="field field-full">
+              <label for="clientInfoAddress">Adresse</label>
+              <textarea id="clientInfoAddress" name="address" rows="2"><%= selectedClient.address || '' %></textarea>
+            </div>
+            <div class="field field-full">
+              <label for="clientInfoNotes">Notes</label>
+              <textarea id="clientInfoNotes" name="notes" rows="4"><%= selectedClient.notes || '' %></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" data-ripple>Enregistrer</button>
+            <button type="button" class="button-link button-neutral" data-close-client-info-modal data-ripple>Fermer</button>
+          </div>
+        </form>
+        <div class="form-actions">
+          <form
+            action="/clients/<%= selectedClient.id %>/delete"
+            method="post"
+            onsubmit="return confirm('Supprimer ce client et toutes ses données ?');"
+          >
+            <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+            <button type="submit" class="danger" data-ripple>Supprimer ce client</button>
+          </form>
+        </div>
+        <% } else { %>
+        <p>Aucun client sélectionné.</p>
+        <% } %>
+      </section>
+    </div>
+
     <script src="/theme.js"></script>
     <script>
       (() => {
@@ -479,6 +852,85 @@
 
         dayTypeSelect.addEventListener("change", syncWorkedDayFields);
         syncWorkedDayFields();
+      })();
+
+      (() => {
+        const modal = document.querySelector("[data-client-modal]");
+        const openButtons = [...document.querySelectorAll("[data-open-client-modal]")];
+        const closeButtons = [...document.querySelectorAll("[data-close-client-modal]")];
+        const firstInput = modal ? modal.querySelector("#clientCompanyName") : null;
+
+        if (!modal) {
+          return;
+        }
+
+        const openModal = () => {
+          modal.hidden = false;
+          document.body.style.overflow = "hidden";
+          window.setTimeout(() => {
+            firstInput && firstInput.focus();
+          }, 0);
+        };
+
+        const closeModal = () => {
+          modal.hidden = true;
+          document.body.style.overflow = "";
+        };
+
+        openButtons.forEach((button) => {
+          button.addEventListener("click", openModal);
+        });
+
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", closeModal);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+          }
+        });
+
+        if (!modal.hidden) {
+          document.body.style.overflow = "hidden";
+          firstInput && firstInput.focus();
+        }
+      })();
+
+      (() => {
+        const modal = document.querySelector("[data-client-info-modal]");
+        const openButtons = [...document.querySelectorAll("[data-open-client-info-modal]")];
+        const closeButtons = [...document.querySelectorAll("[data-close-client-info-modal]")];
+
+        if (!modal) {
+          return;
+        }
+
+        const openModal = () => {
+          modal.hidden = false;
+          document.body.style.overflow = "hidden";
+        };
+
+        const closeModal = () => {
+          modal.hidden = true;
+          document.body.style.overflow = "";
+        };
+
+        openButtons.forEach((button) => {
+          if (!button.disabled) {
+            button.addEventListener("click", openModal);
+          }
+        });
+
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", closeModal);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+          }
+        });
       })();
 
       if ("serviceWorker" in navigator) {
