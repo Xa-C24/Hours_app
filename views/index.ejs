@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -153,6 +153,150 @@
         word-break: break-word;
       }
 
+      .archived-clients-card {
+        margin-top: 2rem;
+        padding: 1.2rem;
+      }
+
+      .archived-clients-card.is-collapsed .card-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .archived-clients-panel[hidden],
+      .archived-history[hidden] {
+        display: none;
+      }
+
+      .archived-clients-toolbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin: 1rem 0 1.15rem;
+      }
+
+      .archived-clients-toolbar .field {
+        display: flex;
+        flex: 1 1 22rem;
+        max-width: 34rem;
+        flex-direction: column;
+        gap: 0.42rem;
+      }
+
+      .archived-clients-toolbar label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .archived-clients-toolbar input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        background: var(--input-bg);
+        color: var(--text);
+        font: inherit;
+        min-height: 3rem;
+        padding: 0.8rem 0.95rem;
+        outline: none;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+
+      .archived-clients-toolbar input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px var(--focus-ring);
+      }
+
+      .archived-clients-list {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .archived-client-item {
+        border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+        border-radius: var(--radius-control);
+        padding: 1rem 1.05rem;
+        background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+      }
+
+      .archived-client-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .archived-client-name {
+        display: block;
+        font-weight: 800;
+        word-break: break-word;
+      }
+
+      .archived-client-meta {
+        display: block;
+        margin-top: 0.22rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .archived-client-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.45rem;
+      }
+
+      .archived-client-actions button {
+        min-width: 8.5rem;
+        white-space: nowrap;
+      }
+
+      .archived-client-actions form {
+        margin: 0;
+      }
+
+      .archived-delete-button {
+        min-width: 2.75rem !important;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .archived-delete-button svg {
+        width: 1.05rem;
+        height: 1.05rem;
+      }
+
+      .archived-history {
+        margin-top: 0.9rem;
+      }
+
+      .pay-period-card.is-collapsed .card-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .pay-period-card .month-header {
+        display: grid;
+        grid-template-columns: minmax(0, auto) minmax(18rem, 1fr) auto;
+        align-items: end;
+      }
+
+      .pay-period-card .month-tools {
+        justify-content: end;
+      }
+
+      .pay-period-panel[hidden] {
+        display: none;
+      }
+
       @media (max-width: 700px) {
         .client-switch-form {
           width: 100%;
@@ -200,6 +344,37 @@
 
         .client-modal-grid {
           grid-template-columns: 1fr;
+        }
+
+        .archived-clients-toolbar {
+          display: block;
+        }
+
+        .archived-clients-toolbar .field {
+          max-width: none;
+        }
+
+        .archived-client-summary {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .archived-client-actions {
+          justify-content: flex-start;
+        }
+
+        .archived-client-actions button {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .pay-period-card .month-header {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .pay-period-card .month-tools {
+          grid-column: 1 / -1;
+          order: 3;
         }
       }
 
@@ -347,6 +522,9 @@
         </article>
       </section>
 
+        <!-- Espace -->
+      <div style="height: 6rem;"></div>
+
       <section class="card entry-card premium-surface" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
@@ -466,9 +644,10 @@
         </form>
       </section>
 
-      <div style="height: 4rem;"></div>
+          <!-- Espace -->
+      <div style="height: 6rem;"></div>
 
-      <section class="card premium-surface premium-surface-wide">
+      <section class="card premium-surface premium-surface-wide pay-period-card" data-pay-period-card>
         <div class="month-header">
           <div class="month-header-copy">
             <h2>Période de paie</h2>
@@ -496,35 +675,47 @@
               </div>
             </form>
           </div>
-        </div>
-
-        <div class="day-filter-bar" data-day-filter-bar>
-          <% dayTypeFilters.forEach((filter, index) => { %>
           <button
             type="button"
-            class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
-            data-day-filter="<%= filter.value %>"
+            class="card-toggle"
+            data-pay-period-toggle
             data-ripple
-            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-            title="Période: <%= filter.count %> | Année affichée: <%= filter.yearCount %>"
+            aria-expanded="true"
+            aria-controls="payPeriodPanel"
+            title="Replier ou ouvrir la période"
           >
-            <span><%= filter.label %></span>
-            <span class="day-filter-counts">
-              <span class="day-filter-count" title="Période">
-                <span class="day-filter-count-label" title="Mois" aria-label="Mois">M</span>
-                <span><%= filter.count %></span>
-              </span>
-              <span class="day-filter-count day-filter-count-year" title="Année affichée">
-                <span class="day-filter-count-label" title="Année" aria-label="Année">A</span>
-                <span><%= filter.yearCount %></span>
-              </span>
-            </span>
+            <span class="card-toggle-icon" aria-hidden="true">▾</span>
           </button>
-          <% }); %>
         </div>
 
-        <div class="table-wrapper">
-          <table>
+        <div id="payPeriodPanel" class="pay-period-panel" data-pay-period-panel>
+          <div class="day-filter-bar" data-day-filter-bar>
+            <% dayTypeFilters.forEach((filter, index) => { %>
+            <button
+              type="button"
+              class="day-filter-chip <%= index === 0 ? 'is-active' : '' %>"
+              data-day-filter="<%= filter.value %>"
+              data-ripple
+              aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+              title="Période: <%= filter.count %> | Année affichée: <%= filter.yearCount %>"
+            >
+              <span><%= filter.label %></span>
+              <span class="day-filter-counts">
+                <span class="day-filter-count" title="Période">
+                  <span class="day-filter-count-label" title="Mois" aria-label="Mois">M</span>
+                  <span><%= filter.count %></span>
+                </span>
+                <span class="day-filter-count day-filter-count-year" title="Année affichée">
+                  <span class="day-filter-count-label" title="Année" aria-label="Année">A</span>
+                  <span><%= filter.yearCount %></span>
+                </span>
+              </span>
+            </button>
+            <% }); %>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
             <thead>
               <tr>
                 <th>Date</th>
@@ -676,7 +867,8 @@
                 </th>
               </tr>
             </tfoot>
-          </table>
+            </table>
+          </div>
         </div>
       </section>
       <% } else { %>
@@ -688,6 +880,148 @@
         <p>Ajoutez une entreprise pour commencer à enregistrer des journées de travail séparées par client.</p>
         <div class="form-actions">
           <button type="button" data-open-client-modal data-ripple>Ajouter un client</button>
+        </div>
+      </section>
+      <% } %>
+
+        <!-- Espace -->
+      <div style="height: 6rem;"></div>
+
+      <% if (archivedClients && archivedClients.length > 0) { %>
+      <section class="card premium-surface archived-clients-card" data-archived-clients-card>
+        <div class="entry-card-top">
+          <div class="section-heading">
+            <p class="section-eyebrow">Archives</p>
+            <h2>Clients archives</h2>
+          </div>
+          <button
+            type="button"
+            class="card-toggle"
+            data-archived-clients-toggle
+            data-ripple
+            aria-expanded="true"
+            aria-controls="archivedClientsPanel"
+            title="Replier ou ouvrir les archives"
+          >
+            <span class="card-toggle-icon" aria-hidden="true">&#9662;</span>
+          </button>
+        </div>
+        <div id="archivedClientsPanel" class="archived-clients-panel" data-archived-clients-panel>
+          <div class="archived-clients-toolbar">
+            <div class="field">
+              <label for="archivedClientSearch">Recherche par nom de client</label>
+              <input
+                id="archivedClientSearch"
+                type="search"
+                placeholder="Nom du client"
+                data-archived-client-search
+              />
+            </div>
+          </div>
+          <div class="archived-clients-list" data-archived-clients-list>
+            <% archivedClients.forEach((client) => { %>
+            <article
+              class="archived-client-item"
+              data-archived-client-item
+              data-client-name="<%= client.company_name.toLowerCase() %>"
+            >
+              <div class="archived-client-summary">
+                <div>
+                  <span class="archived-client-name"><%= client.company_name %></span>
+                  <span class="archived-client-meta">
+                    Archive le <%= client.archived_at_display || client.archived_at %> - <%= client.entry_count %> journee(s) - <%= client.total_hhmm %>
+                  </span>
+                </div>
+                
+                <div class="archived-client-actions">
+                  <a
+                    class="button-link"
+                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+                    data-ripple
+                  >
+                    Export CSV
+                  </a>
+                  <form action="/clients/<%= client.id %>/restore" method="post">
+                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                    <button type="submit" data-ripple>Modifier</button>
+                  </form>
+                  <button
+                    type="button"
+                    class="secondary"
+                    data-archived-history-toggle
+                    data-ripple
+                    aria-expanded="false"
+                  >
+                    Voir historique
+                  </button>
+                  <form
+                    action="/clients/<%= client.id %>/delete"
+                    method="post"
+                    onsubmit="return confirm('Voulez-vous supprimer definitivement ce client ?');"
+                  >
+                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                    <button
+                      type="submit"
+                      class="danger archived-delete-button"
+                      data-ripple
+                      aria-label="Supprimer definitivement ce client"
+                      title="Supprimer definitivement"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path
+                          d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.9"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <div class="archived-history" data-archived-history hidden>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Arrivee</th>
+                        <th>Depart</th>
+                        <th>Pause (min)</th>
+                        <th>Heures</th>
+                        <th>Heures sup</th>
+                        <th>Commentaire</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% if (client.entries.length === 0) { %>
+                      <tr>
+                        <td colspan="8" class="empty">Aucune journee enregistree pour ce client.</td>
+                      </tr>
+                      <% } %>
+                      <% client.entries.forEach((entry) => { %>
+                      <tr>
+                        <td class="date-cell"><%= entry.work_date_display %></td>
+                        <td><%= entry.day_type_display %></td>
+                        <td><%= entry.arrival_time_display %></td>
+                        <td><%= entry.departure_time_display %></td>
+                        <td><%= entry.lunch_break_minutes_display %></td>
+                        <td><%= entry.worked_hhmm %></td>
+                        <td><%= entry.overtime_hhmm %></td>
+                        <td class="comment-cell"><%= entry.comment_text || "" %></td>
+                      </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+            <% }); %>
+            <p class="empty" data-archived-client-empty hidden>Aucun client archive ne correspond a cette recherche.</p>
+          </div>
         </div>
       </section>
       <% } %>
@@ -784,6 +1118,14 @@
           </div>
         </form>
         <div class="form-actions">
+          <form
+            action="/clients/<%= selectedClient.id %>/archive"
+            method="post"
+            onsubmit="return confirm('Archiver ce client ? Il ne sera plus affiche dans la liste active.');"
+          >
+            <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+            <button type="submit" class="secondary" data-ripple>Archiver ce client</button>
+          </form>
           <form
             action="/clients/<%= selectedClient.id %>/delete"
             method="post"
@@ -931,6 +1273,61 @@
             closeModal();
           }
         });
+      })();
+
+      (() => {
+        const card = document.querySelector("[data-archived-clients-card]");
+        const toggleButton = document.querySelector("[data-archived-clients-toggle]");
+        const panel = document.querySelector("[data-archived-clients-panel]");
+        const searchInput = document.querySelector("[data-archived-client-search]");
+        const items = [...document.querySelectorAll("[data-archived-client-item]")];
+        const emptyState = document.querySelector("[data-archived-client-empty]");
+
+        if (!card || !toggleButton || !panel) {
+          return;
+        }
+
+        const setCollapsed = (collapsed) => {
+          card.classList.toggle("is-collapsed", collapsed);
+          panel.hidden = collapsed;
+          toggleButton.setAttribute("aria-expanded", String(!collapsed));
+        };
+
+        toggleButton.addEventListener("click", () => {
+          setCollapsed(!card.classList.contains("is-collapsed"));
+        });
+
+        items.forEach((item) => {
+          const history = item.querySelector("[data-archived-history]");
+          const historyToggle = item.querySelector("[data-archived-history-toggle]");
+          if (!history || !historyToggle) {
+            return;
+          }
+          historyToggle.addEventListener("click", () => {
+            const nextVisible = history.hidden;
+            history.hidden = !nextVisible;
+            historyToggle.setAttribute("aria-expanded", String(nextVisible));
+            historyToggle.textContent = nextVisible ? "Masquer historique" : "Voir historique";
+          });
+        });
+
+        if (searchInput) {
+          searchInput.addEventListener("input", () => {
+            const query = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+            items.forEach((item) => {
+              const name = item.dataset.clientName || "";
+              const visible = !query || name.includes(query);
+              item.hidden = !visible;
+              if (visible) {
+                visibleCount += 1;
+              }
+            });
+            if (emptyState) {
+              emptyState.hidden = visibleCount > 0;
+            }
+          });
+        }
       })();
 
       if ("serviceWorker" in navigator) {

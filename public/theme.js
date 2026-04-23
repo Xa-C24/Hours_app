@@ -2,6 +2,7 @@
   const THEME_KEY = "hours_theme";
   const STYLE_KEY = "hours_style";
   const ENTRY_FORM_COLLAPSED_KEY = "hours_entry_form_collapsed";
+  const PAY_PERIOD_COLLAPSED_KEY = "hours_pay_period_collapsed";
   const WEEK_ROWS_COLLAPSED_BY_MONTH_KEY = "hours_week_rows_collapsed_by_month";
   const DAY_FILTER_BY_MONTH_KEY = "hours_day_filter_by_month";
   const THEMES = [
@@ -133,6 +134,56 @@
     toggleButton.addEventListener("click", () => {
       const isCollapsed = section.classList.contains("is-collapsed");
       setEntryFormCollapsed(section, toggleButton, form, !isCollapsed, true);
+    });
+  }
+
+  function readStoredPayPeriodCollapsedState() {
+    try {
+      return localStorage.getItem(PAY_PERIOD_COLLAPSED_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function persistPayPeriodCollapsedState(collapsed) {
+    try {
+      localStorage.setItem(PAY_PERIOD_COLLAPSED_KEY, collapsed ? "1" : "0");
+    } catch (error) {
+      // Ignore storage issues.
+    }
+  }
+
+  function setPayPeriodCollapsed(section, toggleButton, panel, collapsed, persist = true) {
+    section.classList.toggle("is-collapsed", collapsed);
+    panel.hidden = collapsed;
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    const toggleLabel = collapsed ? "Ouvrir la période" : "Replier la période";
+    toggleButton.setAttribute("aria-label", toggleLabel);
+    toggleButton.title = toggleLabel;
+    if (persist) {
+      persistPayPeriodCollapsedState(collapsed);
+    }
+  }
+
+  function initPayPeriodToggle() {
+    const section = document.querySelector("[data-pay-period-card]");
+    const toggleButton = document.querySelector("[data-pay-period-toggle]");
+    const panel = document.querySelector("[data-pay-period-panel]");
+    if (!section || !toggleButton || !panel) {
+      return;
+    }
+
+    setPayPeriodCollapsed(
+      section,
+      toggleButton,
+      panel,
+      readStoredPayPeriodCollapsedState(),
+      false
+    );
+
+    toggleButton.addEventListener("click", () => {
+      const isCollapsed = section.classList.contains("is-collapsed");
+      setPayPeriodCollapsed(section, toggleButton, panel, !isCollapsed, true);
     });
   }
 
@@ -491,6 +542,7 @@
     initThemeSelectors();
     initStyleSelectors();
     initEntryFormToggle();
+    initPayPeriodToggle();
     initWeekRowsToggle();
     initDayTypeFilter();
     initAuthPremiumEffects();

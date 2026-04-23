@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS clients (
   phone TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
   notes TEXT NOT NULL DEFAULT '',
+  archived_at TEXT,
   created_at TEXT NOT NULL
 );
 

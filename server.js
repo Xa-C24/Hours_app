@@ -285,6 +285,19 @@ function formatDateShortFr(dateString) {
   });
 }
 
+function formatDateTimeDisplayFr(dateTimeString) {
+  if (typeof dateTimeString !== "string" || !dateTimeString.trim()) {
+    return "";
+  }
+  const [datePart, timePart = ""] = dateTimeString.trim().split(/\s+/);
+  const dateLabel = formatDateShortFr(datePart);
+  const timeLabel = timePart.slice(0, 5);
+  if (dateLabel && timeLabel) {
+    return `${dateLabel} a ${timeLabel}`;
+  }
+  return dateLabel || dateTimeString;
+}
+
 function formatCurrencyFromCents(amountCents) {
   const safeAmount = Number.isInteger(amountCents) ? amountCents : 0;
   return new Intl.NumberFormat("fr-FR", {
@@ -419,12 +432,26 @@ function getRecoveryMinutes(workedMinutes) {
 }
 
 function escapeCsvValue(value) {
-  const stringValue = String(value ?? "");
+  const stringValue = normalizeCsvCell(value);
   return `"${stringValue.replace(/"/g, '""')}"`;
 }
 
 function normalizeExportText(value) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeCsvCell(value) {
+  return String(value ?? "")
+    .replace(/TÃ©lÃ©travail/g, "Télétravail")
+    .replace(/CongÃ©s/g, "Congés")
+    .replace(/ArrÃªt/g, "Arrêt")
+    .replace(/FÃ©riÃ©/g, "Férié")
+    .replace(/PÃ©riode/g, "Période")
+    .replace(/journÃ©e/g, "journée")
+    .replace(/journÃ©es/g, "journées")
+    .replace(/travaillÃ©s/g, "travaillés")
+    .replace(/ArrivÃ©e/g, "Arrivée")
+    .replace(/DÃ©part/g, "Départ");
 }
 
 function getMonthBounds(month) {
@@ -668,10 +695,250 @@ function getMonthData(username, clientId, month) {
   };
 }
 
+function formatHistoryEntry(entry) {
+  const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
+  const targetMinutes = getTargetMinutesForDayType(dayType);
+  const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
+  return {
+    ...entry,
+    day_type: dayType,
+    day_type_display: getDayTypeConfig(dayType).label,
+    work_date_display: formatDateDisplayFr(entry.work_date),
+    arrival_time_display: isWorkedDayType(dayType) ? entry.arrival_time : "",
+    departure_time_display: isWorkedDayType(dayType) ? entry.departure_time : "",
+    lunch_break_minutes_display: isWorkedDayType(dayType) ? entry.lunch_break_minutes : "",
+    worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
+    overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
+  };
+}
+
+function getArchivedClientHistory(username) {
+  return db.getArchivedClients(username).map((client) => {
+    const entries = db
+      .getWorkEntriesByClient(username, client.id)
+      .map(formatHistoryEntry);
+    const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
+    return {
+      ...client,
+      archived_at_display: formatDateTimeDisplayFr(client.archived_at),
+      entries,
+      entry_count: entries.length,
+      total_hhmm: formatMinutesToHHMM(totalMinutes),
+    };
+  });
+}
+
+function getExportClient(username, requestedClientId) {
+  const normalizedClientId = normalizeClientId(requestedClientId);
+  if (normalizedClientId) {
+    return db.getClientById(username, normalizedClientId);
+  }
+  const { selectedClient } = getClientSelection(username, requestedClientId);
+  return selectedClient;
+}
+
+function getEntryStatusLabel(entry) {
+  if (!entry.is_worked_day) {
+    return entry.day_type_display;
+  }
+  if (entry.recovered_minutes > 0) {
+    return `Recup ${entry.recovered_hhmm}`;
+  }
+  if (entry.under_target) {
+    return "Moins de 7h";
+  }
+  return "OK";
+}
+
+function getCsvDayTypeLabel(dayType) {
+  switch (dayType) {
+    case "office":
+      return "Bureau";
+    case "remote":
+      return "T\u00e9l\u00e9travail";
+    case "leave":
+      return "Cong\u00e9s";
+    case "rtt":
+      return "RTT";
+    case "sick_leave":
+      return "Arr\u00eat";
+    case "holiday":
+      return "F\u00e9ri\u00e9";
+    default:
+      return "";
+  }
+}
+
+function getCsvHistoryStatusLabel(entry) {
+  if (!entry.is_worked_day) {
+    return getCsvDayTypeLabel(entry.day_type) || entry.day_type_display;
+  }
+  if (entry.recovered_minutes > 0) {
+    return `Recup ${entry.recovered_hhmm}`;
+  }
+  if (entry.under_target) {
+    return "Moins de 7h";
+  }
+  return "OK";
+}
+
+function buildPeriodExportLines(monthData) {
+  const header = [
+    "Date",
+    "Type",
+    "Arriv\u00e9e",
+    "D\u00e9part",
+    "Pause (min)",
+    "Heures du jour",
+    "Heures sup",
+    "Heures recup",
+    "Etat",
+    "Commentaire",
+  ];
+
+  const lines = ["sep=;", header.map(escapeCsvValue).join(CSV_SEPARATOR)];
+
+  for (const entry of monthData.displayEntries) {
+    if (entry.is_week_total) {
+      lines.push(
+        [
+          "Total semaine",
+          "",
+          "",
+          "",
+          "",
+          entry.week_total_hhmm || "",
+          entry.week_total_overtime_hhmm || "",
+          entry.week_total_recovered_hhmm || "",
+          "",
+          entry.week_summary_label || "",
+        ]
+          .map(escapeCsvValue)
+          .join(CSV_SEPARATOR)
+      );
+      continue;
+    }
+
+    lines.push(
+      [
+        entry.work_date_display || entry.work_date,
+        getCsvDayTypeLabel(entry.day_type) || entry.day_type_display,
+        entry.arrival_time_display,
+        entry.departure_time_display,
+        entry.lunch_break_minutes_display,
+        entry.worked_hhmm,
+        entry.overtime_hhmm,
+        entry.recovered_minutes > 0 ? entry.recovered_hhmm : "",
+        getCsvHistoryStatusLabel(entry),
+        normalizeExportText(entry.comment_text),
+      ]
+        .map(escapeCsvValue)
+        .join(CSV_SEPARATOR)
+    );
+  }
+
+  lines.push("");
+  lines.push(
+    [escapeCsvValue("P\u00e9riode"), escapeCsvValue(monthData.payPeriodLabel || "")].join(CSV_SEPARATOR)
+  );
+  lines.push(
+    [escapeCsvValue("Jours travaill\u00e9s"), escapeCsvValue(String(monthData.workedDayCount))].join(
+      CSV_SEPARATOR
+    )
+  );
+  lines.push("");
+  lines.push([escapeCsvValue("Types de journ\u00e9e"), escapeCsvValue("Nombre")].join(CSV_SEPARATOR));
+  for (const option of DAY_TYPE_OPTIONS) {
+    lines.push(
+      [
+        escapeCsvValue(getCsvDayTypeLabel(option.value) || getCanonicalDayTypeLabel(option.value, option.label)),
+        escapeCsvValue(String(monthData.dayTypeCounts[option.value] || 0)),
+      ].join(CSV_SEPARATOR)
+    );
+  }
+  lines.push("");
+  lines.push(
+    [escapeCsvValue("Total p\u00e9riode"), escapeCsvValue(monthData.totalHHMM)].join(CSV_SEPARATOR)
+  );
+  lines.push(
+    [escapeCsvValue("Total heures sup"), escapeCsvValue(monthData.totalOvertimeHHMM)].join(
+      CSV_SEPARATOR
+    )
+  );
+  lines.push(
+    [escapeCsvValue("Total heures recup"), escapeCsvValue(monthData.totalRecoveredHHMM)].join(
+      CSV_SEPARATOR
+    )
+  );
+  lines.push([
+    escapeCsvValue("Salaire net"),
+    escapeCsvValue(
+      monthData.salaryAmountCents === null
+        ? "Non renseigne"
+        : formatCurrencyFromCents(monthData.salaryAmountCents)
+    ),
+  ].join(CSV_SEPARATOR));
+
+  return lines;
+}
+
+function buildHistoryExportLines(client, entries) {
+  const header = [
+    "Date",
+    "Type",
+    "Arriv\u00e9e",
+    "D\u00e9part",
+    "Pause (min)",
+    "Heures",
+    "Heures sup",
+    "Commentaire",
+  ];
+
+  const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
+  const lines = ["sep=;", header.map(escapeCsvValue).join(CSV_SEPARATOR)];
+
+  for (const entry of entries) {
+    lines.push(
+      [
+        entry.work_date_display || entry.work_date,
+        getCsvDayTypeLabel(entry.day_type) || entry.day_type_display,
+        entry.arrival_time_display,
+        entry.departure_time_display,
+        entry.lunch_break_minutes_display,
+        entry.worked_hhmm,
+        entry.overtime_hhmm,
+        normalizeExportText(entry.comment_text),
+      ]
+        .map(escapeCsvValue)
+        .join(CSV_SEPARATOR)
+    );
+  }
+
+  lines.push("");
+  lines.push([escapeCsvValue("Client"), escapeCsvValue(client.company_name)].join(CSV_SEPARATOR));
+  if (client.archived_at) {
+    lines.push([
+      escapeCsvValue("Archiv\u00e9 le"),
+      escapeCsvValue(formatDateTimeDisplayFr(client.archived_at) || client.archived_at),
+    ].join(CSV_SEPARATOR));
+  }
+  lines.push([
+    escapeCsvValue("Nombre de journ\u00e9es"),
+    escapeCsvValue(String(entries.length)),
+  ].join(CSV_SEPARATOR));
+  lines.push([
+    escapeCsvValue("Total heures"),
+    escapeCsvValue(formatMinutesToHHMM(totalMinutes)),
+  ].join(CSV_SEPARATOR));
+
+  return lines;
+}
+
 function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
   const { clients, selectedClient } = getClientSelection(username, options.clientId);
+  const archivedClients = getArchivedClientHistory(username);
   const {
     entries,
     displayEntries,
@@ -718,6 +985,7 @@ function renderIndex(res, options = {}) {
 
   res.render("index", {
     clients,
+    archivedClients,
     selectedClient,
     selectedMonth: month,
     entries,
@@ -1123,6 +1391,42 @@ app.post("/clients/:clientId/update", (req, res) => {
   );
 });
 
+app.post("/clients/:clientId/archive", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const clientId = normalizeClientId(req.params.clientId);
+  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+
+  if (!client) {
+    return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  }
+
+  db.archiveClient(req.authUser, client.id);
+  const remainingClients = db.getAllClients(req.authUser);
+
+  if (remainingClients.length > 0) {
+    return res.redirect(
+      `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(remainingClients[0].id)}`
+    );
+  }
+
+  return res.redirect(`/?month=${encodeURIComponent(month)}`);
+});
+
+app.post("/clients/:clientId/restore", (req, res) => {
+  const month = normalizeMonth(req.body.selectedMonth);
+  const clientId = normalizeClientId(req.params.clientId);
+  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+
+  if (!client) {
+    return res.redirect(`/?month=${encodeURIComponent(month)}`);
+  }
+
+  db.restoreClient(req.authUser, client.id);
+  return res.redirect(
+    `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
+  );
+});
+
 app.post("/clients/:clientId/delete", (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.params.clientId);
@@ -1146,68 +1450,23 @@ app.post("/clients/:clientId/delete", (req, res) => {
 
 app.get("/export.csv", (req, res) => {
   const month = normalizeMonth(req.query.month);
-  const { selectedClient } = getClientSelection(req.authUser, req.query.clientId);
-  if (!selectedClient) {
+  const exportMode = req.query.mode === "history" ? "history" : "period";
+  const client = getExportClient(req.authUser, req.query.clientId);
+  if (!client) {
     return res.status(400).send("Aucun client selectionne.");
   }
-  const {
-    entries,
-    payPeriodStartDate,
-    payPeriodEndDate,
-    salaryAmountCents,
-    totalHHMM,
-    totalOvertimeHHMM,
-    totalRecoveredHHMM,
-  } = getMonthData(req.authUser, selectedClient.id, month);
-
-  const header = [
-    "date",
-    "day_type",
-    "arrival_time",
-    "departure_time",
-    "lunch_break_minutes",
-    "comment_text",
-    "worked_hhmm",
-    "overtime_hhmm",
-    "recovered_hhmm",
-    "status",
-  ];
-
-  const lines = ["sep=;", header.map(escapeCsvValue).join(CSV_SEPARATOR)];
-
-  for (const entry of entries) {
-    lines.push(
-      [
-        entry.work_date,
-        entry.day_type_display,
-        entry.arrival_time_display,
-        entry.departure_time_display,
-        entry.lunch_break_minutes_display,
-        normalizeExportText(entry.comment_text),
-        entry.worked_hhmm,
-        entry.overtime_hhmm,
-        entry.recovered_hhmm,
-        entry.recovered_minutes > 0 ? "recup" : entry.under_target ? "moins_de_7h" : "ok",
-      ]
-        .map(escapeCsvValue)
-        .join(CSV_SEPARATOR)
-    );
-  }
-
-  lines.push("");
-  lines.push([escapeCsvValue("pay_period"), escapeCsvValue(`${payPeriodStartDate} -> ${payPeriodEndDate}`)].join(CSV_SEPARATOR));
-  lines.push([escapeCsvValue("total_period"), escapeCsvValue(totalHHMM)].join(CSV_SEPARATOR));
-  lines.push([escapeCsvValue("total_overtime"), escapeCsvValue(totalOvertimeHHMM)].join(CSV_SEPARATOR));
-  lines.push([escapeCsvValue("total_recovered"), escapeCsvValue(totalRecoveredHHMM)].join(CSV_SEPARATOR));
-  lines.push([
-    escapeCsvValue("salary_amount"),
-    escapeCsvValue(salaryAmountCents === null ? "" : formatCurrencyFromCents(salaryAmountCents)),
-  ].join(CSV_SEPARATOR));
+  const lines =
+    exportMode === "history"
+      ? buildHistoryExportLines(
+          client,
+          db.getWorkEntriesByClient(req.authUser, client.id).map(formatHistoryEntry)
+        )
+      : buildPeriodExportLines(getMonthData(req.authUser, client.id, month));
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename="hours-${selectedClient.company_name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() || "client"}-${month}.csv"`
+    `attachment; filename="hours-${client.company_name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() || "client"}-${exportMode === "history" ? "historique" : month}.csv"`
   );
   const csvText = `\uFEFF${lines.join("\r\n")}`;
   res.send(csvText);
