@@ -120,10 +120,10 @@ function getSessionTokenFromRequest(req) {
   return cookies[SESSION_COOKIE_NAME] || "";
 }
 
-function createSession(username) {
+async function createSession(username) {
   const token = crypto.randomBytes(24).toString("hex");
-  db.deleteExpiredSessions(Date.now());
-  db.upsertSession({
+  await db.deleteExpiredSessions(Date.now());
+  await db.upsertSession({
     token,
     username,
     expires_at_ms: Date.now() + SESSION_DURATION_MS,
@@ -131,20 +131,20 @@ function createSession(username) {
   return token;
 }
 
-function getSessionFromRequest(req) {
+async function getSessionFromRequest(req) {
   const token = getSessionTokenFromRequest(req);
   if (!token) {
     return null;
   }
-  const session = db.getSessionByToken(token);
+  const session = await db.getSessionByToken(token);
   if (!session) {
     return null;
   }
   if (session.expires_at_ms <= Date.now()) {
-    db.deleteSession(token);
+    await db.deleteSession(token);
     return null;
   }
-  db.upsertSession({
+  await db.upsertSession({
     token,
     username: session.username,
     expires_at_ms: Date.now() + SESSION_DURATION_MS,
@@ -205,7 +205,11 @@ function isDuplicateUsernameError(error) {
   return Boolean(
     error &&
       typeof error.message === "string" &&
-      error.message.includes("UNIQUE constraint failed: users.username")
+      (
+        error.message.includes("UNIQUE constraint failed: users.username") ||
+        error.message.includes('duplicate key value violates unique constraint') ||
+        error.message.includes("users_username_key")
+      )
   );
 }
 
@@ -389,8 +393,8 @@ function normalizeClientId(value) {
   return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
 }
 
-function getClientSelection(username, requestedClientId) {
-  const clients = db.getAllClients(username);
+async function getClientSelection(username, requestedClientId) {
+  const clients = await db.getAllClients(username);
   if (clients.length === 0) {
     return {
       clients,
@@ -577,19 +581,17 @@ function getEmptyMonthData(month) {
   };
 }
 
-function getMonthData(username, clientId, month) {
+async function getMonthData(username, clientId, month) {
   if (!clientId) {
     return getEmptyMonthData(month);
   }
 
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
-  const salaryAmountCents = db.getPayPeriodSalary(username, clientId, normalizedMonth);
+  const salaryAmountCents = await db.getPayPeriodSalary(username, clientId, normalizedMonth);
   const yearToDateBounds = getYearToDateBounds(endDate);
   let runningBalanceMinutes = 0;
-  const baseEntries = db
-    .getWorkEntriesByClient(username, clientId, startDate, endDate)
-    .map((entry) => {
+  const baseEntries = (await db.getWorkEntriesByClient(username, clientId, startDate, endDate)).map((entry) => {
       const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
       const targetMinutes = getTargetMinutesForDayType(dayType);
       const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
@@ -682,14 +684,14 @@ function getMonthData(username, clientId, month) {
       entries.reduce((sum, entry) => sum + (entry.day_type === option.value ? 1 : 0), 0),
     ])
   );
-  const yearEntries = db
-    .getWorkEntriesByClient(
+  const yearEntries = (
+    await db.getWorkEntriesByClient(
       username,
       clientId,
       yearToDateBounds.startDate,
       yearToDateBounds.endDate
     )
-    .map((entry) => normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE);
+  ).map((entry) => normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE);
   const yearDayTypeCounts = Object.fromEntries(
     DAY_TYPE_OPTIONS.map((option) => [
       option.value,
@@ -731,11 +733,10 @@ function formatHistoryEntry(entry) {
   };
 }
 
-function getArchivedClientHistory(username) {
-  return db.getArchivedClients(username).map((client) => {
-    const entries = db
-      .getWorkEntriesByClient(username, client.id)
-      .map(formatHistoryEntry);
+async function getArchivedClientHistory(username) {
+  const archivedClients = await db.getArchivedClients(username);
+  return Promise.all(archivedClients.map(async (client) => {
+    const entries = (await db.getWorkEntriesByClient(username, client.id)).map(formatHistoryEntry);
     const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
     return {
       ...client,
@@ -744,15 +745,15 @@ function getArchivedClientHistory(username) {
       entry_count: entries.length,
       total_hhmm: formatMinutesToHHMM(totalMinutes),
     };
-  });
+  }));
 }
 
-function getExportClient(username, requestedClientId) {
+async function getExportClient(username, requestedClientId) {
   const normalizedClientId = normalizeClientId(requestedClientId);
   if (normalizedClientId) {
-    return db.getClientById(username, normalizedClientId);
+    return await db.getClientById(username, normalizedClientId);
   }
-  const { selectedClient } = getClientSelection(username, requestedClientId);
+  const { selectedClient } = await getClientSelection(username, requestedClientId);
   return selectedClient;
 }
 
@@ -953,11 +954,11 @@ function buildHistoryExportLines(client, entries) {
   return lines;
 }
 
-function renderIndex(res, options = {}) {
+async function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
   const month = normalizeMonth(options.month);
-  const { clients, selectedClient } = getClientSelection(username, options.clientId);
-  const archivedClients = getArchivedClientHistory(username);
+  const { clients, selectedClient } = await getClientSelection(username, options.clientId);
+  const archivedClients = await getArchivedClientHistory(username);
   const {
     entries,
     displayEntries,
@@ -973,7 +974,7 @@ function renderIndex(res, options = {}) {
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
-  } = getMonthData(username, selectedClient ? selectedClient.id : null, month);
+  } = await getMonthData(username, selectedClient ? selectedClient.id : null, month);
 
   const defaultFormData = {
     date: formatDate(new Date()),
@@ -1088,14 +1089,18 @@ function renderForgotPassword(res, options = {}) {
   });
 }
 
-app.use((req, res, next) => {
-  const session = getSessionFromRequest(req);
-  if (session) {
-    req.authUser = session.username;
-    req.authSessionToken = session.token;
-    res.locals.authUser = session.username;
+app.use(async (req, res, next) => {
+  try {
+    const session = await getSessionFromRequest(req);
+    if (session) {
+      req.authUser = session.username;
+      req.authSessionToken = session.token;
+      res.locals.authUser = session.username;
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
 function requireAuth(req, res, next) {
@@ -1120,7 +1125,7 @@ app.get("/login", (req, res) => {
   });
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
 
@@ -1131,7 +1136,7 @@ app.post("/login", (req, res) => {
     });
   }
 
-  const user = db.getUserByUsername(username);
+  const user = await db.getUserByUsername(username);
   if (!user || !verifyPassword(password, user.password_salt, user.password_hash)) {
     return renderLogin(res, {
       error: "Identifiants invalides.",
@@ -1139,7 +1144,7 @@ app.post("/login", (req, res) => {
     });
   }
 
-  const token = createSession(username);
+  const token = await createSession(username);
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -1157,7 +1162,7 @@ app.get("/register", (req, res) => {
   return renderRegister(res);
 });
 
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
   const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
@@ -1183,7 +1188,7 @@ app.post("/register", (req, res) => {
     });
   }
 
-  const existingUser = db.getUserByUsername(username);
+  const existingUser = await db.getUserByUsername(username);
   if (existingUser) {
     return renderRegister(res, {
       error: "Ce nom utilisateur existe deja.",
@@ -1194,14 +1199,14 @@ app.post("/register", (req, res) => {
   const { saltHex, hashHex } = hashPassword(password);
   const { saltHex: recoverySaltHex, hashHex: recoveryHashHex } = hashPassword(recoveryCode);
   try {
-    db.createUser({
+    await db.createUser({
       username,
       password_salt: saltHex,
       password_hash: hashHex,
       recovery_code_salt: recoverySaltHex,
       recovery_code_hash: recoveryHashHex,
     });
-    db.ensureUserDatabase(username);
+    await db.ensureUserDatabase(username);
   } catch (error) {
     if (isDuplicateUsernameError(error)) {
       return renderRegister(res, {
@@ -1224,7 +1229,7 @@ app.get("/forgot-password", (req, res) => {
   });
 });
 
-app.post("/forgot-password", (req, res) => {
+app.post("/forgot-password", async (req, res) => {
   if (req.authUser) {
     return res.redirect("/");
   }
@@ -1255,7 +1260,7 @@ app.post("/forgot-password", (req, res) => {
     });
   }
 
-  const user = db.getUserByUsername(username);
+  const user = await db.getUserByUsername(username);
   const hasRecoveryCode =
     user &&
     typeof user.recovery_code_salt === "string" &&
@@ -1279,7 +1284,7 @@ app.post("/forgot-password", (req, res) => {
     hashHex: nextRecoveryHashHex,
   } = hashPassword(nextRecoveryCode);
 
-  db.updateUserPasswordAndRecoveryCode({
+  await db.updateUserPasswordAndRecoveryCode({
     username,
     password_salt: saltHex,
     password_hash: hashHex,
@@ -1294,9 +1299,9 @@ app.post("/forgot-password", (req, res) => {
   });
 });
 
-app.post("/logout", (req, res) => {
+app.post("/logout", async (req, res) => {
   if (req.authSessionToken) {
-    db.deleteSession(req.authSessionToken);
+    await db.deleteSession(req.authSessionToken);
   }
   clearSessionCookie(res);
   return res.redirect("/login");
@@ -1304,8 +1309,8 @@ app.post("/logout", (req, res) => {
 
 app.use(requireAuth);
 
-app.get("/", (req, res) => {
-  renderIndex(res, {
+app.get("/", async (req, res) => {
+  await renderIndex(res, {
     username: req.authUser,
     month: req.query.month,
     clientId: req.query.clientId,
@@ -1313,10 +1318,10 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/entries/:workDate/edit", (req, res) => {
+app.get("/entries/:workDate/edit", async (req, res) => {
   const workDate = req.params.workDate;
   const month = normalizeMonth(req.query.month || getPayPeriodMonthForDate(workDate));
-  renderIndex(res, {
+  await renderIndex(res, {
     username: req.authUser,
     month,
     clientId: req.query.clientId,
@@ -1324,7 +1329,7 @@ app.get("/entries/:workDate/edit", (req, res) => {
   });
 });
 
-app.post("/clients", (req, res) => {
+app.post("/clients", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientFormData = {
     company_name: typeof req.body.company_name === "string" ? req.body.company_name.trim() : "",
@@ -1358,16 +1363,16 @@ app.post("/clients", (req, res) => {
     });
   }
 
-  const client = db.createClient(req.authUser, clientFormData);
+  const client = await db.createClient(req.authUser, clientFormData);
   return res.redirect(
     `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
   );
 });
 
-app.post("/clients/:clientId/update", (req, res) => {
+app.post("/clients/:clientId/update", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.params.clientId);
-  const existingClient = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const existingClient = clientId ? await db.getClientById(req.authUser, clientId) : null;
   const clientFormData = {
     company_name: typeof req.body.company_name === "string" ? req.body.company_name.trim() : "",
     contact_name: typeof req.body.contact_name === "string" ? req.body.contact_name.trim() : "",
@@ -1404,23 +1409,23 @@ app.post("/clients/:clientId/update", (req, res) => {
     });
   }
 
-  db.updateClient(req.authUser, existingClient.id, clientFormData);
+  await db.updateClient(req.authUser, existingClient.id, clientFormData);
   return res.redirect(
     `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(existingClient.id)}`
   );
 });
 
-app.post("/clients/:clientId/archive", (req, res) => {
+app.post("/clients/:clientId/archive", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.params.clientId);
-  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const client = clientId ? await db.getClientById(req.authUser, clientId) : null;
 
   if (!client) {
     return res.redirect(`/?month=${encodeURIComponent(month)}`);
   }
 
-  db.archiveClient(req.authUser, client.id);
-  const remainingClients = db.getAllClients(req.authUser);
+  await db.archiveClient(req.authUser, client.id);
+  const remainingClients = await db.getAllClients(req.authUser);
 
   if (remainingClients.length > 0) {
     return res.redirect(
@@ -1431,32 +1436,32 @@ app.post("/clients/:clientId/archive", (req, res) => {
   return res.redirect(`/?month=${encodeURIComponent(month)}`);
 });
 
-app.post("/clients/:clientId/restore", (req, res) => {
+app.post("/clients/:clientId/restore", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.params.clientId);
-  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const client = clientId ? await db.getClientById(req.authUser, clientId) : null;
 
   if (!client) {
     return res.redirect(`/?month=${encodeURIComponent(month)}`);
   }
 
-  db.restoreClient(req.authUser, client.id);
+  await db.restoreClient(req.authUser, client.id);
   return res.redirect(
     `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
   );
 });
 
-app.post("/clients/:clientId/delete", (req, res) => {
+app.post("/clients/:clientId/delete", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.params.clientId);
-  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const client = clientId ? await db.getClientById(req.authUser, clientId) : null;
 
   if (!client) {
     return res.redirect(`/?month=${encodeURIComponent(month)}`);
   }
 
-  db.deleteClient(req.authUser, client.id);
-  const remainingClients = db.getAllClients(req.authUser);
+  await db.deleteClient(req.authUser, client.id);
+  const remainingClients = await db.getAllClients(req.authUser);
 
   if (remainingClients.length > 0) {
     return res.redirect(
@@ -1467,10 +1472,10 @@ app.post("/clients/:clientId/delete", (req, res) => {
   return res.redirect(`/?month=${encodeURIComponent(month)}`);
 });
 
-app.get("/export.csv", (req, res) => {
+app.get("/export.csv", async (req, res) => {
   const month = normalizeMonth(req.query.month);
   const exportMode = req.query.mode === "history" ? "history" : "period";
-  const client = getExportClient(req.authUser, req.query.clientId);
+  const client = await getExportClient(req.authUser, req.query.clientId);
   if (!client) {
     return res.status(400).send("Aucun client selectionne.");
   }
@@ -1478,9 +1483,9 @@ app.get("/export.csv", (req, res) => {
     exportMode === "history"
       ? buildHistoryExportLines(
           client,
-          db.getWorkEntriesByClient(req.authUser, client.id).map(formatHistoryEntry)
+          (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry)
         )
-      : buildPeriodExportLines(getMonthData(req.authUser, client.id, month));
+      : buildPeriodExportLines(await getMonthData(req.authUser, client.id, month));
 
   res.setHeader("Content-Type", "text/csv; charset=utf-16le");
   res.setHeader(
@@ -1490,12 +1495,12 @@ app.get("/export.csv", (req, res) => {
   res.send(encodeCsvForExcel(lines));
 });
 
-app.post("/pay-period-salary", (req, res) => {
+app.post("/pay-period-salary", async (req, res) => {
   const month = normalizeMonth(req.body.selectedMonth);
   const clientId = normalizeClientId(req.body.clientId);
   const salaryAmountInput = typeof req.body.salaryAmount === "string" ? req.body.salaryAmount.trim() : "";
   const parsedSalary = parseCurrencyToCents(salaryAmountInput);
-  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const client = clientId ? await db.getClientById(req.authUser, clientId) : null;
 
   if (!client) {
     return renderIndex(res, {
@@ -1520,9 +1525,9 @@ app.post("/pay-period-salary", (req, res) => {
   }
 
   if (parsedSalary.cents === null) {
-    db.deletePayPeriodSalary(req.authUser, client.id, month);
+    await db.deletePayPeriodSalary(req.authUser, client.id, month);
   } else {
-    db.upsertPayPeriodSalary(req.authUser, {
+    await db.upsertPayPeriodSalary(req.authUser, {
       client_id: client.id,
       pay_period_month: month,
       salary_amount_cents: parsedSalary.cents,
@@ -1534,7 +1539,7 @@ app.post("/pay-period-salary", (req, res) => {
   );
 });
 
-app.post("/entries", (req, res) => {
+app.post("/entries", async (req, res) => {
   const {
     clientId,
     date,
@@ -1548,7 +1553,7 @@ app.post("/entries", (req, res) => {
     confirmReplace,
   } = req.body;
   const normalizedClientId = normalizeClientId(clientId);
-  const client = normalizedClientId ? db.getClientById(req.authUser, normalizedClientId) : null;
+  const client = normalizedClientId ? await db.getClientById(req.authUser, normalizedClientId) : null;
   const normalizedComment = typeof commentText === "string" ? commentText.trim() : "";
   const safeOriginalWorkDate = isValidDate(originalWorkDate) ? originalWorkDate : "";
   const normalizedDayType = normalizeDayType(dayType) || DEFAULT_DAY_TYPE;
@@ -1650,7 +1655,7 @@ app.post("/entries", (req, res) => {
   }
 
   const isDateChange = safeOriginalWorkDate && safeOriginalWorkDate !== date;
-  const existingEntryAtTargetDate = db.getWorkEntryByDate(req.authUser, client.id, date);
+  const existingEntryAtTargetDate = await db.getWorkEntryByDate(req.authUser, client.id, date);
   const hasConflictAtTargetDate = Boolean(existingEntryAtTargetDate) && (!safeOriginalWorkDate || isDateChange);
 
   if (hasConflictAtTargetDate && confirmReplace !== "1") {
@@ -1671,7 +1676,7 @@ app.post("/entries", (req, res) => {
     });
   }
 
-  db.upsertWorkEntry(req.authUser, {
+  await db.upsertWorkEntry(req.authUser, {
     client_id: client.id,
     work_date: date,
     day_type: normalizedDayType,
@@ -1682,7 +1687,7 @@ app.post("/entries", (req, res) => {
     comment_text: normalizedComment,
   });
   if (isDateChange) {
-    db.deleteWorkEntry(req.authUser, client.id, safeOriginalWorkDate);
+    await db.deleteWorkEntry(req.authUser, client.id, safeOriginalWorkDate);
   }
 
   return res.redirect(
@@ -1690,14 +1695,14 @@ app.post("/entries", (req, res) => {
   );
 });
 
-app.post("/entries/:workDate/delete", (req, res) => {
+app.post("/entries/:workDate/delete", async (req, res) => {
   const workDate = req.params.workDate;
   const clientId = normalizeClientId(req.body.clientId);
   const month = normalizeMonth(req.body.selectedMonth || getPayPeriodMonthForDate(workDate));
-  const client = clientId ? db.getClientById(req.authUser, clientId) : null;
+  const client = clientId ? await db.getClientById(req.authUser, clientId) : null;
 
   if (client && isValidDate(workDate)) {
-    db.deleteWorkEntry(req.authUser, client.id, workDate);
+    await db.deleteWorkEntry(req.authUser, client.id, workDate);
   }
 
   if (client) {

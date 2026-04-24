@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "migrate:postgres": "node scripts/migrate-sqlite-to-postgres.js",
     "test": "node --test"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
     "better-sqlite3": "^12.6.2",
     "ejs": "^4.0.1",
     "emoji-picker-element": "^1.29.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
   }
 }

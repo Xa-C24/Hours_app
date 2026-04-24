@@ -1,11 +1,12 @@
 # Deployment on Render
 
-This project runs locally with SQLite and can be deployed to Render with a persistent disk so the database survives deploys and restarts.
+This project runs locally with SQLite and can be deployed to Render Free with PostgreSQL hosted remotely on Neon or Supabase.
 
 ## Current deployment model
 
 - Runtime: Node.js + Express
-- Database: local SQLite via `better-sqlite3`
+- Database in production: PostgreSQL via `pg`
+- Database in local fallback mode: SQLite via `better-sqlite3`
 - Default local database path: `./data/hours.db`
 - Render start command: `npm start`
 - Render build command: `npm install`
@@ -14,12 +15,14 @@ This project runs locally with SQLite and can be deployed to Render with a persi
 
 - `PORT`: HTTP port used by the Express server
 - `DB_PATH`: SQLite database path
+- `DATABASE_URL`: PostgreSQL connection string
 
 Example local values:
 
 ```env
 PORT=3000
 DB_PATH=./data/hours.db
+DATABASE_URL=
 ```
 
 ## Files added for deployment
@@ -55,15 +58,12 @@ git push -u origin main
    - Build Command: `npm install`
    - Start Command: `npm start`
    - Health Check Path: `/healthz`
-   - Instance Type: `Starter` or higher
+   - Instance Type: `Free`
 5. Add or confirm environment variables:
    - `NODE_ENV=production`
-   - `DB_PATH=/var/data/hours.db`
-6. Add a persistent disk:
-   - Mount Path: `/var/data`
-   - Size: default is fine to start
-7. Deploy the service.
-8. Test:
+   - `DATABASE_URL=postgresql://...`
+6. Deploy the service.
+7. Test:
    - `/healthz`
    - main app page
    - login/register flow
@@ -78,6 +78,7 @@ Render free web services use an ephemeral filesystem by default. That means the 
 - spins down on idle
 
 This makes SQLite on a free Render web service unsuitable if you want to keep accounts and data between deploys.
+The app now supports remote PostgreSQL specifically to solve that constraint.
 
 Official Render docs:
 
@@ -87,21 +88,33 @@ Official Render docs:
 
 Inference from those docs: free web services are fine for demonstrating the app, but not for durable SQLite storage.
 
-## Persistent storage note
+## Neon free database
 
-The included `render.yaml` is configured for a persistent-disk setup:
+1. Create a free Neon project.
+2. Copy the Postgres connection string.
+3. Add it to Render as `DATABASE_URL`.
 
-- service plan: `starter`
-- disk mount path: `/var/data`
-- database path: `/var/data/hours.db`
+Official Neon docs:
 
-This is the minimum setup required if you want your SQLite database to survive new deploys.
+- https://neon.tech/docs/connect/connect-from-any-app
+
+## Supabase free database
+
+1. Create a Supabase project.
+2. Open `Project Settings` -> `Database`.
+3. Copy the Postgres connection string.
+4. Add it to Render as `DATABASE_URL`.
+
+Official Supabase docs:
+
+- https://supabase.com/docs/guides/database/connecting-to-postgres
 
 ## Local behavior
 
 Local behavior remains unchanged:
 
-- if `DB_PATH` is not set, the app uses `./data/hours.db`
+- if `DATABASE_URL` is set, the app uses PostgreSQL
+- if `DATABASE_URL` is not set, the app uses SQLite with `DB_PATH`
 - the `data` directory is created automatically if missing
 - the database file is created automatically on first start
 
@@ -129,23 +142,27 @@ Recommended next steps:
 
 1. Add PNG icons to `manifest.json`
 2. Add cache strategy to the service worker
-3. Move from SQLite to PostgreSQL
+3. Add request logging and database health checks
 4. Add structured request logging
 5. Add backup/export strategy for user data
 
-## Recommended future database migration
+## Optional migration from SQLite to PostgreSQL
 
-For any real production usage on Render, migrate from SQLite to PostgreSQL.
+To import local SQLite data into PostgreSQL:
 
-Why:
+```bash
+DATABASE_URL=postgresql://... npm run migrate:postgres
+```
 
-- persistent storage on free tier is not available for SQLite
-- PostgreSQL is safer for concurrent access
-- easier scaling and operational reliability
+Optional custom SQLite source path:
 
-Recommended migration path:
+```bash
+SQLITE_DB_PATH=./data/hours.db DATABASE_URL=postgresql://... npm run migrate:postgres
+```
 
-1. Abstract DB access behind the current `db.js` interface
-2. Introduce Postgres alongside SQLite
-3. Migrate auth, clients, entries, and pay-period data
-4. Keep SQLite only for local/dev if desired
+The migration script imports:
+
+- users
+- per-user clients
+- work entries
+- pay-period salaries

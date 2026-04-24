@@ -2,6 +2,14 @@
 
 Application web Node.js/Express pour suivre les heures de travail par mois, avec authentification locale, stockage SQLite et export CSV.
 
+## Modes de persistance
+
+- Local par defaut: SQLite via `DB_PATH`
+- Render Free / production: PostgreSQL via `DATABASE_URL`
+
+Si `DATABASE_URL` est defini, l'application utilise PostgreSQL automatiquement.
+Sinon, elle garde SQLite pour le local.
+
 ## Fonctionnalites
 
 - Creation de compte et connexion via mot de passe.
@@ -22,6 +30,7 @@ Application web Node.js/Express pour suivre les heures de travail par mois, avec
 - Express
 - EJS
 - SQLite via `better-sqlite3`
+- PostgreSQL via `pg`
 - CSS/JS statiques servis depuis `public/`
 
 ## Prerequis
@@ -33,6 +42,14 @@ Application web Node.js/Express pour suivre les heures de travail par mois, avec
 
 ```bash
 npm install
+```
+
+## Migration vers PostgreSQL
+
+Pour migrer les donnees locales SQLite vers PostgreSQL:
+
+```bash
+DATABASE_URL=postgresql://... npm run migrate:postgres
 ```
 
 ## Lancement en local
