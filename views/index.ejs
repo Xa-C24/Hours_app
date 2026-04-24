@@ -355,6 +355,10 @@
           padding-inline: 0;
         }
 
+        .client-switch-form > * {
+          min-width: 0;
+        }
+
         .client-modal {
           align-items: end;
           padding:
@@ -424,7 +428,13 @@
 
       @media (max-width: 480px) {
         .client-switch-form {
-          grid-template-columns: minmax(0, 1fr) auto auto;
+          grid-template-columns: 1fr;
+        }
+
+        .client-view-button,
+        .client-add-button {
+          width: 100%;
+          min-width: 0;
         }
 
         .client-modal-dialog {
