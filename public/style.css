@@ -2177,6 +2177,37 @@ td.action-cell {
   min-width: 8.5rem;
 }
 
+th:nth-child(2),
+td:nth-child(2) {
+  min-width: 7.5rem;
+}
+
+th:nth-child(3),
+th:nth-child(4),
+td:nth-child(3),
+td:nth-child(4) {
+  min-width: 5.6rem;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  min-width: 6rem;
+}
+
+th:nth-child(6),
+th:nth-child(7),
+th:nth-child(8),
+td:nth-child(6),
+td:nth-child(7),
+td:nth-child(8) {
+  min-width: 6.4rem;
+}
+
+th:nth-child(9),
+td:nth-child(9) {
+  min-width: 8.2rem;
+}
+
 td.date-cell {
   white-space: normal;
   overflow-wrap: normal;
@@ -2193,6 +2224,10 @@ td.comment-cell {
   white-space: normal;
   max-width: none;
   line-height: 1.35;
+}
+
+td.action-cell {
+  vertical-align: top;
 }
 
 tr.week-1 td {
@@ -2326,10 +2361,12 @@ tr.editing-row td:first-child {
   display: flex;
   flex-wrap: wrap;
   gap: 0.32rem;
+  align-items: stretch;
 }
 
 .row-actions form {
   margin: 0;
+  display: flex;
 }
 
 .row-actions .button-link,
@@ -2341,7 +2378,9 @@ tr.editing-row td:first-child {
 }
 
 .status-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   padding: 0.24rem 0.52rem;
   font-size: 0.66rem;
@@ -2349,6 +2388,8 @@ tr.editing-row td:first-child {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border: 1px solid transparent;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .status-pill.ok {
@@ -3835,8 +3876,47 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     overflow-wrap: anywhere;
   }
 
+  th,
+  td {
+    padding: 0.62rem 0.56rem;
+    vertical-align: top;
+  }
+
+  td.date-cell {
+    min-width: 10.5rem;
+    line-height: 1.45;
+  }
+
+  td.action-cell,
+  th.action-col {
+    min-width: 9.75rem;
+  }
+
+  .row-actions {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .row-actions form,
+  .row-actions .button-link,
+  .row-actions button {
+    width: 100%;
+  }
+
+  .row-actions .button-link,
+  .row-actions button {
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .status-pill {
+    width: 100%;
+    min-width: 7.5rem;
+    padding: 0.38rem 0.58rem;
+  }
+
   table {
-    min-width: 820px;
+    min-width: 920px;
   }
 
   :root[data-style="retro"] table {
@@ -3924,16 +4004,38 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .table-wrapper {
-    margin-inline: -0.1rem;
+    margin-inline: -0.2rem;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.2rem;
   }
 
   table {
-    min-width: 820px;
+    min-width: 940px;
+  }
+
+  thead th {
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
+  }
+
+  th,
+  td {
+    padding: 0.68rem 0.56rem;
+  }
+
+  td.comment-cell {
+    min-width: 220px;
+  }
+
+  .row-actions .button-link,
+  .row-actions button {
+    font-size: 0.72rem;
+    padding: 0.46rem 0.62rem;
   }
 
   .status-pill {
-    white-space: nowrap;
+    min-width: 8rem;
+    white-space: normal;
   }
 
   .premium-summary-grid {
@@ -4005,14 +4107,18 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   th,
   td {
-    font-size: 0.8rem;
-    padding: 0.46rem 0.4rem;
+    font-size: 0.78rem;
+    padding: 0.62rem 0.48rem;
   }
 
   .row-actions .button-link,
   .row-actions button {
     min-width: 0;
     font-size: 0.72rem;
+  }
+
+  td.date-cell {
+    min-width: 11rem;
   }
 }
 
