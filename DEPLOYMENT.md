@@ -1,6 +1,6 @@
 # Deployment on Render
 
-This project runs locally with SQLite and can be deployed to Render as a demo web service with minimal changes.
+This project runs locally with SQLite and can be deployed to Render with a persistent disk so the database survives deploys and restarts.
 
 ## Current deployment model
 
@@ -54,11 +54,16 @@ git push -u origin main
    - Runtime: `Node`
    - Build Command: `npm install`
    - Start Command: `npm start`
+   - Health Check Path: `/healthz`
+   - Instance Type: `Starter` or higher
 5. Add or confirm environment variables:
    - `NODE_ENV=production`
-   - `DB_PATH=/opt/render/project/src/data/hours.db`
-6. Deploy the service.
-7. Test:
+   - `DB_PATH=/var/data/hours.db`
+6. Add a persistent disk:
+   - Mount Path: `/var/data`
+   - Size: default is fine to start
+7. Deploy the service.
+8. Test:
    - `/healthz`
    - main app page
    - login/register flow
@@ -72,7 +77,7 @@ Render free web services use an ephemeral filesystem by default. That means the 
 - restarts
 - spins down on idle
 
-This makes the current SQLite setup acceptable only for a demo or temporary preview.
+This makes SQLite on a free Render web service unsuitable if you want to keep accounts and data between deploys.
 
 Official Render docs:
 
@@ -84,17 +89,13 @@ Inference from those docs: free web services are fine for demonstrating the app,
 
 ## Persistent storage note
 
-`render.yaml` keeps the app runnable as-is, but it does **not** make SQLite durable on the free plan.
+The included `render.yaml` is configured for a persistent-disk setup:
 
-If you later move to a paid Render service with a persistent disk, use a mount path such as:
+- service plan: `starter`
+- disk mount path: `/var/data`
+- database path: `/var/data/hours.db`
 
-- `/var/data/hours.db`
-
-and set:
-
-```env
-DB_PATH=/var/data/hours.db
-```
+This is the minimum setup required if you want your SQLite database to survive new deploys.
 
 ## Local behavior
 
