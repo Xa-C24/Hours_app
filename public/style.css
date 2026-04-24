@@ -2166,7 +2166,7 @@ tbody tr {
 }
 
 th.comment-col {
-  min-width: 8.5rem;
+  min-width: 10.5rem;
   white-space: nowrap;
   overflow-wrap: normal;
   word-break: normal;
@@ -2224,6 +2224,7 @@ td.comment-cell {
   white-space: normal;
   max-width: none;
   line-height: 1.35;
+  min-width: 12rem;
 }
 
 td.action-cell {
@@ -2382,7 +2383,7 @@ tr.editing-row td:first-child {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  padding: 0.24rem 0.52rem;
+  padding: 0.16rem 0.42rem;
   font-size: 0.66rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -2390,6 +2391,7 @@ tr.editing-row td:first-child {
   border: 1px solid transparent;
   line-height: 1.35;
   text-align: center;
+  max-width: 100%;
 }
 
 .status-pill.ok {
@@ -3178,6 +3180,9 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   line-height: 0.95;
   letter-spacing: -0.045em;
   text-wrap: balance;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .page-subtitle {
@@ -3596,7 +3601,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .home-premium-page .page-header h1 {
+    font-size: clamp(1.3rem, 1.02rem + 2.2vw, 1.85rem);
     line-height: 1;
+    letter-spacing: -0.03em;
+    text-wrap: pretty;
   }
 
   .month-header {
@@ -3870,8 +3878,8 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   td.comment-cell {
-    min-width: 180px;
-    max-width: 260px;
+    min-width: 240px;
+    max-width: 320px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -3910,9 +3918,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .status-pill {
-    width: 100%;
-    min-width: 7.5rem;
-    padding: 0.38rem 0.58rem;
+    width: auto;
+    min-width: 0;
+    max-width: 7rem;
+    padding: 0.22rem 0.46rem;
   }
 
   table {
@@ -4024,7 +4033,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   td.comment-cell {
-    min-width: 220px;
+    min-width: 260px;
   }
 
   .row-actions .button-link,
@@ -4034,7 +4043,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .status-pill {
-    min-width: 8rem;
+    max-width: 6.6rem;
     white-space: normal;
   }
 
@@ -4091,6 +4100,11 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 }
 
 @media (max-width: 430px) {
+  .home-premium-page .page-header h1 {
+    font-size: 1.18rem;
+    line-height: 1.08;
+  }
+
   .container {
     margin-top: 0.55rem;
   }
