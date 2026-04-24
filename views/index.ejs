@@ -251,8 +251,10 @@
         align-items: center;
         justify-content: flex-end;
         gap: 0.45rem;
+        flex-wrap: wrap;
       }
 
+      .archived-client-actions .button-link,
       .archived-client-actions button {
         min-width: 8.5rem;
         white-space: nowrap;
@@ -260,6 +262,7 @@
 
       .archived-client-actions form {
         margin: 0;
+        display: flex;
       }
 
       .archived-delete-button {
@@ -397,6 +400,8 @@
           justify-content: flex-start;
         }
 
+        .archived-client-actions .button-link,
+        .archived-client-actions form,
         .archived-client-actions button {
           width: 100%;
           min-width: 0;
@@ -751,8 +756,8 @@
             <% }); %>
           </div>
 
-          <div class="table-wrapper">
-            <table>
+          <div class="table-wrapper table-wrapper-main">
+            <table class="hours-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -814,23 +819,23 @@
                 data-day-type="<%= entry.day_type %>"
                 data-week-key="<%= entry.week_start || '' %>"
               >
-                <td class="date-cell">
+                <td class="date-cell" data-label="Date">
                   <%= entry.work_date_display || (entry.work_date ? new Date(`${entry.work_date}T00:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "") %>
                 </td>
-                <td><%= entry.day_type_display %></td>
-                <td><%= entry.arrival_time_display %></td>
-                <td><%= entry.departure_time_display %></td>
-                <td><%= entry.lunch_break_minutes_display %></td>
-                <td><%= entry.worked_hhmm %></td>
-                <td class="overtime-col"><%= entry.overtime_hhmm %></td>
-                <td class="recovered-col"><%= entry.recovered_minutes > 0 ? entry.recovered_hhmm : "" %></td>
-                <td>
+                <td data-label="Type"><%= entry.day_type_display %></td>
+                <td data-label="Arrivee"><%= entry.arrival_time_display %></td>
+                <td data-label="Depart"><%= entry.departure_time_display %></td>
+                <td data-label="Pause (min)"><%= entry.lunch_break_minutes_display %></td>
+                <td data-label="Heures du jour"><%= entry.worked_hhmm %></td>
+                <td class="overtime-col" data-label="Heures sup"><%= entry.overtime_hhmm %></td>
+                <td class="recovered-col" data-label="Heures recup"><%= entry.recovered_minutes > 0 ? entry.recovered_hhmm : "" %></td>
+                <td data-label="Etat">
                   <span class="status-pill <%= !entry.is_worked_day ? 'neutral' : entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
                     <%= !entry.is_worked_day ? entry.day_type_display : entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
                   </span>
                 </td>
-                <td class="comment-cell"><%= entry.comment_text || "" %></td>
-                <td class="action-cell">
+                <td class="comment-cell" data-label="Commentaire"><%= entry.comment_text || "" %></td>
+                <td class="action-cell" data-label="Action">
                   <div class="row-actions">
                     <a
                       class="button-link secondary-link"
@@ -1018,8 +1023,8 @@
                 </div>
               </div>
               <div class="archived-history" data-archived-history hidden>
-                <div class="table-wrapper">
-                  <table>
+                <div class="table-wrapper table-wrapper-history">
+                  <table class="history-table">
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -1040,14 +1045,14 @@
                       <% } %>
                       <% client.entries.forEach((entry) => { %>
                       <tr>
-                        <td class="date-cell"><%= entry.work_date_display %></td>
-                        <td><%= entry.day_type_display %></td>
-                        <td><%= entry.arrival_time_display %></td>
-                        <td><%= entry.departure_time_display %></td>
-                        <td><%= entry.lunch_break_minutes_display %></td>
-                        <td><%= entry.worked_hhmm %></td>
-                        <td><%= entry.overtime_hhmm %></td>
-                        <td class="comment-cell"><%= entry.comment_text || "" %></td>
+                        <td class="date-cell" data-label="Date"><%= entry.work_date_display %></td>
+                        <td data-label="Type"><%= entry.day_type_display %></td>
+                        <td data-label="Arrivee"><%= entry.arrival_time_display %></td>
+                        <td data-label="Depart"><%= entry.departure_time_display %></td>
+                        <td data-label="Pause (min)"><%= entry.lunch_break_minutes_display %></td>
+                        <td data-label="Heures"><%= entry.worked_hhmm %></td>
+                        <td data-label="Heures sup"><%= entry.overtime_hhmm %></td>
+                        <td class="comment-cell" data-label="Commentaire"><%= entry.comment_text || "" %></td>
                       </tr>
                       <% }); %>
                     </tbody>

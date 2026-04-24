@@ -1859,6 +1859,8 @@ h2 {
   background: var(--chip-bg);
   color: var(--chip-text);
   border: 1px solid color-mix(in srgb, var(--chip-text) 22%, transparent);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .form-actions button,
@@ -2372,9 +2374,9 @@ tr.editing-row td:first-child {
 
 .row-actions .button-link,
 .row-actions button {
-  font-size: 0.74rem;
-  padding: 0.38rem 0.62rem;
-  min-width: 80px;
+  font-size: 0.68rem;
+  padding: 0.3rem 0.5rem;
+  min-width: 70px;
   white-space: nowrap;
 }
 
@@ -2392,6 +2394,11 @@ tr.editing-row td:first-child {
   line-height: 1.35;
   text-align: center;
   max-width: 100%;
+}
+
+.hours-table td[data-label],
+.history-table td[data-label] {
+  position: relative;
 }
 
 .status-pill.ok {
@@ -2690,8 +2697,8 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 }
 
 .password-toggle {
-  width: 8.6rem;
-  min-width: 0.2rem;
+  width: 3.2rem;
+  min-width: 3.2rem;
   height: auto;
   padding: 0;
   border: 0;
@@ -2904,6 +2911,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 0.96;
+  overflow-wrap: anywhere;
   animation: auth-fade-up 0.78s 0.22s var(--ease-out-soft) both;
 }
 
@@ -2915,6 +2923,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   font-size: 1rem;
   line-height: 1.6;
   color: color-mix(in srgb, var(--muted) 82%, var(--text) 18%);
+  overflow-wrap: anywhere;
   animation: auth-fade-up 0.84s 0.3s var(--ease-out-soft) both;
 }
 
@@ -3157,6 +3166,8 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  width: 100%;
+  flex: 1 1 100%;
   min-width: 0;
   max-width: 40rem;
 }
@@ -3180,6 +3191,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   line-height: 0.95;
   letter-spacing: -0.045em;
   text-wrap: balance;
+  width: 100%;
   max-width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -3277,6 +3289,8 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   font-size: clamp(1.45rem, 1.15rem + 0.8vw, 2rem);
   line-height: 1;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .premium-mini-meta {
@@ -3284,6 +3298,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   font-size: 0.8rem;
   line-height: 1.35;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .home-premium-page .theme-picker label,
@@ -3541,6 +3556,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     width: 100%;
   }
 
+  .home-premium-page .page-header-copy {
+    max-width: none;
+  }
+
   .home-premium-page .logout-form {
     grid-column: 1 / -1;
     justify-content: space-between;
@@ -3590,6 +3609,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .page-header {
+    overflow: hidden;
     padding: 0.78rem 0.8rem;
     border-radius: 14px;
   }
@@ -3597,6 +3617,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .page-header-copy,
   .home-premium-page .page-header-copy {
     width: 100%;
+    flex-basis: 100%;
     max-width: none;
   }
 
@@ -3605,6 +3626,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     line-height: 1;
     letter-spacing: -0.03em;
     text-wrap: pretty;
+    white-space: normal;
   }
 
   .month-header {
@@ -3634,6 +3656,19 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     grid-template-columns: 1fr;
   }
 
+  .pay-period-card .month-header {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-period-card .month-tools,
+  .pay-period-card .card-toggle {
+    grid-column: auto;
+  }
+
+  .pay-period-card .card-toggle {
+    justify-self: flex-start;
+  }
+
   .month-form-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
@@ -3658,6 +3693,18 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .logout-form,
   .login-topbar {
     width: 100%;
+  }
+
+  .auth-premium-page .login-topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .auth-premium-page .theme-picker {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
   }
 
   .logout-form {
@@ -3928,6 +3975,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     min-width: 920px;
   }
 
+  .history-table {
+    min-width: 760px;
+  }
+
   :root[data-style="retro"] table {
     min-width: 560px;
   }
@@ -3939,6 +3990,24 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .header-spacer,
   .between-sections-spacer {
     height: 2rem;
+  }
+}
+
+@media (max-width: 860px) and (min-width: 701px) {
+  .auth-premium-page .login-shell {
+    max-width: 100%;
+  }
+
+  .auth-premium-page .login-topbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .auth-premium-page .theme-picker {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
   }
 }
 
@@ -3974,7 +4043,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .home-premium-page .page-header h1 {
-    font-size: clamp(1.55rem, 1.1rem + 1.6vw, 2rem);
+    font-size: clamp(1.22rem, 0.98rem + 1.8vw, 1.7rem);
     line-height: 1;
   }
 
@@ -4022,6 +4091,80 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     min-width: 940px;
   }
 
+  .table-wrapper-history table {
+    min-width: 720px;
+  }
+
+  .table-wrapper-history {
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .history-table,
+  .history-table thead,
+  .history-table tbody,
+  .history-table tr,
+  .history-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .history-table {
+    background: transparent;
+  }
+
+  .history-table thead {
+    display: none;
+  }
+
+  .history-table tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .history-table tr {
+    border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    border-radius: 16px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--shadow) 14%, transparent);
+  }
+
+  .history-table td {
+    display: grid;
+    grid-template-columns: minmax(0, 7.6rem) minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+    padding: 0.62rem 0.72rem;
+  }
+
+  .history-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .history-table td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .history-table td.empty {
+    display: block;
+    text-align: center;
+    padding: 0.9rem 0.85rem;
+  }
+
+  .history-table td.empty::before {
+    content: none;
+  }
+
   thead th {
     font-size: 0.64rem;
     letter-spacing: 0.06em;
@@ -4038,8 +4181,8 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   .row-actions .button-link,
   .row-actions button {
-    font-size: 0.72rem;
-    padding: 0.46rem 0.62rem;
+    font-size: 0.66rem;
+    padding: 0.38rem 0.5rem;
   }
 
   .status-pill {
@@ -4054,6 +4197,27 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .premium-mini-card {
     min-height: 96px;
     padding: 0.72rem 0.8rem;
+  }
+
+  .login-card,
+  .login-card-premium {
+    padding: 1.1rem 0.95rem;
+  }
+
+  .login-card-premium h1 {
+    font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.15rem);
+    line-height: 1.02;
+  }
+
+  .login-subtitle,
+  .login-card-premium .login-subtitle {
+    max-width: none;
+    font-size: 0.95rem;
+  }
+
+  .password-toggle {
+    width: 2.9rem;
+    min-width: 2.9rem;
   }
 }
 
@@ -4083,6 +4247,20 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .client-modal-dialog {
     max-height: calc(100vh - 1rem);
   }
+
+  .auth-premium-page .login-page {
+    align-items: flex-start;
+    padding-top: 0.85rem;
+  }
+
+  .login-card,
+  .login-card-premium {
+    padding: 1.05rem 1rem;
+  }
+
+  .login-card-premium h1 {
+    font-size: clamp(1.6rem, 1.2rem + 1vw, 2rem);
+  }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
@@ -4097,12 +4275,22 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .premium-mini-card {
     min-height: 84px;
   }
+
+  .auth-premium-page .login-topbar {
+    margin-bottom: 0.7rem;
+  }
+
+  .auth-switch {
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+  }
 }
 
 @media (max-width: 430px) {
   .home-premium-page .page-header h1 {
-    font-size: 1.18rem;
-    line-height: 1.08;
+    font-size: 1.05rem;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
   }
 
   .container {
@@ -4128,7 +4316,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .row-actions .button-link,
   .row-actions button {
     min-width: 0;
-    font-size: 0.72rem;
+    font-size: 0.64rem;
   }
 
   td.date-cell {
