@@ -2623,6 +2623,68 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-control) + 1px);
+  overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 88%, #ffffff 12%), var(--input-bg));
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, var(--shadow) 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--shadow) 14%, transparent);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.password-field input {
+  border: 0;
+  border-radius: 0;
+  padding-right: 0.95rem;
+  box-shadow: none;
+  background: transparent;
+}
+
+.password-toggle {
+  width: 8.6rem;
+  min-width: 0.2rem;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--card-bg) 78%, var(--primary) 22%);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.password-toggle:hover {
+  color: var(--text);
+  transform: none;
+}
+
+.password-toggle:active {
+  transform: none;
+}
+
+.password-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.password-field:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border) 28%);
+  box-shadow:
+    0 0 0 4px var(--focus-ring),
+    inset 0 1px 1px color-mix(in srgb, var(--shadow) 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--shadow) 14%, transparent);
+}
+
+.password-field:focus-within input {
+  transform: none;
+}
+
 .login-form button {
   width: 100%;
   margin-top: 0.35rem;

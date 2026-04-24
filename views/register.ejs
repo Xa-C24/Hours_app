@@ -84,13 +84,22 @@
 
             <div class="field">
               <label for="password">Mot de passe</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autocomplete="new-password"
-                required
-              />
+              <div class="password-field">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  data-password-input
+                />
+                <button type="button" class="password-toggle secondary" data-password-toggle aria-label="Afficher le mot de passe" title="Afficher le mot de passe">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="field">
@@ -124,6 +133,23 @@
     </main>
     <script src="/theme.js"></script>
     <script>
+      (() => {
+        const passwordFields = [...document.querySelectorAll(".password-field")];
+        passwordFields.forEach((field) => {
+          const input = field.querySelector("[data-password-input]");
+          const toggle = field.querySelector("[data-password-toggle]");
+          if (!input || !toggle) {
+            return;
+          }
+          toggle.addEventListener("click", () => {
+            const showPassword = input.type === "password";
+            input.type = showPassword ? "text" : "password";
+            toggle.setAttribute("aria-label", showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe");
+            toggle.title = showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe";
+          });
+        });
+      })();
+
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/sw.js").catch(() => {});
