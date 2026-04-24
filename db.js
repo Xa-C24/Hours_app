@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS clients (
   phone TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
   notes TEXT NOT NULL DEFAULT '',
+  archived_at TEXT,
   created_at TEXT NOT NULL
 );
 
@@ -142,6 +143,12 @@ function ensureUsersRecoveryColumns(database) {
 
 function ensureClientsTable(database) {
   database.exec(clientsSchemaSql);
+  const columns = getTableColumns(database, "clients");
+  const hasArchivedAtColumn = columns.some((column) => column.name === "archived_at");
+
+  if (!hasArchivedAtColumn) {
+    database.prepare("ALTER TABLE clients ADD COLUMN archived_at TEXT").run();
+  }
 }
 
 function getOrCreateDefaultClientId(database) {
@@ -151,6 +158,7 @@ function getOrCreateDefaultClientId(database) {
       `
         SELECT id
         FROM clients
+        WHERE archived_at IS NULL
         ORDER BY created_at ASC, id ASC
         LIMIT 1
       `
@@ -510,9 +518,26 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        archived_at,
         created_at
       FROM clients
+      WHERE archived_at IS NULL
       ORDER BY company_name COLLATE NOCASE ASC, id ASC
+    `),
+    getArchivedClientsStmt: userDb.prepare(`
+      SELECT
+        id,
+        company_name,
+        contact_name,
+        email,
+        phone,
+        address,
+        notes,
+        archived_at,
+        created_at
+      FROM clients
+      WHERE archived_at IS NOT NULL
+      ORDER BY archived_at DESC, company_name COLLATE NOCASE ASC, id ASC
     `),
     getClientByIdStmt: userDb.prepare(`
       SELECT
@@ -523,6 +548,7 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        archived_at,
         created_at
       FROM clients
       WHERE id = ?
@@ -561,6 +587,18 @@ function getUserStore(username) {
     deleteClientStmt: userDb.prepare(`
       DELETE FROM clients
       WHERE id = ?
+    `),
+    archiveClientStmt: userDb.prepare(`
+      UPDATE clients
+      SET archived_at = datetime('now')
+      WHERE id = ?
+        AND archived_at IS NULL
+    `),
+    restoreClientStmt: userDb.prepare(`
+      UPDATE clients
+      SET archived_at = NULL
+      WHERE id = ?
+        AND archived_at IS NOT NULL
     `),
     upsertWorkEntryStmt: userDb.prepare(`
       INSERT INTO work_entries (
@@ -706,6 +744,11 @@ function getAllClients(username) {
   return store.getAllClientsStmt.all();
 }
 
+function getArchivedClients(username) {
+  const store = getUserStore(username);
+  return store.getArchivedClientsStmt.all();
+}
+
 function getClientById(username, id) {
   const store = getUserStore(username);
   return store.getClientByIdStmt.get(id) || null;
@@ -731,6 +774,16 @@ function updateClient(username, clientId, client) {
 function deleteClient(username, clientId) {
   const store = getUserStore(username);
   store.deleteClientStmt.run(clientId);
+}
+
+function archiveClient(username, clientId) {
+  const store = getUserStore(username);
+  store.archiveClientStmt.run(clientId);
+}
+
+function restoreClient(username, clientId) {
+  const store = getUserStore(username);
+  store.restoreClientStmt.run(clientId);
 }
 
 function getWorkEntriesByClient(username, clientId, startDate = null, endDate = null) {
@@ -807,10 +860,13 @@ function deleteExpiredSessions(nowMs) {
 module.exports = {
   ensureUserDatabase,
   getAllClients,
+  getArchivedClients,
   getClientById,
   createClient,
   updateClient,
   deleteClient,
+  archiveClient,
+  restoreClient,
   getWorkEntriesByClient,
   getWorkEntryByDate,
   upsertWorkEntry,

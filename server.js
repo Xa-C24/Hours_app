@@ -454,6 +454,11 @@ function normalizeCsvCell(value) {
     .replace(/DÃ©part/g, "Départ");
 }
 
+function encodeCsvForExcel(lines) {
+  const csvText = `\uFEFF${lines.join("\r\n")}`;
+  return Buffer.from(csvText, "utf16le");
+}
+
 function getMonthBounds(month) {
   const [year, monthNumber] = month.split("-").map(Number);
   const startDate = new Date(year, monthNumber - 2, 15);
@@ -1463,13 +1468,12 @@ app.get("/export.csv", (req, res) => {
         )
       : buildPeriodExportLines(getMonthData(req.authUser, client.id, month));
 
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Type", "text/csv; charset=utf-16le");
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="hours-${client.company_name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() || "client"}-${exportMode === "history" ? "historique" : month}.csv"`
   );
-  const csvText = `\uFEFF${lines.join("\r\n")}`;
-  res.send(csvText);
+  res.send(encodeCsvForExcel(lines));
 });
 
 app.post("/pay-period-salary", (req, res) => {
