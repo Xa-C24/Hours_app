@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "hours-static-v2";
+const STATIC_CACHE_NAME = "hours-static-v3";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
@@ -38,7 +38,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (event.request.mode === "navigate") {
+  const networkFirstDestinations = new Set(["document", "style", "script", "manifest"]);
+
+  if (
+    event.request.mode === "navigate" ||
+    networkFirstDestinations.has(event.request.destination)
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -48,7 +53,9 @@ self.addEventListener("fetch", (event) => {
           });
           return response;
         })
-        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match("/")))
+        .catch(() =>
+          caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match("/"))
+        )
     );
     return;
   }
