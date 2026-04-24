@@ -3,11 +3,18 @@ const path = require("path");
 const crypto = require("crypto");
 const Database = require("better-sqlite3");
 
-const defaultDbPath = path.join(__dirname, "data", "hours.db");
-const dbPath = process.env.DB_PATH || defaultDbPath;
-const userDbsDir = path.join(path.dirname(dbPath), "users");
+const defaultDbPath = path.resolve(__dirname, "data", "hours.db");
+const configuredDbPath =
+  typeof process.env.DB_PATH === "string" && process.env.DB_PATH.trim()
+    ? process.env.DB_PATH.trim()
+    : defaultDbPath;
+const dbPath = path.isAbsolute(configuredDbPath)
+  ? configuredDbPath
+  : path.resolve(process.cwd(), configuredDbPath);
+const dbDir = path.dirname(dbPath);
+const userDbsDir = path.join(dbDir, "users");
 
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+fs.mkdirSync(dbDir, { recursive: true });
 fs.mkdirSync(userDbsDir, { recursive: true });
 
 const authDb = new Database(dbPath);

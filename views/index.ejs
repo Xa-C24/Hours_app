@@ -9,6 +9,8 @@
     <meta name="apple-mobile-web-app-title" content="Hours" />
     <title>Suivi des heures</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
     <link rel="manifest" href="/manifest.json" />
     <script type="module" src="/vendor/emoji-picker-element/index.js"></script>
     <script>
@@ -297,6 +299,38 @@
         display: none;
       }
 
+      .app-footer {
+        margin: 2rem 0 1rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+        color: var(--muted);
+      }
+
+      .app-footer-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+      }
+
+      .app-footer p {
+        margin: 0;
+      }
+
+      .app-footer a {
+        color: var(--link);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .app-footer a:hover {
+        color: var(--link-hover);
+        text-decoration: underline;
+      }
+
       @media (max-width: 700px) {
         .client-switch-form {
           width: 100%;
@@ -375,6 +409,11 @@
         .pay-period-card .month-tools {
           grid-column: 1 / -1;
           order: 3;
+        }
+
+        .app-footer-content {
+          align-items: flex-start;
+          flex-direction: column;
         }
       }
 
@@ -1025,6 +1064,19 @@
         </div>
       </section>
       <% } %>
+
+<!-- Espace -->
+      <div style="height: 6rem;"></div>
+
+      <footer class="app-footer">
+        <div class="app-footer-content">
+          <p>Application conçue et développée par XPérienceWeb</p>
+          <p>
+            Contact support technique
+            <a href="mailto:xperienceweb@protonmail.com">XPérienceWeb</a>
+          </p>
+        </div>
+      </footer>
     </main>
 
     <div class="client-modal" data-client-modal <%= showClientModal ? "" : "hidden" %>>

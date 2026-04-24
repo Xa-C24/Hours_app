@@ -4,7 +4,7 @@ const express = require("express");
 const db = require("./db");
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const DAILY_TARGET_MINUTES = 7 * 60;
 const SESSION_COOKIE_NAME = "hours_session";
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
@@ -72,6 +72,7 @@ function normalizeDisplayLabel(label) {
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.set("trust proxy", 1);
 
 app.use(express.urlencoded({ extended: false }));
 app.use(
@@ -79,6 +80,19 @@ app.use(
   express.static(path.join(__dirname, "node_modules", "emoji-picker-element"))
 );
 app.use(express.static(path.join(__dirname, "public")));
+
+app.disable("x-powered-by");
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+app.get("/healthz", (req, res) => {
+  res.status(200).json({ ok: true });
+});
 
 function parseCookies(cookieHeader) {
   if (typeof cookieHeader !== "string" || cookieHeader.trim() === "") {
@@ -1700,6 +1714,6 @@ app.use((error, req, res, next) => {
   res.status(500).send("Erreur interne du serveur.");
 });
 
-app.listen(PORT, () => {
-  console.log(`Hours app running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Hours app running on http://0.0.0.0:${PORT}`);
 });
