@@ -3114,6 +3114,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  min-width: 0;
   max-width: 40rem;
 }
 
@@ -3150,6 +3151,10 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 .home-premium-page .header-actions {
   align-items: stretch;
   gap: 0.7rem;
+}
+
+.comment-emoji-popover {
+  max-width: min(92vw, 360px);
 }
 
 .premium-summary-grid {
@@ -3480,6 +3485,21 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     margin-top: 0.9rem;
   }
 
+  .home-premium-page .page-header-premium {
+    align-items: flex-start;
+  }
+
+  .home-premium-page .header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    width: 100%;
+  }
+
+  .home-premium-page .logout-form {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+
   .entry-form {
     grid-template-columns: repeat(2, minmax(190px, 1fr));
   }
@@ -3528,6 +3548,16 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     border-radius: 14px;
   }
 
+  .page-header-copy,
+  .home-premium-page .page-header-copy {
+    width: 100%;
+    max-width: none;
+  }
+
+  .home-premium-page .page-header h1 {
+    line-height: 1;
+  }
+
   .month-header {
     align-items: stretch;
   }
@@ -3572,6 +3602,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   .theme-picker {
     width: 100%;
+    min-width: 0;
   }
 
   .header-actions,
@@ -3581,7 +3612,15 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .logout-form {
+    flex-wrap: wrap;
     justify-content: space-between;
+  }
+
+  .logout-form .user-chip,
+  .logout-form button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 
   .login-topbar {
@@ -3690,6 +3729,12 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     align-items: stretch;
   }
 
+  .form-actions button,
+  .form-actions .button-link {
+    width: 100%;
+    min-width: 0;
+  }
+
   .month-form input,
   .month-form button,
   .button-link {
@@ -3734,6 +3779,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 @media (max-width: 900px) {
   .premium-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 2rem;
   }
 
   .home-premium-page .container {
@@ -3742,6 +3788,15 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   .home-premium-page .page-header-premium {
     padding: 0.95rem 0.9rem 0.9rem;
+  }
+
+  .home-premium-page .entry-card {
+    margin-top: 1.25rem;
+    margin-bottom: 1.9rem;
+  }
+
+  .home-premium-page .entry-card + .premium-surface-wide {
+    margin-top: 1.4rem;
   }
 
   .home-premium-page .page-header h1 {
@@ -3770,11 +3825,18 @@ tfoot tr.monthly-total-row th.salary-label-cell {
 
   th.comment-col,
   td.comment-cell {
-    display: none;
+    display: table-cell;
+  }
+
+  td.comment-cell {
+    min-width: 180px;
+    max-width: 260px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   table {
-    min-width: 640px;
+    min-width: 820px;
   }
 
   :root[data-style="retro"] table {
@@ -3833,6 +3895,12 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     gap: 0.65rem;
   }
 
+  .comment-emoji-popover {
+    left: 0;
+    right: auto;
+    max-width: min(88vw, 320px);
+  }
+
   .theme-picker select,
   .entry-form input,
   .entry-form select,
@@ -3861,7 +3929,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   table {
-    min-width: 720px;
+    min-width: 820px;
   }
 
   .status-pill {
@@ -3875,6 +3943,48 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   .premium-mini-card {
     min-height: 96px;
     padding: 0.72rem 0.8rem;
+  }
+}
+
+@media (max-width: 950px) and (orientation: landscape) {
+  .home-premium-page .container {
+    padding-top: 0.45rem;
+  }
+
+  .between-sections-spacer {
+    height: 1rem;
+  }
+
+  .premium-summary-grid {
+    margin: 1.2rem 0 1rem;
+  }
+
+  .home-premium-page .page-header-premium {
+    gap: 0.6rem;
+    padding: 0.8rem 0.9rem;
+  }
+
+  .home-premium-page .entry-card {
+    margin-top: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .client-modal-dialog {
+    max-height: calc(100vh - 1rem);
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .home-premium-page .page-header h1 {
+    font-size: clamp(1.35rem, 1rem + 1vw, 1.85rem);
+  }
+
+  .premium-summary-grid {
+    gap: 0.8rem;
+  }
+
+  .premium-mini-card {
+    min-height: 84px;
   }
 }
 
