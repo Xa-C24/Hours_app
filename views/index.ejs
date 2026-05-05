@@ -130,6 +130,18 @@
         grid-column: 1 / -1;
       }
 
+      .confirm-replace-copy {
+        margin: 0 0 1rem;
+        color: var(--text-secondary);
+      }
+
+      .confirm-replace-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
       .client-info-list {
         display: grid;
         gap: 0.8rem;
@@ -548,7 +560,7 @@
       <p class="alert"><%= clientError %></p>
       <% } %>
 
-      <% if (error) { %>
+      <% if (error && !showReplaceConfirmation) { %>
       <p class="alert"><%= error %></p>
       <% } %>
 
@@ -596,10 +608,11 @@
             <span class="card-toggle-icon" aria-hidden="true">▾</span>
           </button>
         </div>
-        <form action="/entries" method="post" class="entry-form" id="entryFormPanel" data-entry-form>
-          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-          <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
+	        <form action="/entries" method="post" class="entry-form" id="entryFormPanel" data-entry-form>
+	          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+	          <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
+	          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
+	          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
 
           <div class="field">
             <label for="date">Date</label>
@@ -677,14 +690,9 @@
             ><%= formData.commentText || "" %></textarea>
           </div>
 
-          <div class="form-actions">
-            <button type="submit" data-ripple><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
-            <% if (showReplaceConfirmation) { %>
-            <button type="submit" name="confirmReplace" value="1" class="danger" data-ripple>
-              Remplacer l'entrée existante
-            </button>
-            <% } %>
-            <% if (_isEditing) { %>
+	          <div class="form-actions">
+	            <button type="submit" data-ripple><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
+	            <% if (_isEditing) { %>
             <a
               class="button-link button-neutral"
               href="/?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
@@ -1204,6 +1212,26 @@
       </section>
     </div>
 
+    <div class="client-modal" data-confirm-replace-modal <%= showReplaceConfirmation ? "" : "hidden" %>>
+      <div class="client-modal-backdrop" data-close-confirm-replace-modal></div>
+      <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmReplaceTitle">
+        <div class="client-modal-header">
+          <div class="section-heading">
+            <p class="section-eyebrow">Conflit de date</p>
+            <h2 id="confirmReplaceTitle">Remplacer l'entrée existante ?</h2>
+          </div>
+          <button type="button" class="client-modal-close secondary" data-close-confirm-replace-modal aria-label="Fermer">×</button>
+        </div>
+        <p class="confirm-replace-copy">
+          Une entrée existe déjà à cette date. Voulez-vous valider la modification et remplacer l'entrée existante ?
+        </p>
+        <div class="confirm-replace-actions">
+          <button type="button" class="button-link button-neutral" data-close-confirm-replace-modal data-ripple>Non</button>
+          <button type="button" class="danger" data-confirm-replace-submit data-ripple>Valider la modification</button>
+        </div>
+      </section>
+    </div>
+
     <script src="/theme.js"></script>
     <script>
       (() => {
@@ -1336,6 +1364,60 @@
             closeModal();
           }
         });
+      })();
+
+      (() => {
+        const modal = document.querySelector("[data-confirm-replace-modal]");
+        const closeButtons = [...document.querySelectorAll("[data-close-confirm-replace-modal]")];
+        const confirmButton = document.querySelector("[data-confirm-replace-submit]");
+        const entryForm = document.querySelector("[data-entry-form]");
+        const confirmReplaceInput = document.querySelector("[data-confirm-replace-input]");
+        const firstField = entryForm ? entryForm.querySelector("#date") : null;
+
+        if (!modal || !entryForm || !confirmReplaceInput) {
+          return;
+        }
+
+        const openModal = () => {
+          modal.hidden = false;
+          document.body.style.overflow = "hidden";
+          window.setTimeout(() => {
+            const focusTarget = confirmButton || closeButtons[0];
+            if (focusTarget) {
+              focusTarget.focus();
+            }
+          }, 0);
+        };
+
+        const closeModal = () => {
+          modal.hidden = true;
+          document.body.style.overflow = "";
+          confirmReplaceInput.value = "";
+          if (firstField) {
+            firstField.focus();
+          }
+        };
+
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", closeModal);
+        });
+
+        if (confirmButton) {
+          confirmButton.addEventListener("click", () => {
+            confirmReplaceInput.value = "1";
+            entryForm.requestSubmit();
+          });
+        }
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+          }
+        });
+
+        if (!modal.hidden) {
+          openModal();
+        }
       })();
 
       (() => {
