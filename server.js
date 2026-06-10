@@ -1318,6 +1318,40 @@ app.get("/", async (req, res) => {
   });
 });
 
+app.get("/api/entries/by-date", async (req, res) => {
+  const clientId = normalizeClientId(req.query.clientId);
+  const workDate = typeof req.query.date === "string" ? req.query.date.trim() : "";
+
+  if (!clientId || !isValidDate(workDate)) {
+    return res.status(400).json({ error: "Parametres invalides." });
+  }
+
+  const client = await db.getClientById(req.authUser, clientId);
+  if (!client) {
+    return res.status(404).json({ error: "Client introuvable." });
+  }
+
+  const entry = await db.getWorkEntryByDate(req.authUser, client.id, workDate);
+  if (!entry) {
+    return res.json({ entry: null });
+  }
+
+  return res.json({
+    entry: {
+      workDate: entry.work_date,
+      dayType: normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE,
+      arrivalTime: isWorkedDayType(entry.day_type) ? entry.arrival_time || "" : "",
+      departureTime: isWorkedDayType(entry.day_type) ? entry.departure_time || "" : "",
+      lunchBreakMinutes:
+        isWorkedDayType(entry.day_type) &&
+        (Number.isInteger(entry.lunch_break_minutes) || typeof entry.lunch_break_minutes === "number")
+          ? String(entry.lunch_break_minutes)
+          : "",
+      commentText: entry.comment_text || "",
+    },
+  });
+});
+
 app.get("/entries/:workDate/edit", async (req, res) => {
   const workDate = req.params.workDate;
   const month = normalizeMonth(req.query.month || getPayPeriodMonthForDate(workDate));

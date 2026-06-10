@@ -1288,6 +1288,86 @@
       })();
 
       (() => {
+        const entryForm = document.querySelector("[data-entry-form]");
+        const clientIdInput = entryForm ? entryForm.querySelector('input[name="clientId"]') : null;
+        const dateInput = entryForm ? entryForm.querySelector("#date") : null;
+        const dayTypeSelect = entryForm ? entryForm.querySelector("#dayType") : null;
+        const arrivalInput = entryForm ? entryForm.querySelector("#arrivalTime") : null;
+        const departureInput = entryForm ? entryForm.querySelector("#departureTime") : null;
+        const lunchInput = entryForm ? entryForm.querySelector("#lunchBreakMinutes") : null;
+        const commentInput = entryForm ? entryForm.querySelector("#commentText") : null;
+        let activeController = null;
+        let lastRequestedDate = "";
+
+        if (
+          !entryForm ||
+          !clientIdInput ||
+          !dateInput ||
+          !dayTypeSelect ||
+          !arrivalInput ||
+          !departureInput ||
+          !lunchInput ||
+          !commentInput
+        ) {
+          return;
+        }
+
+        const applyEntryToForm = (entry) => {
+          dayTypeSelect.value = entry.dayType || "office";
+          arrivalInput.value = entry.arrivalTime || "";
+          departureInput.value = entry.departureTime || "";
+          lunchInput.value = entry.lunchBreakMinutes || "";
+          commentInput.value = entry.commentText || "";
+          dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+
+        const maybeAutofillEntry = async () => {
+          const clientId = clientIdInput.value;
+          const selectedDate = dateInput.value;
+          if (!clientId || !selectedDate) {
+            return;
+          }
+
+          if (activeController) {
+            activeController.abort();
+          }
+
+          const controller = new AbortController();
+          activeController = controller;
+          lastRequestedDate = selectedDate;
+
+          try {
+            const response = await fetch(
+              `/api/entries/by-date?clientId=${encodeURIComponent(clientId)}&date=${encodeURIComponent(selectedDate)}`,
+              {
+                headers: { Accept: "application/json" },
+                signal: controller.signal,
+              }
+            );
+
+            if (!response.ok) {
+              return;
+            }
+
+            const payload = await response.json();
+            if (controller.signal.aborted || dateInput.value !== lastRequestedDate) {
+              return;
+            }
+
+            if (payload && payload.entry) {
+              applyEntryToForm(payload.entry);
+            }
+          } catch (error) {
+            if (error && error.name === "AbortError") {
+              return;
+            }
+          }
+        };
+
+        dateInput.addEventListener("change", maybeAutofillEntry);
+      })();
+
+      (() => {
         const modal = document.querySelector("[data-client-modal]");
         const openButtons = [...document.querySelectorAll("[data-open-client-modal]")];
         const closeButtons = [...document.querySelectorAll("[data-close-client-modal]")];
