@@ -1008,6 +1008,7 @@ async function renderIndex(res, options = {}) {
     archivedClients,
     selectedClient,
     selectedMonth: month,
+    defaultEntryFormData: defaultFormData,
     entries,
     displayEntries,
     payPeriodStartDate,

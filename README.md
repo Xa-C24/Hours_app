@@ -63,7 +63,7 @@ node server.js
 Application disponible sur:
 
 ```text
-http://localhost:3002
+http://localhost:3000/login
 ```
 
 ## Variables d'environnement

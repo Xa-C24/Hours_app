@@ -1698,6 +1698,22 @@ h2 {
   gap: 0.42rem;
 }
 
+.entry-load-status {
+  grid-column: 1 / -1;
+  margin: -0.2rem 0 0.1rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--muted) 88%, var(--text) 12%);
+}
+
+.entry-load-status.is-success {
+  color: var(--alert-success-text);
+}
+
+.entry-load-status.is-empty {
+  color: color-mix(in srgb, var(--muted) 82%, var(--text) 18%);
+}
+
 .entry-form label,
 .month-form label {
   font-size: 0.78rem;
