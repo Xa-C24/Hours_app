@@ -1312,8 +1312,6 @@
 	        const commentInput = entryForm ? entryForm.querySelector("#commentText") : null;
 	        const statusMessage = entryForm ? entryForm.querySelector("[data-entry-load-status]") : null;
 	        let activeController = null;
-	        let lastRequestedKey = "";
-	        let lastLoadedKey = "";
 
 	        if (
 	          !entryForm ||
@@ -1331,113 +1329,221 @@
 	        }
 
           const defaultFormValues = {
+            workDate: "",
             dayType: entryForm.dataset.defaultDayType || "office",
             arrivalTime: entryForm.dataset.defaultArrivalTime || "",
             departureTime: entryForm.dataset.defaultDepartureTime || "",
             lunchBreakMinutes: entryForm.dataset.defaultLunchBreakMinutes || "",
             commentText: entryForm.dataset.defaultCommentText || "",
           };
+          const entryCache = new Map();
+          const state = {
+            selectedDate: dateInput.value || "",
+            currentEntry: null,
+            statusText: "",
+            statusVariant: "",
+            lastResolvedKey: "",
+          };
 
-          const setStatusMessage = (text, variant) => {
-            statusMessage.textContent = text || "";
-            statusMessage.hidden = !text;
+          const cloneEntry = (entry) => ({
+            workDate: entry && entry.workDate ? entry.workDate : state.selectedDate,
+            isExisting: Boolean(entry && entry.isExisting),
+            dayType: entry && entry.dayType ? entry.dayType : defaultFormValues.dayType,
+            arrivalTime: entry && typeof entry.arrivalTime === "string" ? entry.arrivalTime : defaultFormValues.arrivalTime,
+            departureTime:
+              entry && typeof entry.departureTime === "string" ? entry.departureTime : defaultFormValues.departureTime,
+            lunchBreakMinutes:
+              entry && typeof entry.lunchBreakMinutes === "string"
+                ? entry.lunchBreakMinutes
+                : String(
+                    entry && typeof entry.lunchBreakMinutes === "number"
+                      ? entry.lunchBreakMinutes
+                      : defaultFormValues.lunchBreakMinutes
+                  ),
+            commentText: entry && typeof entry.commentText === "string" ? entry.commentText : defaultFormValues.commentText,
+          });
+
+          const renderStatus = () => {
+            statusMessage.textContent = state.statusText || "";
+            statusMessage.hidden = !state.statusText;
             statusMessage.classList.remove("is-success", "is-empty");
-            if (variant) {
-              statusMessage.classList.add(variant);
+            if (state.statusVariant) {
+              statusMessage.classList.add(state.statusVariant);
             }
           };
 
-	        const applyEntryToForm = (entry) => {
-	          originalWorkDateInput.value = entry.workDate || dateInput.value;
-	          dayTypeSelect.value = entry.dayType || "office";
-	          arrivalInput.value = entry.arrivalTime || "";
-	          departureInput.value = entry.departureTime || "";
-	          lunchInput.value = entry.lunchBreakMinutes || "";
-	          commentInput.value = entry.commentText || "";
-	          dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
-	        };
-
-          const resetFormToDefaults = () => {
-            originalWorkDateInput.value = "";
-            dayTypeSelect.value = defaultFormValues.dayType;
-            arrivalInput.value = defaultFormValues.arrivalTime;
-            departureInput.value = defaultFormValues.departureTime;
-            lunchInput.value = defaultFormValues.lunchBreakMinutes;
-            commentInput.value = defaultFormValues.commentText;
+          const renderEntry = () => {
+            const entry = state.currentEntry ? cloneEntry(state.currentEntry) : cloneEntry(defaultFormValues);
+            originalWorkDateInput.value =
+              state.currentEntry && state.currentEntry.isExisting && state.currentEntry.workDate
+                ? state.currentEntry.workDate
+                : "";
+            dayTypeSelect.value = entry.dayType;
+            arrivalInput.value = entry.arrivalTime;
+            departureInput.value = entry.departureTime;
+            lunchInput.value = entry.lunchBreakMinutes;
+            commentInput.value = entry.commentText;
             dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
           };
 
-	        const maybeAutofillEntry = async () => {
-	          const clientId = clientIdInput.value;
-	          const selectedDate = dateInput.value;
-	          if (!clientId || !selectedDate) {
+          const setFormState = ({ entry, statusText, statusVariant, resolvedKey }) => {
+            state.currentEntry = entry ? cloneEntry(entry) : null;
+            state.statusText = statusText || "";
+            state.statusVariant = statusVariant || "";
+            state.lastResolvedKey = resolvedKey || "";
+            renderEntry();
+            renderStatus();
+          };
+
+          const getRequestKey = (clientId, selectedDate) => `${clientId}:${selectedDate}`;
+
+          const persistEntryInCache = (entry) => {
+            const clientId = clientIdInput.value;
+            if (!clientId || !entry || !entry.workDate) {
+              return;
+            }
+
+            entryCache.set(getRequestKey(clientId, entry.workDate), cloneEntry(entry));
+          };
+
+          const readEntryFromForm = () => ({
+            workDate: dateInput.value || "",
+            isExisting: Boolean(originalWorkDateInput.value),
+            dayType: dayTypeSelect.value || defaultFormValues.dayType,
+            arrivalTime: arrivalInput.value || defaultFormValues.arrivalTime,
+            departureTime: departureInput.value || defaultFormValues.departureTime,
+            lunchBreakMinutes: lunchInput.value || String(defaultFormValues.lunchBreakMinutes),
+            commentText: commentInput.value || "",
+          });
+
+          const watchSelectedDate = async () => {
+            const clientId = clientIdInput.value;
+            const selectedDate = dateInput.value;
+            state.selectedDate = selectedDate;
+
+            if (!clientId || !selectedDate) {
               if (activeController) {
                 activeController.abort();
                 activeController = null;
               }
-              lastRequestedKey = "";
-              lastLoadedKey = "";
-              resetFormToDefaults();
-              setStatusMessage("", "");
-	            return;
-	          }
-
-            const requestKey = `${clientId}:${selectedDate}`;
-            if (requestKey === lastLoadedKey) {
+              setFormState({
+                entry: null,
+                statusText: "",
+                statusVariant: "",
+                resolvedKey: "",
+              });
               return;
             }
 
-	          if (activeController) {
-	            activeController.abort();
-	          }
+            const requestKey = getRequestKey(clientId, selectedDate);
+            if (requestKey === state.lastResolvedKey) {
+              return;
+            }
 
-	          const controller = new AbortController();
-	          activeController = controller;
-	          lastRequestedKey = requestKey;
+            const cachedEntry = entryCache.get(requestKey);
+            if (cachedEntry) {
+              setFormState({
+                entry: cachedEntry,
+                statusText: "Entrée existante pour ce jour",
+                statusVariant: "is-success",
+                resolvedKey: requestKey,
+              });
+              return;
+            }
 
-	          try {
-	            const response = await fetch(
-	              `/api/entries/by-date?clientId=${encodeURIComponent(clientId)}&date=${encodeURIComponent(selectedDate)}`,
-              {
-                headers: { Accept: "application/json" },
-                signal: controller.signal,
+            if (activeController) {
+              activeController.abort();
+            }
+
+            const controller = new AbortController();
+            activeController = controller;
+
+            try {
+              const response = await fetch(
+                `/api/entries/by-date?clientId=${encodeURIComponent(clientId)}&date=${encodeURIComponent(selectedDate)}`,
+                {
+                  headers: { Accept: "application/json" },
+                  signal: controller.signal,
+                }
+              );
+
+              if (!response.ok) {
+                if (!controller.signal.aborted) {
+                  state.lastResolvedKey = "";
+                }
+                return;
               }
-	            );
 
-	            if (!response.ok) {
-                lastLoadedKey = "";
-                setStatusMessage("", "");
-	              return;
-	            }
+              const payload = await response.json();
+              if (controller.signal.aborted || dateInput.value !== selectedDate || clientIdInput.value !== clientId) {
+                return;
+              }
 
-	            const payload = await response.json();
-	            if (controller.signal.aborted || `${clientIdInput.value}:${dateInput.value}` !== lastRequestedKey) {
-	              return;
-	            }
+              if (payload && payload.entry) {
+                persistEntryInCache({ ...payload.entry, isExisting: true });
+                setFormState({
+                  entry: { ...payload.entry, isExisting: true },
+                  statusText: "Entrée existante pour ce jour",
+                  statusVariant: "is-success",
+                  resolvedKey: requestKey,
+                });
+                return;
+              }
 
-	            if (payload && payload.entry) {
-	              applyEntryToForm(payload.entry);
-                setStatusMessage("Entrée existante pour ce jour", "is-success");
-              } else {
-                resetFormToDefaults();
-                setStatusMessage("Aucune entrée d’heure pour ce jour", "is-empty");
-	            }
-              lastLoadedKey = requestKey;
-	          } catch (error) {
-	            if (error && error.name === "AbortError") {
-	              return;
-	            }
-            lastLoadedKey = "";
-            setStatusMessage("", "");
-	          } finally {
+              setFormState({
+                entry: null,
+                statusText: "Aucune entrée d’heure pour ce jour",
+                statusVariant: "is-empty",
+                resolvedKey: requestKey,
+              });
+            } catch (error) {
+              if (error && error.name === "AbortError") {
+                return;
+              }
+              state.lastResolvedKey = "";
+            } finally {
               if (activeController === controller) {
                 activeController = null;
               }
-	          }
-	        };
+            }
+          };
 
-        dateInput.addEventListener("change", maybeAutofillEntry);
-      })();
+          dateInput.addEventListener("input", watchSelectedDate);
+          dateInput.addEventListener("change", watchSelectedDate);
+
+          entryForm.addEventListener("submit", () => {
+            const submittedEntry = readEntryFromForm();
+            if (!submittedEntry.workDate) {
+              return;
+            }
+
+            persistEntryInCache({ ...submittedEntry, isExisting: true });
+            setFormState({
+              entry: { ...submittedEntry, isExisting: true },
+              statusText: "Entrée existante pour ce jour",
+              statusVariant: "is-success",
+              resolvedKey: getRequestKey(clientIdInput.value, submittedEntry.workDate),
+            });
+          });
+
+          state.currentEntry = readEntryFromForm();
+
+          if (originalWorkDateInput.value && dateInput.value) {
+            persistEntryInCache({
+              workDate: originalWorkDateInput.value,
+              isExisting: true,
+              dayType: dayTypeSelect.value,
+              arrivalTime: arrivalInput.value,
+              departureTime: departureInput.value,
+              lunchBreakMinutes: lunchInput.value,
+              commentText: commentInput.value,
+            });
+            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
+          }
+
+          renderEntry();
+          renderStatus();
+	      })();
 
       (() => {
         const modal = document.querySelector("[data-client-modal]");
