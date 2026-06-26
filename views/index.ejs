@@ -565,26 +565,148 @@
       <% } %>
 
       <% if (selectedClient) { %>
-      <section class="premium-summary-grid" aria-label="Resume de la periode">
-        <article class="premium-mini-card">
-          <span class="premium-mini-label">Client</span>
-          <strong class="premium-mini-value"><%= selectedClient.company_name %></strong>
-          <span class="premium-mini-meta"><%= selectedClient.contact_name || "Client actif" %></span>
+      <%
+        const _todayDate = defaultEntryFormData && defaultEntryFormData.date ? defaultEntryFormData.date : formData.date;
+        const _todayEntry = entries.find((entry) => entry.work_date === _todayDate) || null;
+        const _todayWorkedMinutes = _todayEntry ? Number(_todayEntry.worked_minutes || 0) : 0;
+        const _todayWorkedHHMM = _todayEntry ? _todayEntry.worked_hhmm : "00:00";
+        const _todayTargetMinutes = _todayEntry ? Number(_todayEntry.target_minutes || 0) : 7 * 60;
+        const _todayTargetHHMM = _todayTargetMinutes > 0 ? `${String(Math.floor(_todayTargetMinutes / 60)).padStart(2, "0")}:${String(_todayTargetMinutes % 60).padStart(2, "0")}` : "00:00";
+        const _todayProgress = _todayTargetMinutes > 0 ? Math.max(0, Math.min(100, Math.round((_todayWorkedMinutes / _todayTargetMinutes) * 100))) : 0;
+        const _todayMeta = _todayEntry
+          ? `${_todayEntry.day_type_display}${_todayEntry.is_worked_day ? ` · ${_todayEntry.arrival_time_display} - ${_todayEntry.departure_time_display}` : ""}`
+          : "Aucune saisie sur la journée en cours";
+        const _todayProgressMeta =
+          _todayWorkedMinutes >= _todayTargetMinutes
+            ? "Objectif atteint ou dépassé"
+            : `${Math.max(0, _todayTargetMinutes - _todayWorkedMinutes)} min restantes pour l'objectif`;
+        const _todayWeekStart = _todayEntry
+          ? _todayEntry.week_start
+          : (() => {
+              if (!_todayDate) {
+                return "";
+              }
+              const [year, month, day] = _todayDate.split("-").map(Number);
+              const parsed = new Date(year, month - 1, day);
+              if (
+                Number.isNaN(parsed.getTime()) ||
+                parsed.getFullYear() !== year ||
+                parsed.getMonth() !== month - 1 ||
+                parsed.getDate() !== day
+              ) {
+                return "";
+              }
+              const diffToMonday = (parsed.getDay() + 6) % 7;
+              parsed.setDate(parsed.getDate() - diffToMonday);
+              return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+            })();
+        const _weekEntries = _todayWeekStart ? entries.filter((entry) => entry.week_start === _todayWeekStart) : [];
+        const _weekTotalMinutes = _weekEntries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
+        const _weekTargetMinutes = _weekEntries.reduce((sum, entry) => sum + Number(entry.target_minutes || 0), 0);
+        const _weekOvertimeMinutes = Math.max(0, _weekTotalMinutes - _weekTargetMinutes);
+        const _weekBalanceMinutes = _weekTotalMinutes - _weekTargetMinutes;
+        const _weekWorkedDays = _weekEntries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
+        const _weekTotalHHMM = `${String(Math.floor(Math.max(0, _weekTotalMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _weekTotalMinutes) % 60).padStart(2, "0")}`;
+        const _weekOvertimeHHMM = `${String(Math.floor(_weekOvertimeMinutes / 60)).padStart(2, "0")}:${String(_weekOvertimeMinutes % 60).padStart(2, "0")}`;
+        const _weekBalanceAbs = Math.abs(_weekBalanceMinutes);
+        const _weekBalanceHHMM = `${String(Math.floor(_weekBalanceAbs / 60)).padStart(2, "0")}:${String(_weekBalanceAbs % 60).padStart(2, "0")}`;
+        const _weekTrendLabel =
+          _weekBalanceMinutes > 0
+            ? `En avance de ${_weekBalanceHHMM}`
+            : _weekBalanceMinutes < 0
+              ? `En retrait de ${_weekBalanceHHMM}`
+              : "Semaine exactement à l'objectif";
+        const _activeClientsCount = clients.length;
+      %>
+      <section class="premium-summary-grid premium-dashboard-grid" aria-label="Dashboard">
+        <div class="dashboard-overview">
+          <div class="dashboard-overview-copy">
+            <span class="premium-mini-label">Dashboard</span>
+            <h2>Vue directe sur l'activité essentielle.</h2>
+            <p><%= selectedClient.company_name %> · <%= payPeriodLabel || selectedMonth %></p>
+          </div>
+          <div class="dashboard-overview-pills">
+            <span class="dashboard-pill"><span class="dashboard-pill-dot"></span>Aujourd'hui</span>
+            <span class="dashboard-pill">Semaine active · <%= _weekWorkedDays %> jour<%= _weekWorkedDays > 1 ? "s" : "" %></span>
+            <span class="dashboard-pill">Mois affiché · <%= selectedMonth %></span>
+          </div>
+        </div>
+
+        <article class="premium-mini-card dashboard-panel">
+          <div class="dashboard-panel-head">
+            <span class="premium-mini-label">Aujourd'hui</span>
+            <span class="dashboard-panel-badge"><%= _todayEntry ? "Entrée trouvée" : "À compléter" %></span>
+          </div>
+          <div class="dashboard-kpis">
+            <div class="dashboard-kpi dashboard-kpi-primary">
+              <span class="dashboard-kpi-label">Heures travaillées</span>
+              <strong class="premium-mini-value"><%= _todayWorkedHHMM %></strong>
+              <span class="premium-mini-meta"><%= _todayMeta %></span>
+            </div>
+            <div class="dashboard-kpi">
+              <span class="dashboard-kpi-label">Objectif journalier</span>
+              <strong class="dashboard-kpi-value"><%= _todayTargetHHMM %></strong>
+              <span class="premium-mini-meta">Base actuelle du suivi journalier</span>
+            </div>
+            <div class="dashboard-kpi dashboard-kpi-progress">
+              <div class="dashboard-kpi-topline">
+                <span class="dashboard-kpi-label">Progression</span>
+                <strong class="dashboard-kpi-value"><%= _todayProgress %>%</strong>
+              </div>
+              <div class="dashboard-meter" aria-hidden="true">
+                <span class="dashboard-meter-bar" style="width: <%= _todayProgress %>%"></span>
+              </div>
+              <span class="premium-mini-meta"><%= _todayProgressMeta %></span>
+            </div>
+          </div>
         </article>
-        <article class="premium-mini-card">
-          <span class="premium-mini-label">Periode</span>
-          <strong class="premium-mini-value"><%= payPeriodLabel || selectedMonth %></strong>
-          <span class="premium-mini-meta">Vue active</span>
+
+        <article class="premium-mini-card dashboard-panel">
+          <div class="dashboard-panel-head">
+            <span class="premium-mini-label">Cette semaine</span>
+            <span class="dashboard-panel-badge"><%= _weekEntries.length > 0 ? "Données live" : "Aucune entrée" %></span>
+          </div>
+          <div class="dashboard-kpis">
+            <div class="dashboard-kpi dashboard-kpi-primary">
+              <span class="dashboard-kpi-label">Total heures</span>
+              <strong class="premium-mini-value"><%= _weekTotalHHMM %></strong>
+              <span class="premium-mini-meta"><%= _weekWorkedDays %> jour<%= _weekWorkedDays > 1 ? "s" : "" %> travaillé<%= _weekWorkedDays > 1 ? "s" : "" %> dans la semaine active</span>
+            </div>
+            <div class="dashboard-kpi">
+              <span class="dashboard-kpi-label">Heures supplémentaires</span>
+              <strong class="dashboard-kpi-value"><%= _weekOvertimeHHMM %></strong>
+              <span class="premium-mini-meta">Calculées sur l'objectif cumulé de la semaine</span>
+            </div>
+            <div class="dashboard-kpi">
+              <span class="dashboard-kpi-label">Évolution</span>
+              <strong class="dashboard-kpi-value"><%= _weekBalanceMinutes >= 0 ? "+" : "-" %><%= _weekBalanceHHMM %></strong>
+              <span class="premium-mini-meta"><%= _weekTrendLabel %></span>
+            </div>
+          </div>
         </article>
-        <article class="premium-mini-card">
-          <span class="premium-mini-label">Jours travailles</span>
-          <strong class="premium-mini-value"><%= workedDayCount %></strong>
-          <span class="premium-mini-meta">Sur la période</span>
-        </article>
-        <article class="premium-mini-card">
-          <span class="premium-mini-label">Total cumule</span>
-          <strong class="premium-mini-value"><%= totalHHMM %></strong>
-          <span class="premium-mini-meta">Total heures sur la période</span>
+
+        <article class="premium-mini-card dashboard-panel">
+          <div class="dashboard-panel-head">
+            <span class="premium-mini-label">Ce mois</span>
+            <span class="dashboard-panel-badge">Vue active</span>
+          </div>
+          <div class="dashboard-kpis">
+            <div class="dashboard-kpi dashboard-kpi-primary">
+              <span class="dashboard-kpi-label">Total heures</span>
+              <strong class="premium-mini-value"><%= totalHHMM %></strong>
+              <span class="premium-mini-meta">Cumul sur la période actuellement affichée</span>
+            </div>
+            <div class="dashboard-kpi">
+              <span class="dashboard-kpi-label">Jours travaillés</span>
+              <strong class="dashboard-kpi-value"><%= workedDayCount %></strong>
+              <span class="premium-mini-meta">Jours productifs comptabilisés</span>
+            </div>
+            <div class="dashboard-kpi">
+              <span class="dashboard-kpi-label">Clients actifs</span>
+              <strong class="dashboard-kpi-value"><%= _activeClientsCount %></strong>
+              <span class="premium-mini-meta"><%= _activeClientsCount > 1 ? "Comptes clients suivis dans l'espace" : "Un client actif dans l'espace" %></span>
+            </div>
+          </div>
         </article>
       </section>
 
@@ -608,114 +730,161 @@
             <span class="card-toggle-icon" aria-hidden="true">▾</span>
           </button>
         </div>
-		        <form
-              action="/entries"
-              method="post"
-              class="entry-form"
-              id="entryFormPanel"
+	        <form
+	              action="/entries"
+	              method="post"
+	              class="entry-form"
+	              id="entryFormPanel"
               data-entry-form
               data-default-day-type="<%= defaultEntryFormData.dayType %>"
-              data-default-arrival-time="<%= defaultEntryFormData.arrivalTime %>"
-              data-default-departure-time="<%= defaultEntryFormData.departureTime %>"
-              data-default-lunch-break-minutes="<%= defaultEntryFormData.lunchBreakMinutes %>"
-              data-default-comment-text="<%= defaultEntryFormData.commentText || "" %>"
-            >
-		          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-		          <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-		          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
-		          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
+	              data-default-arrival-time="<%= defaultEntryFormData.arrivalTime %>"
+	              data-default-departure-time="<%= defaultEntryFormData.departureTime %>"
+	              data-default-lunch-break-minutes="<%= defaultEntryFormData.lunchBreakMinutes %>"
+	              data-default-comment-text="<%= defaultEntryFormData.commentText || "" %>"
+                data-is-editing="<%= _isEditing ? "1" : "0" %>"
+	            >
+			          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+			          <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
+			          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
+			          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
 
-	          <div class="field">
-	            <label for="date">Date</label>
-	            <input id="date" name="date" type="date" required value="<%= formData.date %>" />
-	          </div>
-
-            <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
-
-          <div class="field">
-            <label for="dayType">Type de journee</label>
-            <select id="dayType" name="dayType" required data-day-type-select>
-              <% dayTypeOptions.forEach((option) => { %>
-              <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
-                <%= option.label %>
-              </option>
-              <% }); %>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="arrivalTime">Heure d'arrivee</label>
-            <input
-              id="arrivalTime"
-              name="arrivalTime"
-              type="time"
-              required
-              value="<%= formData.arrivalTime %>"
-              data-worked-day-field
-            />
-          </div>
-
-          <div class="field">
-            <label for="departureTime">Heure de depart</label>
-            <input
-              id="departureTime"
-              name="departureTime"
-              type="time"
-              required
-              value="<%= formData.departureTime %>"
-              data-worked-day-field
-            />
-          </div>
-
-          <div class="field">
-            <label for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
-            <input
-              id="lunchBreakMinutes"
-              name="lunchBreakMinutes"
-              type="number"
-              min="0"
-              required
-              value="<%= formData.lunchBreakMinutes %>"
-              data-worked-day-field
-            />
-          </div>
-
-          <div class="field field-comment">
-            <label for="commentText">Commentaire</label>
-            <div class="comment-toolbar">
-              <details class="comment-emoji-picker">
-                <summary class="comment-emoji-summary">
-                  <span>🙂</span>
-                  <span class="comment-emoji-caret" aria-hidden="true">▾</span>
-                </summary>
-                <div class="comment-emoji-popover">
-                  <emoji-picker class="comment-emoji-component" locale="fr"></emoji-picker>
+              <div class="entry-shell">
+                <div class="entry-daybar">
+                  <div class="field entry-daybar-date">
+                    <label for="date">Date selectionnee</label>
+                    <input id="date" name="date" type="date" required value="<%= formData.date %>" />
+                  </div>
+                  <div class="entry-daybar-meta">
+                    <div class="entry-daybar-client">
+                      <span class="entry-daybar-caption">Client actif</span>
+                      <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
+                    </div>
+                    <div class="entry-daybar-state">
+                      <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
+                      <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
+                    </div>
+                  </div>
                 </div>
-              </details>
-            </div>
-            <textarea
-              id="commentText"
-              name="commentText"
-              rows="3"
-              maxlength="1000"
-              placeholder="Ex: reunion client, deplacement, taches importantes..."
-              data-comment-target
-            ><%= formData.commentText || "" %></textarea>
-          </div>
 
-	          <div class="form-actions">
-	            <button type="submit" data-ripple><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
-	            <% if (_isEditing) { %>
-            <a
-              class="button-link button-neutral"
+                <div class="entry-main-layout">
+                  <div class="field entry-day-type-field">
+                    <label for="dayType">Type de journee</label>
+                    <select id="dayType" name="dayType" required data-day-type-select>
+                      <% dayTypeOptions.forEach((option) => { %>
+                      <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
+                        <%= option.label %>
+                      </option>
+                      <% }); %>
+                    </select>
+                  </div>
+
+                  <section class="entry-hours-panel" aria-label="Bloc horaire">
+                    <div class="entry-hours-panel-head">
+                      <div>
+                        <span class="entry-hours-kicker">Horaire</span>
+                        <h3>Journee de travail</h3>
+                      </div>
+                      <span class="entry-hours-note">Arrivee, depart, pause</span>
+                    </div>
+
+                    <div class="entry-hours-grid">
+                      <div class="field entry-time-field">
+                        <label for="arrivalTime">Heure d'arrivee</label>
+                        <input
+                          id="arrivalTime"
+                          name="arrivalTime"
+                          type="time"
+                          required
+                          value="<%= formData.arrivalTime %>"
+                          data-worked-day-field
+                        />
+                      </div>
+
+                      <div class="field entry-time-field">
+                        <label for="departureTime">Heure de depart</label>
+                        <input
+                          id="departureTime"
+                          name="departureTime"
+                          type="time"
+                          required
+                          value="<%= formData.departureTime %>"
+                          data-worked-day-field
+                        />
+                      </div>
+
+                      <div class="field entry-time-field entry-pause-field">
+                        <label for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
+                        <input
+                          id="lunchBreakMinutes"
+                          name="lunchBreakMinutes"
+                          type="number"
+                          min="0"
+                          required
+                          value="<%= formData.lunchBreakMinutes %>"
+                          data-worked-day-field
+                        />
+                      </div>
+                    </div>
+
+                    <div class="entry-live-summary" data-entry-live-summary aria-live="polite">
+                      <div class="entry-live-summary-block">
+                        <span class="entry-live-summary-label">Temps prevu</span>
+                        <strong class="entry-live-summary-value" data-entry-summary-value>--:--</strong>
+                      </div>
+                      <div class="entry-live-summary-block entry-live-summary-block-secondary">
+                        <span class="entry-live-summary-label">Lecture rapide</span>
+                        <strong class="entry-live-summary-value entry-live-summary-feedback" data-entry-summary-feedback>Renseignez les horaires</strong>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div class="field field-comment entry-comment-field">
+                    <div class="entry-comment-header">
+                      <label for="commentText">Commentaire</label>
+                      <div class="comment-toolbar">
+                        <details class="comment-emoji-picker">
+                          <summary class="comment-emoji-summary">
+                            <span>🙂</span>
+                            <span class="comment-emoji-caret" aria-hidden="true">▾</span>
+                          </summary>
+                          <div class="comment-emoji-popover">
+                            <emoji-picker class="comment-emoji-component" locale="fr"></emoji-picker>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                    <textarea
+                      id="commentText"
+                      name="commentText"
+                      rows="2"
+                      maxlength="1000"
+                      placeholder="Ex: reunion client, deplacement, taches importantes..."
+                      data-comment-target
+                    ><%= formData.commentText || "" %></textarea>
+                  </div>
+                </div>
+
+		            <div class="form-actions entry-form-actions">
+		            <button
+                    type="submit"
+                    data-ripple
+                    data-entry-submit-button
+                    data-default-label="<%= _isEditing ? "Mettre a jour" : "Enregistrer" %>"
+                    data-saving-label="Enregistrement..."
+                    data-success-label="✓ Journée enregistrée"
+                  ><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
+		            <% if (_isEditing) { %>
+	            <a
+	              class="button-link button-neutral"
               href="/?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-              data-ripple
-            >
-              Annuler
-            </a>
-            <% } %>
-          </div>
-        </form>
+	              data-ripple
+	            >
+	              Annuler
+	            </a>
+	            <% } %>
+	              </div>
+              </div>
+	        </form>
       </section>
 
       <div class="between-sections-spacer" aria-hidden="true"></div>
@@ -1311,6 +1480,10 @@
 	        const lunchInput = entryForm ? entryForm.querySelector("#lunchBreakMinutes") : null;
 	        const commentInput = entryForm ? entryForm.querySelector("#commentText") : null;
 	        const statusMessage = entryForm ? entryForm.querySelector("[data-entry-load-status]") : null;
+          const stateBadge = entryForm ? entryForm.querySelector("[data-entry-state-badge]") : null;
+          const summaryValue = entryForm ? entryForm.querySelector("[data-entry-summary-value]") : null;
+          const summaryFeedback = entryForm ? entryForm.querySelector("[data-entry-summary-feedback]") : null;
+          const submitButton = entryForm ? entryForm.querySelector("[data-entry-submit-button]") : null;
 	        let activeController = null;
 
 	        if (
@@ -1323,13 +1496,21 @@
 	          !departureInput ||
 	          !lunchInput ||
 	          !commentInput ||
-	          !statusMessage
+	          !statusMessage ||
+            !stateBadge ||
+            !summaryValue ||
+            !summaryFeedback ||
+            !submitButton
 	        ) {
 	          return;
 	        }
 
+          const SAVE_FLASH_STORAGE_KEY = "hours_entry_save_flash";
+          const SUMMARY_TARGET_MINUTES = 7 * 60;
+          const workedDayTypes = new Set(["office", "remote"]);
           const defaultFormValues = {
             workDate: "",
+            isExisting: false,
             dayType: entryForm.dataset.defaultDayType || "office",
             arrivalTime: entryForm.dataset.defaultArrivalTime || "",
             departureTime: entryForm.dataset.defaultDepartureTime || "",
@@ -1337,63 +1518,205 @@
             commentText: entryForm.dataset.defaultCommentText || "",
           };
           const entryCache = new Map();
-          const state = {
-            selectedDate: dateInput.value || "",
-            currentEntry: null,
-            statusText: "",
-            statusVariant: "",
-            lastResolvedKey: "",
+	          const state = {
+	            selectedDate: dateInput.value || "",
+	            currentEntry: null,
+	            statusText: "",
+	            statusVariant: "",
+              badgeState: "is-empty",
+	            lastResolvedKey: "",
+              isLoading: false,
+              isDirty: false,
+              isSaving: false,
+              showSavedFlash: false,
+	          };
+
+          const formatMinutesToHHMM = (minutes) => {
+            const safeMinutes = Math.max(0, Number(minutes) || 0);
+            return `${String(Math.floor(safeMinutes / 60)).padStart(2, "0")}:${String(safeMinutes % 60).padStart(2, "0")}`;
           };
 
-          const cloneEntry = (entry) => ({
-            workDate: entry && entry.workDate ? entry.workDate : state.selectedDate,
-            isExisting: Boolean(entry && entry.isExisting),
-            dayType: entry && entry.dayType ? entry.dayType : defaultFormValues.dayType,
-            arrivalTime: entry && typeof entry.arrivalTime === "string" ? entry.arrivalTime : defaultFormValues.arrivalTime,
+          const formatDurationLabel = (minutes) => {
+            const safeMinutes = Math.max(0, Number(minutes) || 0);
+            const hours = Math.floor(safeMinutes / 60);
+            const remainingMinutes = safeMinutes % 60;
+            return `${hours} h ${String(remainingMinutes).padStart(2, "0")}`;
+          };
+
+	          const cloneEntry = (entry) => ({
+	            workDate: entry && entry.workDate ? entry.workDate : state.selectedDate,
+	            isExisting: Boolean(entry && entry.isExisting),
+	            dayType: entry && entry.dayType ? entry.dayType : defaultFormValues.dayType,
+	            arrivalTime: entry && typeof entry.arrivalTime === "string" ? entry.arrivalTime : defaultFormValues.arrivalTime,
             departureTime:
               entry && typeof entry.departureTime === "string" ? entry.departureTime : defaultFormValues.departureTime,
             lunchBreakMinutes:
               entry && typeof entry.lunchBreakMinutes === "string"
                 ? entry.lunchBreakMinutes
                 : String(
-                    entry && typeof entry.lunchBreakMinutes === "number"
-                      ? entry.lunchBreakMinutes
-                      : defaultFormValues.lunchBreakMinutes
-                  ),
-            commentText: entry && typeof entry.commentText === "string" ? entry.commentText : defaultFormValues.commentText,
-          });
+	                    entry && typeof entry.lunchBreakMinutes === "number"
+	                      ? entry.lunchBreakMinutes
+	                      : defaultFormValues.lunchBreakMinutes
+	                  ),
+	            commentText: entry && typeof entry.commentText === "string" ? entry.commentText : defaultFormValues.commentText,
+	          });
 
-          const renderStatus = () => {
-            statusMessage.textContent = state.statusText || "";
-            statusMessage.hidden = !state.statusText;
-            statusMessage.classList.remove("is-success", "is-empty");
-            if (state.statusVariant) {
-              statusMessage.classList.add(state.statusVariant);
-            }
+          const entriesMatch = (leftEntry, rightEntry) => {
+            const left = cloneEntry(leftEntry);
+            const right = cloneEntry(rightEntry);
+            return (
+              left.workDate === right.workDate &&
+              left.dayType === right.dayType &&
+              left.arrivalTime === right.arrivalTime &&
+              left.departureTime === right.departureTime &&
+              left.lunchBreakMinutes === right.lunchBreakMinutes &&
+              left.commentText === right.commentText &&
+              left.isExisting === right.isExisting
+            );
           };
 
-          const renderEntry = () => {
-            const entry = state.currentEntry ? cloneEntry(state.currentEntry) : cloneEntry(defaultFormValues);
-            originalWorkDateInput.value =
-              state.currentEntry && state.currentEntry.isExisting && state.currentEntry.workDate
-                ? state.currentEntry.workDate
+          const getDefaultEntryForSelectedDate = () =>
+            cloneEntry({
+              ...defaultFormValues,
+              workDate: state.selectedDate || dateInput.value || "",
+            });
+
+          const getBaselineEntry = () =>
+            state.currentEntry && state.currentEntry.isExisting
+              ? cloneEntry(state.currentEntry)
+              : getDefaultEntryForSelectedDate();
+
+          const updateDirtyState = () => {
+            state.isDirty = !entriesMatch(readEntryFromForm(), getBaselineEntry());
+          };
+
+          const getBadgeConfig = () => {
+            if (state.isLoading || state.isSaving) {
+              return {
+                className: "is-loading",
+                text: "🔄 Chargement",
+              };
+            }
+
+            if (state.isDirty) {
+              return {
+                className: "is-dirty",
+                text: "🟠 Modifications non enregistrées",
+              };
+            }
+
+            if (state.currentEntry && state.currentEntry.isExisting) {
+              return {
+                className: "is-success",
+                text: "🟢 Journée enregistrée",
+              };
+            }
+
+            return {
+              className: "is-empty",
+              text: "⚪ Nouvelle journée",
+            };
+          };
+
+          const renderBadge = () => {
+            const badge = getBadgeConfig();
+            stateBadge.textContent = badge.text;
+            stateBadge.classList.remove("is-success", "is-empty", "is-dirty", "is-loading");
+            stateBadge.classList.add(badge.className);
+          };
+
+	          const renderStatus = () => {
+	            statusMessage.textContent = state.statusText || "";
+	            statusMessage.hidden = !state.statusText;
+	            statusMessage.classList.remove("is-success", "is-empty", "is-dirty", "is-loading");
+	            if (state.statusVariant) {
+	              statusMessage.classList.add(state.statusVariant);
+	            }
+	          };
+
+          const renderSummary = () => {
+            const currentEntry = readEntryFromForm();
+            const isWorkedDay = workedDayTypes.has(currentEntry.dayType);
+
+            if (!isWorkedDay) {
+              summaryValue.textContent = "00:00";
+              summaryFeedback.textContent = "Journee sans objectif horaire";
+              return;
+            }
+
+            if (!currentEntry.arrivalTime || !currentEntry.departureTime) {
+              summaryValue.textContent = "--:--";
+              summaryFeedback.textContent = "Renseignez les horaires pour voir le temps prevu";
+              return;
+            }
+
+            const arrivalParts = currentEntry.arrivalTime.split(":").map(Number);
+            const departureParts = currentEntry.departureTime.split(":").map(Number);
+            if (arrivalParts.length !== 2 || departureParts.length !== 2) {
+              summaryValue.textContent = "--:--";
+              summaryFeedback.textContent = "Renseignez les horaires pour voir le temps prevu";
+              return;
+            }
+
+            const arrivalMinutes = arrivalParts[0] * 60 + arrivalParts[1];
+            const departureMinutes = departureParts[0] * 60 + departureParts[1];
+            const breakMinutes = Math.max(0, Number(currentEntry.lunchBreakMinutes) || 0);
+            const plannedMinutes = Math.max(0, departureMinutes - arrivalMinutes - breakMinutes);
+
+            summaryValue.textContent = formatMinutesToHHMM(plannedMinutes);
+            if (departureMinutes <= arrivalMinutes) {
+              summaryFeedback.textContent = "Verifiez l'ordre arrivee / depart";
+              return;
+            }
+
+            if (plannedMinutes >= SUMMARY_TARGET_MINUTES) {
+              summaryFeedback.textContent = "Objectif atteint";
+              return;
+            }
+
+            summaryFeedback.textContent = `Il reste ${formatDurationLabel(SUMMARY_TARGET_MINUTES - plannedMinutes)}`;
+          };
+
+          const updateSubmitButton = (label, disabled) => {
+            submitButton.textContent = label;
+            submitButton.disabled = Boolean(disabled);
+            submitButton.classList.toggle("is-saving", Boolean(disabled));
+          };
+
+          const autosizeComment = () => {
+            commentInput.style.height = "auto";
+            const minHeight = 72;
+            commentInput.style.height = `${Math.max(minHeight, commentInput.scrollHeight)}px`;
+          };
+
+	          const renderEntry = () => {
+	            const entry = state.currentEntry ? cloneEntry(state.currentEntry) : cloneEntry(defaultFormValues);
+	            originalWorkDateInput.value =
+	              state.currentEntry && state.currentEntry.isExisting && state.currentEntry.workDate
+	                ? state.currentEntry.workDate
                 : "";
             dayTypeSelect.value = entry.dayType;
-            arrivalInput.value = entry.arrivalTime;
-            departureInput.value = entry.departureTime;
-            lunchInput.value = entry.lunchBreakMinutes;
-            commentInput.value = entry.commentText;
-            dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
-          };
+	            arrivalInput.value = entry.arrivalTime;
+	            departureInput.value = entry.departureTime;
+	            lunchInput.value = entry.lunchBreakMinutes;
+	            commentInput.value = entry.commentText;
+	            dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+              autosizeComment();
+              updateDirtyState();
+              renderSummary();
+              renderBadge();
+	          };
 
-          const setFormState = ({ entry, statusText, statusVariant, resolvedKey }) => {
-            state.currentEntry = entry ? cloneEntry(entry) : null;
-            state.statusText = statusText || "";
-            state.statusVariant = statusVariant || "";
-            state.lastResolvedKey = resolvedKey || "";
-            renderEntry();
-            renderStatus();
-          };
+	          const setFormState = ({ entry, statusText, statusVariant, resolvedKey }) => {
+	            state.currentEntry = entry ? cloneEntry(entry) : null;
+	            state.statusText = statusText || "";
+	            state.statusVariant = statusVariant || "";
+	            state.lastResolvedKey = resolvedKey || "";
+              state.isLoading = false;
+              state.isSaving = false;
+	            renderEntry();
+	            renderStatus();
+	          };
 
           const getRequestKey = (clientId, selectedDate) => `${clientId}:${selectedDate}`;
 
@@ -1406,62 +1729,91 @@
             entryCache.set(getRequestKey(clientId, entry.workDate), cloneEntry(entry));
           };
 
-          const readEntryFromForm = () => ({
-            workDate: dateInput.value || "",
-            isExisting: Boolean(originalWorkDateInput.value),
-            dayType: dayTypeSelect.value || defaultFormValues.dayType,
-            arrivalTime: arrivalInput.value || defaultFormValues.arrivalTime,
+	          const readEntryFromForm = () => ({
+	            workDate: dateInput.value || "",
+	            isExisting: Boolean(originalWorkDateInput.value),
+	            dayType: dayTypeSelect.value || defaultFormValues.dayType,
+	            arrivalTime: arrivalInput.value || defaultFormValues.arrivalTime,
             departureTime: departureInput.value || defaultFormValues.departureTime,
             lunchBreakMinutes: lunchInput.value || String(defaultFormValues.lunchBreakMinutes),
-            commentText: commentInput.value || "",
-          });
+	            commentText: commentInput.value || "",
+	          });
 
-          const watchSelectedDate = async () => {
-            const clientId = clientIdInput.value;
-            const selectedDate = dateInput.value;
-            state.selectedDate = selectedDate;
+          const markUnsavedIfNeeded = () => {
+            updateDirtyState();
+            if (state.isLoading || state.isSaving) {
+              renderBadge();
+              return;
+            }
+
+            if (state.isDirty) {
+              state.statusText = "Modifications locales non enregistrees";
+              state.statusVariant = "is-dirty";
+            } else if (state.currentEntry && state.currentEntry.isExisting) {
+              state.statusText = "Entrée existante pour ce jour";
+              state.statusVariant = "is-success";
+            } else {
+              state.statusText = "Aucune entrée d’heure pour ce jour";
+              state.statusVariant = "is-empty";
+            }
+
+            renderStatus();
+            renderSummary();
+            renderBadge();
+          };
+
+	          const watchSelectedDate = async () => {
+	            const clientId = clientIdInput.value;
+	            const selectedDate = dateInput.value;
+	            state.selectedDate = selectedDate;
 
             if (!clientId || !selectedDate) {
               if (activeController) {
                 activeController.abort();
-                activeController = null;
-              }
-              setFormState({
-                entry: null,
-                statusText: "",
-                statusVariant: "",
-                resolvedKey: "",
+	                activeController = null;
+	              }
+                state.isLoading = false;
+	              setFormState({
+	                entry: null,
+	                statusText: "",
+	                statusVariant: "",
+	                resolvedKey: "",
               });
               return;
             }
 
             const requestKey = getRequestKey(clientId, selectedDate);
-            if (requestKey === state.lastResolvedKey) {
-              return;
-            }
+	            if (requestKey === state.lastResolvedKey) {
+	              return;
+	            }
 
-            const cachedEntry = entryCache.get(requestKey);
-            if (cachedEntry) {
+	            const cachedEntry = entryCache.get(requestKey);
+	            if (cachedEntry) {
               setFormState({
                 entry: cachedEntry,
                 statusText: "Entrée existante pour ce jour",
                 statusVariant: "is-success",
                 resolvedKey: requestKey,
               });
-              return;
-            }
+	              return;
+	            }
 
-            if (activeController) {
-              activeController.abort();
-            }
+	            if (activeController) {
+	              activeController.abort();
+	            }
 
-            const controller = new AbortController();
-            activeController = controller;
+	            const controller = new AbortController();
+	            activeController = controller;
+              state.isLoading = true;
+              state.statusText = "Chargement de la journee selectionnee...";
+              state.statusVariant = "is-loading";
+              renderStatus();
+              renderBadge();
 
-            try {
-              const response = await fetch(
-                `/api/entries/by-date?clientId=${encodeURIComponent(clientId)}&date=${encodeURIComponent(selectedDate)}`,
-                {
+	            try {
+	              const response = await fetch(
+	                `/api/entries/by-date?clientId=${encodeURIComponent(clientId)}&date=${encodeURIComponent(selectedDate)}`,
+	                {
                   headers: { Accept: "application/json" },
                   signal: controller.signal,
                 }
@@ -1490,46 +1842,79 @@
                 return;
               }
 
-              setFormState({
-                entry: null,
-                statusText: "Aucune entrée d’heure pour ce jour",
-                statusVariant: "is-empty",
+	              setFormState({
+	                entry: null,
+	                statusText: "Aucune entrée d’heure pour ce jour",
+	                statusVariant: "is-empty",
                 resolvedKey: requestKey,
               });
             } catch (error) {
-              if (error && error.name === "AbortError") {
-                return;
-              }
-              state.lastResolvedKey = "";
-            } finally {
-              if (activeController === controller) {
-                activeController = null;
-              }
+	              if (error && error.name === "AbortError") {
+	                return;
+	              }
+              state.isLoading = false;
+	              state.lastResolvedKey = "";
+              state.statusText = "";
+              state.statusVariant = "";
+              renderStatus();
+              renderBadge();
+	            } finally {
+	              if (activeController === controller) {
+	                activeController = null;
+	              }
+	            }
+	          };
+
+	          dateInput.addEventListener("input", watchSelectedDate);
+	          dateInput.addEventListener("change", watchSelectedDate);
+          [dayTypeSelect, arrivalInput, departureInput, lunchInput].forEach((field) => {
+            field.addEventListener("input", markUnsavedIfNeeded);
+            field.addEventListener("change", markUnsavedIfNeeded);
+          });
+          commentInput.addEventListener("input", () => {
+            autosizeComment();
+            markUnsavedIfNeeded();
+          });
+
+	          entryForm.addEventListener("submit", () => {
+	            const submittedEntry = readEntryFromForm();
+	            if (!submittedEntry.workDate) {
+	              return;
+	            }
+
+            state.isSaving = true;
+            state.statusText = "Enregistrement de la journee...";
+            state.statusVariant = "is-loading";
+            renderStatus();
+            renderBadge();
+            updateSubmitButton(submitButton.dataset.savingLabel || "Enregistrement...", true);
+
+            try {
+              sessionStorage.setItem(
+                SAVE_FLASH_STORAGE_KEY,
+                JSON.stringify({
+                  clientId: clientIdInput.value,
+                  workDate: submittedEntry.workDate,
+                  savedAt: Date.now(),
+                })
+              );
+            } catch (error) {
+              // Ignore storage issues.
             }
-          };
 
-          dateInput.addEventListener("input", watchSelectedDate);
-          dateInput.addEventListener("change", watchSelectedDate);
-
-          entryForm.addEventListener("submit", () => {
-            const submittedEntry = readEntryFromForm();
-            if (!submittedEntry.workDate) {
-              return;
-            }
-
-            persistEntryInCache({ ...submittedEntry, isExisting: true });
-            setFormState({
-              entry: { ...submittedEntry, isExisting: true },
-              statusText: "Entrée existante pour ce jour",
-              statusVariant: "is-success",
+	            persistEntryInCache({ ...submittedEntry, isExisting: true });
+	            setFormState({
+	              entry: { ...submittedEntry, isExisting: true },
+	              statusText: "Entrée existante pour ce jour",
+	              statusVariant: "is-success",
               resolvedKey: getRequestKey(clientIdInput.value, submittedEntry.workDate),
             });
           });
 
-          state.currentEntry = readEntryFromForm();
+	          state.currentEntry = readEntryFromForm();
 
-          if (originalWorkDateInput.value && dateInput.value) {
-            persistEntryInCache({
+	          if (originalWorkDateInput.value && dateInput.value) {
+	            persistEntryInCache({
               workDate: originalWorkDateInput.value,
               isExisting: true,
               dayType: dayTypeSelect.value,
@@ -1537,12 +1922,36 @@
               departureTime: departureInput.value,
               lunchBreakMinutes: lunchInput.value,
               commentText: commentInput.value,
-            });
-            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
-          }
+	            });
+	            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
+	          }
 
-          renderEntry();
-          renderStatus();
+            try {
+              const rawSaveFlash = sessionStorage.getItem(SAVE_FLASH_STORAGE_KEY);
+              if (rawSaveFlash) {
+                const saveFlash = JSON.parse(rawSaveFlash);
+                if (
+                  saveFlash &&
+                  saveFlash.clientId === clientIdInput.value &&
+                  saveFlash.workDate === dateInput.value &&
+                  Date.now() - Number(saveFlash.savedAt || 0) < 15000 &&
+                  !document.querySelector(".alert")
+                ) {
+                  updateSubmitButton(submitButton.dataset.successLabel || "✓ Journée enregistrée", true);
+                  window.setTimeout(() => {
+                    updateSubmitButton(submitButton.dataset.defaultLabel || "Enregistrer", false);
+                  }, 1400);
+                }
+                sessionStorage.removeItem(SAVE_FLASH_STORAGE_KEY);
+              }
+            } catch (error) {
+              // Ignore storage issues.
+            }
+
+            autosizeComment();
+	          renderEntry();
+            renderSummary();
+            markUnsavedIfNeeded();
 	      })();
 
       (() => {
