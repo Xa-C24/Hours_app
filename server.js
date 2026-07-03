@@ -1036,6 +1036,8 @@ async function renderIndex(res, options = {}) {
       count: filter.value === "all" ? entries.length : dayTypeCounts[filter.value] || 0,
       yearCount: filter.value === "all" ? yearEntryCount : yearDayTypeCounts[filter.value] || 0,
     })),
+    dayTypeCounts,
+    totalMinutes,
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,

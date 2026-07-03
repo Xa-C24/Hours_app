@@ -520,6 +520,65 @@
     });
   }
 
+  function initHomeMotionPolish() {
+    if (!document.body.classList.contains("home-premium-page")) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const shouldReduceMotion = () => prefersReducedMotion.matches;
+
+    const stagedGroups = [
+      ".cockpit-dashboard > .premium-surface",
+      ".cockpit-badge",
+      ".history-entry-card",
+      ".history-quickfilter-chip",
+      ".calendar-summary-chip",
+      ".calendar-legend-item",
+    ];
+
+    if (!shouldReduceMotion()) {
+      stagedGroups.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((element, index) => {
+          element.classList.add("motion-fade-in");
+          element.style.setProperty("--motion-order", String(Math.min(index, 5)));
+        });
+      });
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          document.querySelectorAll(".motion-fade-in").forEach((element) => {
+            element.classList.add("is-visible");
+          });
+        });
+      });
+    }
+
+    const calendarPanel = document.querySelector(".calendar-panel");
+    document.querySelectorAll(".calendar-nav-button[href]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        if (
+          shouldReduceMotion() ||
+          !calendarPanel ||
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        calendarPanel.classList.add("is-month-transitioning");
+        window.setTimeout(() => {
+          window.location.href = link.href;
+        }, 120);
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     let storedTheme = "light";
     let storedStyle = "premium";
@@ -547,5 +606,6 @@
     initDayTypeFilter();
     initAuthPremiumEffects();
     initHomePremiumEffects();
+    initHomeMotionPolish();
   });
 })();

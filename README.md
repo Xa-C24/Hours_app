@@ -195,6 +195,7 @@ L'application sera accessible sur:
 
 ```text
 http://localhost:3002
+http://localhost:3000
 ```
 
 Le volume Docker `hours_data` persiste les donnees SQLite.

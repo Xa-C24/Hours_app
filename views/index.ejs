@@ -617,101 +617,263 @@
               ? `En retrait de ${_weekBalanceHHMM}`
               : "Semaine exactement à l'objectif";
         const _activeClientsCount = clients.length;
+        const _monthAverageMinutes = workedDayCount > 0 ? Math.round(totalMinutes / workedDayCount) : 0;
+        const _monthAverageHHMM = `${String(Math.floor(Math.max(0, _monthAverageMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthAverageMinutes) % 60).padStart(2, "0")}`;
+        const _monthTargetMinutes = entries.reduce((sum, entry) => sum + Number(entry.target_minutes || 0), 0);
+        const _monthTargetHHMM = `${String(Math.floor(Math.max(0, _monthTargetMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthTargetMinutes) % 60).padStart(2, "0")}`;
+        const _monthRemainingMinutes = Math.max(0, _monthTargetMinutes - totalMinutes);
+        const _monthRemainingHHMM = `${String(Math.floor(_monthRemainingMinutes / 60)).padStart(2, "0")}:${String(_monthRemainingMinutes % 60).padStart(2, "0")}`;
+        const _monthProgress = _monthTargetMinutes > 0 ? Math.max(0, Math.min(100, Math.round((totalMinutes / _monthTargetMinutes) * 100))) : 0;
+        const _todayRemainingMinutes = Math.max(0, _todayTargetMinutes - _todayWorkedMinutes);
+        const _todayRemainingHHMM = `${String(Math.floor(_todayRemainingMinutes / 60)).padStart(2, "0")}:${String(_todayRemainingMinutes % 60).padStart(2, "0")}`;
+        const _todayDateLabel = _todayDate
+          ? new Date(`${_todayDate}T00:00:00`).toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+          : "";
+        const _heroMessage = authUser ? `Bonjour ${authUser}` : "Bonjour";
+        const _progressRingValue = Math.max(0, Math.min(100, _todayProgress));
+        const _insightLines = [
+          _todayWorkedMinutes >= _todayTargetMinutes ? "Objectif du jour atteint." : `Encore ${_todayRemainingHHMM} pour aujourd'hui.`,
+          _weekTrendLabel,
+          _monthTargetMinutes > 0
+            ? _monthProgress >= 100
+              ? "Objectif mensuel atteint."
+              : `Encore ${_monthRemainingHHMM} pour l'objectif mensuel.`
+            : "Aucun objectif mensuel mesurable sur la période.",
+        ];
+        const _weekReferenceDate = (() => {
+          if (_todayWeekStart) {
+            return _todayWeekStart;
+          }
+          if (_todayDate) {
+            const parsed = new Date(`${_todayDate}T00:00:00`);
+            const diffToMonday = (parsed.getDay() + 6) % 7;
+            parsed.setDate(parsed.getDate() - diffToMonday);
+            return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+          }
+          return "";
+        })();
+        const _weekEntriesByDate = new Map(_weekEntries.map((entry) => [entry.work_date, entry]));
+        const _weekPreviewDays = [];
+        if (_weekReferenceDate) {
+          const _weekStartDateObject = new Date(`${_weekReferenceDate}T00:00:00`);
+          for (let _dayOffset = 0; _dayOffset < 7; _dayOffset += 1) {
+            const _dayDateObject = new Date(_weekStartDateObject);
+            _dayDateObject.setDate(_weekStartDateObject.getDate() + _dayOffset);
+            const _isoDay = `${_dayDateObject.getFullYear()}-${String(_dayDateObject.getMonth() + 1).padStart(2, "0")}-${String(_dayDateObject.getDate()).padStart(2, "0")}`;
+            const _weekEntry = _weekEntriesByDate.get(_isoDay) || null;
+            _weekPreviewDays.push({
+              isoDate: _isoDay,
+              dayShort: _dayDateObject.toLocaleDateString("fr-FR", { weekday: "short" }),
+              dayNumber: _dayDateObject.getDate(),
+              isToday: _isoDay === _todayDate,
+              stateClass: _weekEntry
+                ? _weekEntry.is_worked_day
+                  ? _weekEntry.under_target
+                    ? "is-partial"
+                    : "is-complete"
+                  : _weekEntry.day_type === "sick_leave"
+                    ? "is-sick"
+                    : "is-leave"
+                : "is-empty",
+              duration: _weekEntry ? _weekEntry.worked_hhmm : "",
+              label: _weekEntry ? _weekEntry.day_type_display : "Aucune saisie",
+            });
+          }
+        }
+        const _mobileNavItems = [
+          { key: "dashboard", label: "Dashboard", icon: "◈" },
+          { key: "entry", label: "Saisie", icon: "✎" },
+          { key: "calendar", label: "Calendrier", icon: "▦" },
+          { key: "history", label: "Historique", icon: "🗂" },
+          { key: "stats", label: "Stats", icon: "◔" },
+        ];
       %>
-      <section class="premium-summary-grid premium-dashboard-grid" aria-label="Dashboard">
-        <div class="dashboard-overview">
-          <div class="dashboard-overview-copy">
-            <span class="premium-mini-label">Dashboard</span>
-            <h2>Vue directe sur l'activité essentielle.</h2>
-            <p><%= selectedClient.company_name %> · <%= payPeriodLabel || selectedMonth %></p>
-          </div>
-          <div class="dashboard-overview-pills">
-            <span class="dashboard-pill"><span class="dashboard-pill-dot"></span>Aujourd'hui</span>
-            <span class="dashboard-pill">Semaine active · <%= _weekWorkedDays %> jour<%= _weekWorkedDays > 1 ? "s" : "" %></span>
-            <span class="dashboard-pill">Mois affiché · <%= selectedMonth %></span>
-          </div>
-        </div>
+      <div class="mobile-premium-shell" data-mobile-shell>
+	        <div class="mobile-premium-track" data-mobile-track>
+	          <div class="mobile-premium-view" data-mobile-view="dashboard" data-mobile-title="Dashboard">
+	      <section class="premium-summary-grid premium-dashboard-grid cockpit-dashboard" aria-label="Dashboard">
+	        <article class="cockpit-hero card premium-surface">
+	          <div class="cockpit-hero-copy">
+	            <span class="cockpit-kicker">Cockpit</span>
+	            <h2><%= _heroMessage %></h2>
+	            <p class="cockpit-hero-date"><%= _todayDateLabel || "Aujourd'hui" %></p>
+	            <p class="cockpit-hero-subtitle"><%= selectedClient.company_name %> · <%= payPeriodLabel || selectedMonth %></p>
+	            <div class="cockpit-insight-inline">
+	              <span class="cockpit-badge is-live">Aujourd'hui</span>
+	              <span class="cockpit-badge"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
+	            </div>
+	          </div>
+	          <div class="cockpit-hero-progress">
+	            <div class="cockpit-progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
+	              <div class="cockpit-progress-ring-core">
+	                <span class="cockpit-progress-label">Temps travaillé</span>
+	                <strong><%= _todayWorkedHHMM %></strong>
+	                <span class="cockpit-progress-meta"><%= _todayProgress %>%</span>
+	              </div>
+	            </div>
+	            <div class="cockpit-progress-legend">
+	              <div class="cockpit-progress-item">
+	                <span>Objectif</span>
+	                <strong><%= _todayTargetHHMM %></strong>
+	              </div>
+	              <div class="cockpit-progress-item">
+	                <span>Restant</span>
+	                <strong><%= _todayRemainingHHMM %></strong>
+	              </div>
+	              <div class="cockpit-progress-item">
+	                <span>Lecture</span>
+	                <strong><%= _todayProgressMeta %></strong>
+	              </div>
+	            </div>
+	          </div>
+	        </article>
 
-        <article class="premium-mini-card dashboard-panel">
-          <div class="dashboard-panel-head">
-            <span class="premium-mini-label">Aujourd'hui</span>
-            <span class="dashboard-panel-badge"><%= _todayEntry ? "Entrée trouvée" : "À compléter" %></span>
-          </div>
-          <div class="dashboard-kpis">
-            <div class="dashboard-kpi dashboard-kpi-primary">
-              <span class="dashboard-kpi-label">Heures travaillées</span>
-              <strong class="premium-mini-value"><%= _todayWorkedHHMM %></strong>
-              <span class="premium-mini-meta"><%= _todayMeta %></span>
-            </div>
-            <div class="dashboard-kpi">
-              <span class="dashboard-kpi-label">Objectif journalier</span>
-              <strong class="dashboard-kpi-value"><%= _todayTargetHHMM %></strong>
-              <span class="premium-mini-meta">Base actuelle du suivi journalier</span>
-            </div>
-            <div class="dashboard-kpi dashboard-kpi-progress">
-              <div class="dashboard-kpi-topline">
-                <span class="dashboard-kpi-label">Progression</span>
-                <strong class="dashboard-kpi-value"><%= _todayProgress %>%</strong>
-              </div>
-              <div class="dashboard-meter" aria-hidden="true">
-                <span class="dashboard-meter-bar" style="width: <%= _todayProgress %>%"></span>
-              </div>
-              <span class="premium-mini-meta"><%= _todayProgressMeta %></span>
-            </div>
-          </div>
-        </article>
+	        <article class="cockpit-panel cockpit-quick-actions card premium-surface">
+	          <div class="cockpit-panel-head">
+	            <span class="cockpit-kicker">Quick Actions</span>
+	            <h3>Accès immédiat</h3>
+	          </div>
+	          <div class="cockpit-action-grid">
+	            <button type="button" class="cockpit-action-card" data-dashboard-action="entry" data-ripple>
+	              <span class="cockpit-action-icon" aria-hidden="true">✎</span>
+	              <strong>Nouvelle journée</strong>
+	              <span>Ouvrir la saisie active</span>
+	            </button>
+	            <button type="button" class="cockpit-action-card" data-dashboard-action="calendar" data-ripple>
+	              <span class="cockpit-action-icon" aria-hidden="true">▦</span>
+	              <strong>Calendrier</strong>
+	              <span>Basculer sur la vue mensuelle</span>
+	            </button>
+	            <a
+	              class="cockpit-action-card cockpit-action-link"
+	              href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+	              data-ripple
+	            >
+	              <span class="cockpit-action-icon" aria-hidden="true">⇩</span>
+	              <strong>Exporter</strong>
+	              <span>Télécharger la période active</span>
+	            </a>
+	            <button type="button" class="cockpit-action-card" data-dashboard-action="history" data-ripple>
+	              <span class="cockpit-action-icon" aria-hidden="true">🗂</span>
+	              <strong>Historique</strong>
+	              <span>Voir les journées détaillées</span>
+	            </button>
+	          </div>
+	        </article>
 
-        <article class="premium-mini-card dashboard-panel">
-          <div class="dashboard-panel-head">
-            <span class="premium-mini-label">Cette semaine</span>
-            <span class="dashboard-panel-badge"><%= _weekEntries.length > 0 ? "Données live" : "Aucune entrée" %></span>
-          </div>
-          <div class="dashboard-kpis">
-            <div class="dashboard-kpi dashboard-kpi-primary">
-              <span class="dashboard-kpi-label">Total heures</span>
-              <strong class="premium-mini-value"><%= _weekTotalHHMM %></strong>
-              <span class="premium-mini-meta"><%= _weekWorkedDays %> jour<%= _weekWorkedDays > 1 ? "s" : "" %> travaillé<%= _weekWorkedDays > 1 ? "s" : "" %> dans la semaine active</span>
-            </div>
-            <div class="dashboard-kpi">
-              <span class="dashboard-kpi-label">Heures supplémentaires</span>
-              <strong class="dashboard-kpi-value"><%= _weekOvertimeHHMM %></strong>
-              <span class="premium-mini-meta">Calculées sur l'objectif cumulé de la semaine</span>
-            </div>
-            <div class="dashboard-kpi">
-              <span class="dashboard-kpi-label">Évolution</span>
-              <strong class="dashboard-kpi-value"><%= _weekBalanceMinutes >= 0 ? "+" : "-" %><%= _weekBalanceHHMM %></strong>
-              <span class="premium-mini-meta"><%= _weekTrendLabel %></span>
-            </div>
-          </div>
-        </article>
+	        <article class="cockpit-panel cockpit-week-activity card premium-surface">
+	          <div class="cockpit-panel-head">
+	            <span class="cockpit-kicker">Activité</span>
+	            <h3>Semaine en cours</h3>
+	          </div>
+	          <div class="cockpit-week-strip">
+	            <% _weekPreviewDays.forEach((day) => { %>
+	            <div class="cockpit-week-day <%= day.stateClass %><%= day.isToday ? ' is-today' : '' %>">
+	              <span class="cockpit-week-dayname"><%= day.dayShort %></span>
+	              <strong class="cockpit-week-daynumber"><%= day.dayNumber %></strong>
+	              <span class="cockpit-week-dayhours"><%= day.duration || "--:--" %></span>
+	              <span class="cockpit-week-daylabel"><%= day.label %></span>
+	            </div>
+	            <% }); %>
+	          </div>
+	          <div class="cockpit-week-summary">
+	            <div class="cockpit-stat-pill">
+	              <span>Semaine</span>
+	              <strong><%= _weekTotalHHMM %></strong>
+	            </div>
+	            <div class="cockpit-stat-pill">
+	              <span>Supplémentaires</span>
+	              <strong><%= _weekOvertimeHHMM %></strong>
+	            </div>
+	          </div>
+	        </article>
 
-        <article class="premium-mini-card dashboard-panel">
-          <div class="dashboard-panel-head">
-            <span class="premium-mini-label">Ce mois</span>
-            <span class="dashboard-panel-badge">Vue active</span>
-          </div>
-          <div class="dashboard-kpis">
-            <div class="dashboard-kpi dashboard-kpi-primary">
-              <span class="dashboard-kpi-label">Total heures</span>
-              <strong class="premium-mini-value"><%= totalHHMM %></strong>
-              <span class="premium-mini-meta">Cumul sur la période actuellement affichée</span>
-            </div>
-            <div class="dashboard-kpi">
-              <span class="dashboard-kpi-label">Jours travaillés</span>
-              <strong class="dashboard-kpi-value"><%= workedDayCount %></strong>
-              <span class="premium-mini-meta">Jours productifs comptabilisés</span>
-            </div>
-            <div class="dashboard-kpi">
-              <span class="dashboard-kpi-label">Clients actifs</span>
-              <strong class="dashboard-kpi-value"><%= _activeClientsCount %></strong>
-              <span class="premium-mini-meta"><%= _activeClientsCount > 1 ? "Comptes clients suivis dans l'espace" : "Un client actif dans l'espace" %></span>
-            </div>
-          </div>
-        </article>
-      </section>
+	        <article class="cockpit-panel cockpit-salary card premium-surface">
+	          <div class="cockpit-panel-head">
+	            <span class="cockpit-kicker">Salaire</span>
+	            <h3>Lecture financière</h3>
+	          </div>
+	          <div class="cockpit-salary-grid">
+	            <div class="cockpit-salary-main">
+	              <span>Salaire estimé</span>
+	              <strong><%= salaryAmountDisplay %></strong>
+	            </div>
+	            <div class="cockpit-salary-side">
+	              <div>
+	                <span>Taux horaire</span>
+	                <strong><%= hourlyRateDisplay || "Non disponible" %></strong>
+	              </div>
+	              <div>
+	                <span>Heures du mois</span>
+	                <strong><%= totalHHMM %></strong>
+	              </div>
+	            </div>
+	          </div>
+	        </article>
 
-      <div class="between-sections-spacer" aria-hidden="true"></div>
+	        <article class="cockpit-panel cockpit-objective card premium-surface">
+	          <div class="cockpit-panel-head">
+	            <span class="cockpit-kicker">Objectif</span>
+	            <h3>Progression mensuelle</h3>
+	          </div>
+	          <div class="cockpit-objective-progress">
+	            <div class="cockpit-objective-bar" aria-hidden="true">
+	              <span class="cockpit-objective-fill" data-cockpit-month-progress="<%= _monthProgress %>"></span>
+	            </div>
+	            <div class="cockpit-objective-meta">
+	              <div>
+	                <span>Objectif mensuel</span>
+	                <strong><%= _monthTargetHHMM %></strong>
+	              </div>
+	              <div>
+	                <span>Progression</span>
+	                <strong><%= _monthProgress %>%</strong>
+	              </div>
+	              <div>
+	                <span>Restant</span>
+	                <strong><%= _monthRemainingHHMM %></strong>
+	              </div>
+	            </div>
+	          </div>
+	        </article>
 
+	        <article class="cockpit-panel cockpit-insights card premium-surface">
+	          <div class="cockpit-panel-head">
+	            <span class="cockpit-kicker">Insights</span>
+	            <h3>Situation immédiate</h3>
+	          </div>
+	          <div class="cockpit-insights-list">
+	            <% _insightLines.forEach((line, index) => { %>
+	            <div class="cockpit-insight-item <%= index === 0 ? 'is-primary' : '' %>">
+	              <span class="cockpit-insight-index">0<%= index + 1 %></span>
+	              <p><%= line %></p>
+	            </div>
+	            <% }); %>
+	          </div>
+	          <div class="cockpit-context-grid">
+	            <div class="cockpit-context-card">
+	              <span>Moyenne / jour</span>
+	              <strong><%= _monthAverageHHMM %></strong>
+	            </div>
+	            <div class="cockpit-context-card">
+	              <span>Jours travaillés</span>
+	              <strong><%= workedDayCount %></strong>
+	            </div>
+	            <div class="cockpit-context-card">
+	              <span>Clients actifs</span>
+	              <strong><%= _activeClientsCount %></strong>
+	            </div>
+	          </div>
+	        </article>
+	      </section>
+            <div class="between-sections-spacer" aria-hidden="true"></div>
+          </div>
+          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie">
       <section class="card entry-card premium-surface" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
@@ -882,13 +1044,150 @@
 	              Annuler
 	            </a>
 	            <% } %>
-	              </div>
+              </div>
               </div>
 	        </form>
       </section>
-
-      <div class="between-sections-spacer" aria-hidden="true"></div>
-
+            <div class="between-sections-spacer" aria-hidden="true"></div>
+          </div>
+          <div class="mobile-premium-view" data-mobile-view="calendar" data-mobile-title="Calendrier">
+      <%
+        const _safeFormData = formData && typeof formData === "object" ? formData : {};
+        const _safeDefaultEntryFormData =
+          defaultEntryFormData && typeof defaultEntryFormData === "object" ? defaultEntryFormData : {};
+        const _safeEntries = Array.isArray(entries) ? entries : [];
+        const _selectedDate = _safeFormData.date || "";
+        const _calendarTodayDate = _safeDefaultEntryFormData.date || "";
+        const _calendarEntriesByDate = new Map(_safeEntries.map((entry) => [entry.work_date, entry]));
+        const _normalizedSelectedMonth =
+          typeof selectedMonth === "string" && /^\d{4}-\d{2}$/.test(selectedMonth)
+            ? selectedMonth
+            : _calendarTodayDate
+              ? String(_calendarTodayDate).slice(0, 7)
+              : "";
+        const _calendarMonthParts = _normalizedSelectedMonth.split("-").map(Number);
+        const _calendarMonthDate =
+          _calendarMonthParts.length === 2 && Number.isFinite(_calendarMonthParts[0]) && Number.isFinite(_calendarMonthParts[1])
+            ? new Date(_calendarMonthParts[0], (_calendarMonthParts[1] || 1) - 1, 1)
+            : new Date();
+        const _calendarMonthLabel = _calendarMonthDate.toLocaleDateString("fr-FR", {
+          month: "long",
+          year: "numeric",
+        });
+        const _shiftMonth = (monthValue, delta) => {
+          const [year, monthNumber] = String(monthValue || "").split("-").map(Number);
+          const shifted = new Date(year, (monthNumber || 1) - 1 + delta, 1);
+          return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}`;
+        };
+        const _previousMonth = _shiftMonth(_normalizedSelectedMonth, -1);
+        const _nextMonth = _shiftMonth(_normalizedSelectedMonth, 1);
+        const _calendarDateToIso = (dateObject) =>
+          `${dateObject.getFullYear()}-${String(dateObject.getMonth() + 1).padStart(2, "0")}-${String(dateObject.getDate()).padStart(2, "0")}`;
+        const _formatCalendarDuration = (hhmmValue) => {
+          if (typeof hhmmValue !== "string" || !/^\d{2}:\d{2}$/.test(hhmmValue)) {
+            return "";
+          }
+          const [hoursValue, minutesValue] = hhmmValue.split(":");
+          return `${Number(hoursValue)} h ${minutesValue}`;
+        };
+        const _coerceDate = (value, fallbackDate) => {
+          const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+          return Number.isNaN(parsed.getTime()) ? new Date(fallbackDate.getTime()) : parsed;
+        };
+        const _calendarStartSource = _coerceDate(payPeriodStartDate, _calendarMonthDate);
+        const _calendarEndSource = _coerceDate(payPeriodEndDate, _calendarMonthDate);
+        const _calendarStart = new Date(
+          _calendarStartSource.getFullYear(),
+          _calendarStartSource.getMonth(),
+          _calendarStartSource.getDate()
+        );
+        const _calendarEnd = new Date(
+          _calendarEndSource.getFullYear(),
+          _calendarEndSource.getMonth(),
+          _calendarEndSource.getDate()
+        );
+        const _calendarGridStart = new Date(_calendarStart);
+        _calendarGridStart.setDate(_calendarGridStart.getDate() - ((_calendarGridStart.getDay() + 6) % 7));
+        const _calendarGridEnd = new Date(_calendarEnd);
+        _calendarGridEnd.setDate(_calendarGridEnd.getDate() + ((6 - ((_calendarGridEnd.getDay() + 6) % 7) + 7) % 7));
+        const _calendarWeeks = [];
+        const _calendarLegend = [
+          { emoji: "🟢", label: "Journée complète", tone: "complete" },
+          { emoji: "🟡", label: "Journée partielle", tone: "partial" },
+          { emoji: "🔴", label: "Journée oubliée", tone: "missing" },
+          { emoji: "⚪", label: "Aucune saisie", tone: "empty" },
+          { emoji: "⚫", label: "Week-end", tone: "weekend" },
+          { emoji: "🔵", label: "Congé / RTT", tone: "leave" },
+          { emoji: "🟣", label: "Maladie", tone: "sick" },
+        ];
+        for (let _weekCursor = new Date(_calendarGridStart); _weekCursor <= _calendarGridEnd; ) {
+          const _weekDays = [];
+          for (let _dayIndex = 0; _dayIndex < 7; _dayIndex += 1) {
+            const _currentDate = new Date(_weekCursor);
+            const _isoDate = _calendarDateToIso(_currentDate);
+            const _entry = _calendarEntriesByDate.get(_isoDate) || null;
+            const _isWeekend = _currentDate.getDay() === 0 || _currentDate.getDay() === 6;
+            const _isInPeriod = _currentDate >= _calendarStart && _currentDate <= _calendarEnd;
+            const _isToday = _isoDate === _calendarTodayDate;
+            const _isSelected = _isoDate === _selectedDate;
+            const _dayType = _entry ? _entry.day_type : "";
+            let _stateTone = "empty";
+            let _stateEmoji = "⚪";
+            let _stateLabel = "Aucune saisie";
+            let _metaLabel = "";
+            if (_entry) {
+              if (_entry.is_worked_day) {
+                _stateTone = _entry.under_target ? "partial" : "complete";
+                _stateEmoji = _entry.under_target ? "🟡" : "🟢";
+                _stateLabel = _entry.under_target ? "Journée partielle" : "Journée complète";
+                _metaLabel = _entry.day_type_display;
+              } else if (_dayType === "sick_leave") {
+                _stateTone = "sick";
+                _stateEmoji = "🟣";
+                _stateLabel = "Maladie";
+                _metaLabel = _entry.day_type_display;
+              } else if (_dayType === "leave" || _dayType === "rtt" || _dayType === "holiday") {
+                _stateTone = "leave";
+                _stateEmoji = "🔵";
+                _stateLabel = _entry.day_type_display;
+                _metaLabel = _entry.day_type_display;
+              } else {
+                _stateTone = "neutral";
+                _stateEmoji = "⚪";
+                _stateLabel = _entry.day_type_display;
+                _metaLabel = _entry.day_type_display;
+              }
+            } else if (_isInPeriod && _isWeekend) {
+              _stateTone = "weekend";
+              _stateEmoji = "⚫";
+              _stateLabel = "Week-end";
+            } else if (_isInPeriod && _calendarTodayDate && _isoDate < _calendarTodayDate) {
+              _stateTone = "missing";
+              _stateEmoji = "🔴";
+              _stateLabel = "Journée oubliée";
+            }
+            _weekDays.push({
+              isoDate: _isoDate,
+              dayNumber: _currentDate.getDate(),
+              weekdayShort: _currentDate.toLocaleDateString("fr-FR", { weekday: "short" }),
+              dateLabel: _currentDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" }),
+              entry: _entry,
+              isWeekend: _isWeekend,
+              isInPeriod: _isInPeriod,
+              isToday: _isToday,
+              isSelected: _isSelected,
+              dayType: _dayType,
+              durationLabel: _entry && _entry.is_worked_day ? _formatCalendarDuration(_entry.worked_hhmm) : "",
+              stateTone: _stateTone,
+              stateEmoji: _stateEmoji,
+              stateLabel: _stateLabel,
+              metaLabel: _metaLabel,
+            });
+            _weekCursor.setDate(_weekCursor.getDate() + 1);
+          }
+          _calendarWeeks.push(_weekDays);
+        }
+      %>
       <section class="card premium-surface premium-surface-wide pay-period-card" data-pay-period-card>
         <div class="month-header">
           <div class="month-header-copy">
@@ -956,163 +1255,389 @@
             <% }); %>
           </div>
 
-          <div class="table-wrapper table-wrapper-main">
-            <table class="hours-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Arrivee</th>
-                <th>Depart</th>
-                <th>Pause (min)</th>
-                <th>Heures du jour</th>
-                <th class="overtime-col">Heures sup</th>
-                <th class="recovered-col">Heures recup</th>
-                <th>Etat</th>
-                <th class="comment-col">Commentaire</th>
-                <th class="action-col">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% if (displayEntries.length === 0) { %>
-              <tr>
-                <td colspan="11" class="empty">Aucune journée enregistrée pour ce client sur cette période.</td>
-              </tr>
-              <% } %>
+          <div class="calendar-panel">
+            <div class="calendar-topbar">
+              <div class="calendar-nav" aria-label="Navigation mensuelle">
+                <a
+                  class="calendar-nav-button"
+                  href="/?month=<%= encodeURIComponent(_previousMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                  data-ripple
+                  aria-label="Mois précédent"
+                >
+                  ◀
+                </a>
+                <div class="calendar-nav-label">
+                  <strong><%= _calendarMonthLabel %></strong>
+                  <span><%= payPeriodLabel %></span>
+                </div>
+                <a
+                  class="calendar-nav-button"
+                  href="/?month=<%= encodeURIComponent(_nextMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                  data-ripple
+                  aria-label="Mois suivant"
+                >
+                  ▶
+                </a>
+              </div>
 
-              <% displayEntries.forEach((entry) => { %>
-              <% if (entry.is_week_total) { %>
-              <tr
-                class="<%= [entry.week_color_class, 'week-total-row'].filter(Boolean).join(' ') %>"
-                data-week-total-row
-                data-week-key="<%= entry.week_start || '' %>"
-              >
-                <td colspan="5">
-                  <div class="week-total-main">
-                    <div class="week-total-left">
-                      <button
-                        type="button"
-                        class="week-toggle"
-                        data-week-toggle
-                        data-ripple
-                        aria-expanded="true"
-                        title="Replier ou ouvrir la semaine"
-                      >
-                        <span class="week-toggle-icon" aria-hidden="true">▾</span>
-                      </button>
-                      <strong>Total semaine</strong>
-                    </div>
-                    <% if (entry.week_summary_label) { %>
-                    <span class="week-meta"><%= entry.week_summary_label %></span>
-                    <% } %>
-                  </div>
-                </td>
-                <td><strong><%= entry.week_total_hhmm %></strong></td>
-                <td class="overtime-col"><strong><%= entry.week_total_overtime_hhmm %></strong></td>
-                <td class="recovered-col"><strong><%= entry.week_total_recovered_hhmm %></strong></td>
-                <td colspan="3"></td>
-              </tr>
-              <% } else { %>
-              <tr
-                class="<%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
-                data-day-entry-row
-                data-day-type="<%= entry.day_type %>"
-                data-week-key="<%= entry.week_start || '' %>"
-              >
-                <td class="date-cell" data-label="Date">
-                  <%= entry.work_date_display || (entry.work_date ? new Date(`${entry.work_date}T00:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : "") %>
-                </td>
-                <td data-label="Type"><%= entry.day_type_display %></td>
-                <td data-label="Arrivee"><%= entry.arrival_time_display %></td>
-                <td data-label="Depart"><%= entry.departure_time_display %></td>
-                <td data-label="Pause (min)"><%= entry.lunch_break_minutes_display %></td>
-                <td data-label="Heures du jour"><%= entry.worked_hhmm %></td>
-                <td class="overtime-col" data-label="Heures sup"><%= entry.overtime_hhmm %></td>
-                <td class="recovered-col" data-label="Heures recup"><%= entry.recovered_minutes > 0 ? entry.recovered_hhmm : "" %></td>
-                <td data-label="Etat">
-                  <span class="status-pill <%= !entry.is_worked_day ? 'neutral' : entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
-                    <%= !entry.is_worked_day ? entry.day_type_display : entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
-                  </span>
-                </td>
-                <td class="comment-cell" data-label="Commentaire"><%= entry.comment_text || "" %></td>
-                <td class="action-cell" data-label="Action">
-                  <div class="row-actions">
-                    <a
-                      class="button-link secondary-link"
-                      data-ripple
-                      href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-                    >
-                      Modifier
-                    </a>
-                    <form
-                      action="/entries/<%= entry.work_date %>/delete"
-                      method="post"
-                      onsubmit="return confirm('Supprimer cette journee ?');"
-                    >
-                      <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                      <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-                      <button type="submit" class="danger" data-ripple>Supprimer</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              <% } %>
+              <div class="calendar-summary-chips" aria-label="Résumé de période">
+                <div class="calendar-summary-chip">
+                  <span class="calendar-summary-chip-label">Jours travaillés</span>
+                  <strong><%= workedDayCount %></strong>
+                </div>
+                <div class="calendar-summary-chip">
+                  <span class="calendar-summary-chip-label">Total</span>
+                  <strong><%= totalHHMM %></strong>
+                </div>
+                <div class="calendar-summary-chip">
+                  <span class="calendar-summary-chip-label">Heures sup</span>
+                  <strong><%= totalOvertimeHHMM %></strong>
+                </div>
+                <div class="calendar-summary-chip">
+                  <span class="calendar-summary-chip-label">Salaire net</span>
+                  <strong><%= salaryAmountDisplay %></strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="calendar-legend" aria-label="Légende des états">
+              <% _calendarLegend.forEach((legendItem) => { %>
+              <div class="calendar-legend-item is-<%= legendItem.tone %>">
+                <span class="calendar-legend-emoji" aria-hidden="true"><%= legendItem.emoji %></span>
+                <span><%= legendItem.label %></span>
+              </div>
               <% }); %>
-              <% if (displayEntries.length > 0) { %>
-              <tr data-filter-empty-row hidden>
-                <td colspan="11" class="empty">Aucune journee pour ce filtre.</td>
-              </tr>
-              <% } %>
-            </tbody>
-            <tfoot>
-              <tr class="monthly-total-row">
-                <th colspan="1"></th>
-                <th colspan="2" class="summary-pair-cell">
-                  <span class="summary-pair-label">Jours travaillés:</span>
-                  <span class="summary-pair-value"><%= workedDayCount %></span>
-                </th>
-                <th colspan="2" class="summary-pair-cell">
-                  <span class="summary-pair-label">Total Période:</span>
-                  <span class="summary-pair-value"><%= totalHHMM %></span>
-                </th>
-                <th class="overtime-col"><%= totalOvertimeHHMM %></th>
-                <th class="recovered-col"><%= totalRecoveredHHMM %></th>
-                <th class="salary-label-cell">
-                  <details class="salary-editor" <%= showSalaryEditor ? "open" : "" %>>
-                    <summary class="salary-editor-summary">
-                      <span>Salaire net</span>
-                      <span class="salary-editor-trigger" aria-hidden="true">+</span>
-                    </summary>
-                    <form action="/pay-period-salary" method="post" class="salary-editor-panel">
-                      <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                      <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-                      <label for="salaryAmountInline">Montant</label>
-                      <input
-                        id="salaryAmountInline"
-                        name="salaryAmount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        inputmode="decimal"
-                        value="<%= salaryAmountInput %>"
-                        placeholder="Ex: 4850.00"
-                      />
-                      <button type="submit" data-ripple>OK</button>
-                    </form>
-                  </details>
-                </th>
-                <th colspan="3" class="salary-value-cell">
-                  <div class="salary-value-main"><%= salaryAmountDisplay %></div>
-                  <% if (hourlyRateDisplay) { %>
-                  <div class="salary-value-sub"><%= hourlyRateDisplay %> sur <%= totalHHMM %></div>
+            </div>
+
+            <div class="calendar-board-scroll">
+              <div class="calendar-board" data-calendar-board>
+                <div class="calendar-weekdays" aria-hidden="true">
+                  <span>Lun</span>
+                  <span>Mar</span>
+                  <span>Mer</span>
+                  <span>Jeu</span>
+                  <span>Ven</span>
+                  <span>Sam</span>
+                  <span>Dim</span>
+                </div>
+                <div class="calendar-grid">
+                  <% _calendarWeeks.forEach((calendarWeek) => { %>
+                  <% calendarWeek.forEach((calendarDay) => { %>
+                  <% if (!calendarDay.isInPeriod) { %>
+                  <div class="calendar-day-filler" aria-hidden="true">
+                    <span><%= calendarDay.dayNumber %></span>
+                  </div>
+                  <% } else { %>
+                  <button
+                    type="button"
+                    class="calendar-day-card is-<%= calendarDay.stateTone %><%= calendarDay.isToday ? ' is-today' : '' %><%= calendarDay.isSelected ? ' is-selected' : '' %>"
+                    data-calendar-day
+                    data-date="<%= calendarDay.isoDate %>"
+                    data-day-type="<%= calendarDay.dayType || (calendarDay.isWeekend ? 'weekend' : 'empty') %>"
+                    data-state-tone="<%= calendarDay.stateTone %>"
+                    aria-pressed="<%= calendarDay.isSelected ? 'true' : 'false' %>"
+                    aria-label="<%= `${calendarDay.dateLabel} - ${calendarDay.stateLabel}${calendarDay.durationLabel ? ` - ${calendarDay.durationLabel}` : ''}` %>"
+                  >
+                    <div class="calendar-day-card-head">
+                      <span class="calendar-day-weekday"><%= calendarDay.weekdayShort %></span>
+                      <span class="calendar-day-number"><%= calendarDay.dayNumber %></span>
+                    </div>
+                    <div class="calendar-day-card-body">
+                      <strong class="calendar-day-duration"><%= calendarDay.durationLabel || " " %></strong>
+                      <span class="calendar-day-state">
+                        <span aria-hidden="true"><%= calendarDay.stateEmoji %></span>
+                        <span><%= calendarDay.metaLabel || calendarDay.stateLabel %></span>
+                      </span>
+                    </div>
+                    <div class="calendar-day-preview" role="tooltip">
+                      <strong><%= calendarDay.dateLabel %></strong>
+                      <% if (calendarDay.entry && calendarDay.entry.is_worked_day) { %>
+                      <span><%= calendarDay.entry.arrival_time_display %> → <%= calendarDay.entry.departure_time_display %></span>
+                      <span>Pause <%= calendarDay.entry.lunch_break_minutes_display %> min</span>
+                      <% } else { %>
+                      <span><%= calendarDay.stateLabel %></span>
+                      <% } %>
+                      <% if (selectedClient && selectedClient.company_name) { %>
+                      <span><%= selectedClient.company_name %></span>
+                      <% } %>
+                      <% if (calendarDay.entry && calendarDay.entry.comment_text) { %>
+                      <span><%= calendarDay.entry.comment_text %></span>
+                      <% } %>
+                    </div>
+                  </button>
                   <% } %>
-                </th>
-              </tr>
-            </tfoot>
-            </table>
+                  <% }); %>
+                  <% }); %>
+                </div>
+              </div>
+            </div>
+            <p class="calendar-empty-filter" data-calendar-empty hidden>Aucune journée ne correspond à ce filtre.</p>
+
+            <div class="calendar-history-shortcut">
+              <span>Historique premium disponible dans le panneau Historique.</span>
+            </div>
           </div>
         </div>
       </section>
+            <div class="between-sections-spacer" aria-hidden="true"></div>
+          </div>
+          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Historique">
+      <%
+        const _historyQuickFilters = [
+          { value: "all", label: "Toutes", count: entries.length },
+          { value: "work", label: "Travail", count: entries.filter((entry) => entry.is_worked_day).length },
+          { value: "leave", label: "Congé", count: entries.filter((entry) => ["leave", "rtt", "holiday"].includes(entry.day_type)).length },
+          { value: "sick", label: "Maladie", count: entries.filter((entry) => entry.day_type === "sick_leave").length },
+          { value: "recovery", label: "Récupération", count: entries.filter((entry) => Number(entry.recovered_minutes || 0) > 0).length },
+        ];
+      %>
+      <section class="card premium-surface premium-surface-wide history-premium-card" data-history-premium-card>
+        <div class="entry-card-top">
+          <div class="section-heading">
+            <p class="section-eyebrow">Historique</p>
+            <h2>Journées détaillées</h2>
+          </div>
+          <div class="history-premium-summary">
+            <span><%= entries.length %> entrée<%= entries.length > 1 ? "s" : "" %></span>
+            <span><%= totalHHMM %></span>
+          </div>
+        </div>
+        <div class="history-premium-panel">
+          <div class="history-premium-toolbar">
+            <div class="field">
+              <label for="historySearchInput">Recherche rapide</label>
+              <input
+                id="historySearchInput"
+                type="search"
+                placeholder="Date, type, commentaire, durée, horaires..."
+                data-history-search
+              />
+            </div>
+            <div class="history-premium-quickfilters" data-history-quickfilters>
+              <% _historyQuickFilters.forEach((filter, index) => { %>
+              <button
+                type="button"
+                class="history-quickfilter-chip <%= index === 0 ? 'is-active' : '' %>"
+                data-history-quickfilter="<%= filter.value %>"
+                data-ripple
+                aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+              >
+                <span><%= filter.label %></span>
+                <span class="history-quickfilter-count"><%= filter.count %></span>
+              </button>
+              <% }); %>
+            </div>
+          </div>
+          <% if (entries.length === 0) { %>
+          <div class="history-premium-empty">
+            <strong>Aucune entrée enregistrée</strong>
+            <span>Commencez par saisir une journée pour voir l’historique premium ici.</span>
+          </div>
+          <% } else { %>
+          <div class="history-premium-list" data-history-list>
+            <% entries.forEach((entry) => { %>
+            <article
+              class="history-entry-card <%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
+              data-day-entry-row
+              data-day-type="<%= entry.day_type %>"
+              data-week-key="<%= entry.week_start || '' %>"
+              data-history-item
+              data-history-category="<%= entry.recovered_minutes > 0 ? 'recovery' : entry.is_worked_day ? 'work' : entry.day_type === 'sick_leave' ? 'sick' : ['leave', 'rtt', 'holiday'].includes(entry.day_type) ? 'leave' : 'all' %>"
+              data-history-search="<%= [
+                entry.work_date,
+                entry.work_date_display,
+                entry.day_type_display,
+                entry.comment_text || '',
+                entry.worked_hhmm,
+                entry.arrival_time_display,
+                entry.departure_time_display,
+                entry.lunch_break_minutes_display,
+                entry.overtime_hhmm,
+                entry.recovered_hhmm
+              ].join(' ').toLowerCase() %>"
+            >
+              <div class="history-entry-head">
+                <div class="history-entry-dateblock">
+                  <span class="history-entry-kicker"><%= entry.work_date %></span>
+                  <h3><%= entry.work_date_display %></h3>
+                </div>
+                <div class="history-entry-durationblock">
+                  <span class="history-entry-kicker">Durée</span>
+                  <strong><%= entry.worked_hhmm %></strong>
+                </div>
+              </div>
+              <div class="history-entry-metrics">
+                <div class="history-entry-metric">
+                  <span class="history-entry-metric-label">Horaire</span>
+                  <strong><%= entry.arrival_time_display && entry.departure_time_display ? `${entry.arrival_time_display} → ${entry.departure_time_display}` : "Aucun horaire" %></strong>
+                </div>
+                <div class="history-entry-metric">
+                  <span class="history-entry-metric-label">Pause</span>
+                  <strong><%= entry.lunch_break_minutes_display !== "" ? `${entry.lunch_break_minutes_display} min` : "Aucune" %></strong>
+                </div>
+                <div class="history-entry-metric">
+                  <span class="history-entry-metric-label">Type</span>
+                  <strong><%= entry.day_type_display %></strong>
+                </div>
+                <div class="history-entry-metric">
+                  <span class="history-entry-metric-label">État</span>
+                  <span class="status-pill <%= !entry.is_worked_day ? 'neutral' : entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
+                    <%= !entry.is_worked_day ? entry.day_type_display : entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
+                  </span>
+                </div>
+              </div>
+              <% if (entry.comment_text) { %>
+              <div class="history-entry-comment">
+                <span class="history-entry-metric-label">Commentaire</span>
+                <p><%= entry.comment_text %></p>
+              </div>
+              <% } %>
+              <div class="history-entry-actions row-actions">
+                <a
+                  class="button-link secondary-link"
+                  data-ripple
+                  href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                >
+                  Modifier
+                </a>
+                <form
+                  action="/entries/<%= entry.work_date %>/delete"
+                  method="post"
+                  onsubmit="return confirm('Supprimer cette journee ?');"
+                >
+                  <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                  <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
+                  <button type="submit" class="danger" data-ripple>Supprimer</button>
+                </form>
+              </div>
+            </article>
+            <% }); %>
+          </div>
+          <div class="history-premium-empty history-premium-empty-filter" data-history-empty-filter hidden>
+            <strong>Aucun résultat</strong>
+            <span>Essayez une autre recherche ou un autre filtre rapide.</span>
+          </div>
+          <div class="history-premium-footer">
+            <div class="history-premium-total">
+              <span>Total période</span>
+              <strong><%= totalHHMM %></strong>
+            </div>
+            <div class="history-premium-total">
+              <span>Jours travaillés</span>
+              <strong><%= workedDayCount %></strong>
+            </div>
+            <div class="history-premium-total">
+              <span>Heures sup</span>
+              <strong><%= totalOvertimeHHMM %></strong>
+            </div>
+            <div class="history-premium-total">
+              <span>Récup</span>
+              <strong><%= totalRecoveredHHMM %></strong>
+            </div>
+            <div class="history-premium-total history-premium-total-salary">
+              <details class="salary-editor" <%= showSalaryEditor ? "open" : "" %>>
+                <summary class="salary-editor-summary">
+                  <span>Salaire net</span>
+                  <span class="salary-editor-trigger" aria-hidden="true">+</span>
+                </summary>
+                <form action="/pay-period-salary" method="post" class="salary-editor-panel">
+                  <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+                  <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
+                  <label for="salaryAmountInline">Montant</label>
+                  <input
+                    id="salaryAmountInline"
+                    name="salaryAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputmode="decimal"
+                    value="<%= salaryAmountInput %>"
+                    placeholder="Ex: 4850.00"
+                  />
+                  <button type="submit" data-ripple>OK</button>
+                </form>
+              </details>
+              <strong><%= salaryAmountDisplay %></strong>
+              <% if (hourlyRateDisplay) { %>
+              <span><%= hourlyRateDisplay %> sur <%= totalHHMM %></span>
+              <% } %>
+            </div>
+          </div>
+          <% } %>
+        </div>
+      </section>
+            <div class="between-sections-spacer" aria-hidden="true"></div>
+          </div>
+          <div class="mobile-premium-view mobile-premium-view-stats" data-mobile-view="stats" data-mobile-title="Stats">
+            <section class="card premium-surface mobile-stats-card">
+              <div class="entry-card-top">
+                <div class="section-heading">
+                  <p class="section-eyebrow">Stats</p>
+                  <h2>Lecture rapide du mois</h2>
+                </div>
+              </div>
+              <div class="mobile-stats-grid">
+                <article class="mobile-stat-tile">
+                  <span class="mobile-stat-label">Total période</span>
+                  <strong class="mobile-stat-value"><%= totalHHMM %></strong>
+                  <span class="mobile-stat-meta">Vue active sur <%= payPeriodLabel || selectedMonth %></span>
+                </article>
+                <article class="mobile-stat-tile">
+                  <span class="mobile-stat-label">Moyenne / jour travaillé</span>
+                  <strong class="mobile-stat-value"><%= _monthAverageHHMM %></strong>
+                  <span class="mobile-stat-meta"><%= workedDayCount %> jour<%= workedDayCount > 1 ? "s" : "" %> productif<%= workedDayCount > 1 ? "s" : "" %></span>
+                </article>
+                <article class="mobile-stat-tile">
+                  <span class="mobile-stat-label">Heures sup</span>
+                  <strong class="mobile-stat-value"><%= totalOvertimeHHMM %></strong>
+                  <span class="mobile-stat-meta">Récupération cumulée <%= totalRecoveredHHMM %></span>
+                </article>
+                <article class="mobile-stat-tile">
+                  <span class="mobile-stat-label">Salaire net</span>
+                  <strong class="mobile-stat-value"><%= salaryAmountDisplay %></strong>
+                  <span class="mobile-stat-meta"><%= hourlyRateDisplay || "Taux horaire indisponible" %></span>
+                </article>
+              </div>
+              <div class="mobile-daytype-grid">
+                <% dayTypeOptions.forEach((option) => { %>
+                <article class="mobile-daytype-item">
+                  <span class="mobile-daytype-name"><%= option.label %></span>
+                  <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
+                </article>
+                <% }); %>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="mobile-premium-status" data-mobile-status>
+          <div class="mobile-premium-dots" aria-label="Indicateurs de vue">
+            <% _mobileNavItems.forEach((item, index) => { %>
+            <button
+              type="button"
+              class="mobile-premium-dot<%= index === 0 ? ' is-active' : '' %>"
+              data-mobile-dot
+              data-target-view="<%= item.key %>"
+              aria-label="<%= item.label %>"
+              aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+            ></button>
+            <% }); %>
+          </div>
+        </div>
+        <nav class="mobile-premium-nav" data-mobile-nav aria-label="Navigation mobile">
+          <% _mobileNavItems.forEach((item, index) => { %>
+          <button
+            type="button"
+            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
+            data-mobile-nav-button
+            data-target-view="<%= item.key %>"
+            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+          >
+            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
+            <span class="mobile-premium-nav-label"><%= item.label %></span>
+          </button>
+          <% }); %>
+        </nav>
+      </div>
       <% } else { %>
       <section class="card premium-surface client-empty-card">
         <div class="section-heading">
@@ -1126,9 +1651,8 @@
       </section>
       <% } %>
 
-      <div class="between-sections-spacer" aria-hidden="true"></div>
-
       <% if (archivedClients && archivedClients.length > 0) { %>
+      <div class="between-sections-spacer" aria-hidden="true"></div>
       <section class="card premium-surface archived-clients-card" data-archived-clients-card>
         <div class="entry-card-top">
           <div class="section-heading">
@@ -1266,8 +1790,6 @@
         </div>
       </section>
       <% } %>
-
-      <div class="between-sections-spacer" aria-hidden="true"></div>
 
       <footer class="app-footer">
         <div class="app-footer-content">
@@ -1948,14 +2470,419 @@
               // Ignore storage issues.
             }
 
-            autosizeComment();
-	          renderEntry();
-            renderSummary();
-            markUnsavedIfNeeded();
+	            autosizeComment();
+		          renderEntry();
+	            renderSummary();
+	            markUnsavedIfNeeded();
+		      })();
+
+	      (() => {
+	        const dateInput = document.getElementById("date");
+	        const calendarCards = Array.from(document.querySelectorAll("[data-calendar-day]"));
+	        const filterButtons = Array.from(document.querySelectorAll("[data-day-filter]"));
+	        const emptyMessage = document.querySelector("[data-calendar-empty]");
+
+	        if (!dateInput || calendarCards.length === 0) {
+	          return;
+	        }
+
+	        const syncSelectedCard = () => {
+	          const selectedDate = dateInput.value || "";
+	          calendarCards.forEach((card) => {
+	            const isSelected = card.dataset.date === selectedDate;
+	            card.classList.toggle("is-selected", isSelected);
+	            card.setAttribute("aria-pressed", String(isSelected));
+	          });
+	        };
+
+	        const syncCalendarFilter = () => {
+	          const activeFilterButton = filterButtons.find((button) => button.getAttribute("aria-pressed") === "true");
+	          const activeFilter = activeFilterButton ? activeFilterButton.dataset.dayFilter || "all" : "all";
+	          let visibleCount = 0;
+
+	          calendarCards.forEach((card) => {
+	            const dayType = card.dataset.dayType || "";
+	            const isVisible = activeFilter === "all" || dayType === activeFilter;
+	            card.classList.toggle("is-filter-hidden", !isVisible);
+	            if (isVisible) {
+	              visibleCount += 1;
+	            }
+	          });
+
+	          if (emptyMessage) {
+	            emptyMessage.hidden = visibleCount !== 0;
+	          }
+	        };
+
+	        calendarCards.forEach((card) => {
+	          card.addEventListener("click", () => {
+	            const nextDate = card.dataset.date || "";
+	            if (!nextDate || nextDate === dateInput.value) {
+	              syncSelectedCard();
+	              return;
+		            }
+		            dateInput.value = nextDate;
+		            syncSelectedCard();
+		            dateInput.dispatchEvent(new Event("input", { bubbles: true }));
+		          });
+		        });
+
+	        filterButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            window.requestAnimationFrame(syncCalendarFilter);
+	          });
+	        });
+
+	        dateInput.addEventListener("input", syncSelectedCard);
+	        dateInput.addEventListener("change", syncSelectedCard);
+
+		        syncSelectedCard();
+		        window.requestAnimationFrame(syncCalendarFilter);
+		      })();
+
+	      (() => {
+	        const progressBars = Array.from(document.querySelectorAll("[data-dashboard-progress]"));
+	        progressBars.forEach((bar) => {
+	          const rawValue = Number(bar.dataset.dashboardProgress || 0);
+	          const safeValue = Math.max(0, Math.min(100, Number.isFinite(rawValue) ? rawValue : 0));
+	          bar.style.width = `${safeValue}%`;
+	        });
+	        const progressRings = Array.from(document.querySelectorAll("[data-cockpit-progress]"));
+	        progressRings.forEach((ring) => {
+	          const rawValue = Number(ring.dataset.cockpitProgress || 0);
+	          const safeValue = Math.max(0, Math.min(100, Number.isFinite(rawValue) ? rawValue : 0));
+	          ring.style.setProperty("--cockpit-progress-angle", `${(safeValue / 100) * 360}deg`);
+	        });
+	        const monthProgressBars = Array.from(document.querySelectorAll("[data-cockpit-month-progress]"));
+	        monthProgressBars.forEach((bar) => {
+	          const rawValue = Number(bar.dataset.cockpitMonthProgress || 0);
+	          const safeValue = Math.max(0, Math.min(100, Number.isFinite(rawValue) ? rawValue : 0));
+	          bar.style.width = `${safeValue}%`;
+	        });
 	      })();
 
-      (() => {
-        const modal = document.querySelector("[data-client-modal]");
+	      (() => {
+	        const actionButtons = Array.from(document.querySelectorAll("[data-dashboard-action]"));
+	        const dateInput = document.getElementById("date");
+	        const monthInput = document.getElementById("month");
+	        const historyCard = document.querySelector("[data-history-premium-card]");
+	        const mobileNavButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
+	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+
+	        if (actionButtons.length === 0) {
+	          return;
+	        }
+
+	        const activateMobileView = (viewKey) => {
+	          const targetButton = mobileNavButtons.find((button) => button.dataset.targetView === viewKey);
+	          if (targetButton) {
+	            targetButton.click();
+	          }
+	        };
+
+	        const focusDesktopTarget = (targetElement) => {
+	          if (!targetElement) {
+	            return;
+	          }
+	          targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+	          if (typeof targetElement.focus === "function") {
+	            window.setTimeout(() => {
+	              try {
+	                targetElement.focus({ preventScroll: true });
+	              } catch (error) {
+	                targetElement.focus();
+	              }
+	            }, 140);
+	          }
+	        };
+
+	        actionButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            const action = button.dataset.dashboardAction || "";
+	            if (mobileQuery.matches) {
+	              if (action === "entry" || action === "calendar" || action === "history") {
+	                activateMobileView(action);
+	              }
+	              return;
+	            }
+
+	            if (action === "entry") {
+	              focusDesktopTarget(dateInput);
+	              return;
+	            }
+	            if (action === "calendar") {
+	              focusDesktopTarget(monthInput);
+	              return;
+	            }
+	            if (action === "history") {
+	              focusDesktopTarget(historyCard);
+	            }
+	          });
+	        });
+	      })();
+
+	      (() => {
+	        const historyCard = document.querySelector("[data-history-premium-card]");
+	        const searchInput = document.querySelector("[data-history-search]");
+	        const quickFilterButtons = Array.from(document.querySelectorAll("[data-history-quickfilter]"));
+	        const dayFilterButtons = Array.from(document.querySelectorAll("[data-day-filter]"));
+	        const items = Array.from(document.querySelectorAll("[data-history-item]"));
+	        const emptyFilterState = document.querySelector("[data-history-empty-filter]");
+
+	        if (!historyCard || items.length === 0 || !searchInput || quickFilterButtons.length === 0) {
+	          return;
+	        }
+
+	        let activeFilter = "all";
+
+	        const applyHistoryFilters = () => {
+	          const query = (searchInput.value || "").trim().toLowerCase();
+	          let visibleCount = 0;
+
+	          items.forEach((item) => {
+	            const itemCategory = item.dataset.historyCategory || "all";
+	            const searchText = item.dataset.historySearch || "";
+	            const matchesFilter = activeFilter === "all" || itemCategory === activeFilter;
+	            const matchesSearch = !query || searchText.includes(query);
+	            const matchesHistory = matchesFilter && matchesSearch;
+	            item.classList.toggle("is-history-hidden", !matchesHistory);
+	            if (matchesHistory && !item.classList.contains("is-filter-hidden")) {
+	              visibleCount += 1;
+	            }
+	          });
+
+	          if (emptyFilterState) {
+	            emptyFilterState.hidden = visibleCount !== 0;
+	          }
+	        };
+
+	        quickFilterButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            activeFilter = button.dataset.historyQuickfilter || "all";
+	            quickFilterButtons.forEach((currentButton) => {
+	              const isActive = currentButton === button;
+	              currentButton.classList.toggle("is-active", isActive);
+	              currentButton.setAttribute("aria-pressed", String(isActive));
+	            });
+	            applyHistoryFilters();
+	          });
+	        });
+
+	        searchInput.addEventListener("input", applyHistoryFilters);
+	        dayFilterButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            window.requestAnimationFrame(applyHistoryFilters);
+	          });
+	        });
+	        applyHistoryFilters();
+	      })();
+
+	      (() => {
+	        const shell = document.querySelector("[data-mobile-shell]");
+	        const track = document.querySelector("[data-mobile-track]");
+	        const views = Array.from(document.querySelectorAll("[data-mobile-view]"));
+	        const navButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
+	        const dots = Array.from(document.querySelectorAll("[data-mobile-dot]"));
+	        const monthInput = document.getElementById("month");
+	        const clientIdInput = document.querySelector('input[name="clientId"]');
+	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+
+	        if (!shell || !track || views.length === 0 || navButtons.length === 0) {
+	          return;
+	        }
+
+	        const getStorageKey = () => {
+	          const monthValue = monthInput ? monthInput.value || "" : "";
+	          const clientValue = clientIdInput ? clientIdInput.value || "" : "";
+	          return `hours_mobile_panel:${clientValue}:${monthValue}`;
+	        };
+
+	        const findViewIndex = (viewName) => {
+	          const nextIndex = views.findIndex((view) => view.dataset.mobileView === viewName);
+	          return nextIndex >= 0 ? nextIndex : 0;
+	        };
+
+	        const state = {
+	          index: 0,
+	          startX: 0,
+	          startY: 0,
+	          deltaX: 0,
+	          deltaY: 0,
+	          isTouching: false,
+	          lockedAxis: "",
+	        };
+	        const swipeIgnoreSelector = [
+	          "input",
+	          "textarea",
+	          "select",
+	          "button",
+	          "a",
+	          "summary",
+	          ".calendar-board-scroll",
+	          ".table-wrapper",
+	          ".archived-history",
+	        ].join(", ");
+
+	        const clampIndex = (nextIndex) => Math.max(0, Math.min(nextIndex, views.length - 1));
+
+	        const readSavedIndex = () => {
+	          try {
+	            const rawValue = sessionStorage.getItem(getStorageKey());
+	            if (!rawValue) {
+	              return 0;
+	            }
+	            return clampIndex(findViewIndex(rawValue));
+	          } catch (error) {
+	            return 0;
+	          }
+	        };
+
+	        const persistIndex = (index) => {
+	          try {
+	            const currentView = views[index];
+	            if (currentView && currentView.dataset.mobileView) {
+	              sessionStorage.setItem(getStorageKey(), currentView.dataset.mobileView);
+	            }
+	          } catch (error) {
+	            // Ignore storage issues.
+	          }
+	        };
+
+	        const syncActiveState = () => {
+	          const activeView = views[state.index] ? views[state.index].dataset.mobileView || "" : "";
+	          navButtons.forEach((button) => {
+	            const isActive = button.dataset.targetView === activeView;
+	            button.classList.toggle("is-active", isActive);
+	            button.setAttribute("aria-pressed", String(isActive));
+	          });
+	          dots.forEach((dot) => {
+	            const isActive = dot.dataset.targetView === activeView;
+	            dot.classList.toggle("is-active", isActive);
+	            dot.setAttribute("aria-pressed", String(isActive));
+	          });
+	        };
+
+	        const applyTransform = (percentOffset = 0, animate = true) => {
+	          track.style.transitionDuration = animate ? "180ms" : "0ms";
+	          track.style.transform = `translate3d(calc(${state.index * -100}% + ${percentOffset}%), 0, 0)`;
+	        };
+
+	        const setIndex = (nextIndex, { animate = true, persist = true } = {}) => {
+	          state.index = clampIndex(nextIndex);
+	          applyTransform(0, animate);
+	          syncActiveState();
+	          if (persist) {
+	            persistIndex(state.index);
+	          }
+	        };
+
+	        const handleTargetSelection = (targetView) => {
+	          setIndex(findViewIndex(targetView), { animate: true, persist: true });
+	        };
+
+	        const resetTouchState = () => {
+	          state.isTouching = false;
+	          state.lockedAxis = "";
+	          state.deltaX = 0;
+	          state.deltaY = 0;
+	        };
+
+	        const handleTouchStart = (event) => {
+	          if (!mobileQuery.matches || !event.touches || event.touches.length !== 1) {
+	            return;
+	          }
+	          if (event.target && event.target.closest(swipeIgnoreSelector)) {
+	            return;
+	          }
+	          const touch = event.touches[0];
+	          state.isTouching = true;
+	          state.startX = touch.clientX;
+	          state.startY = touch.clientY;
+	          state.deltaX = 0;
+	          state.deltaY = 0;
+	          state.lockedAxis = "";
+	          track.style.transitionDuration = "0ms";
+	        };
+
+	        const handleTouchMove = (event) => {
+	          if (!mobileQuery.matches || !state.isTouching || !event.touches || event.touches.length !== 1) {
+	            return;
+	          }
+	          const touch = event.touches[0];
+	          state.deltaX = touch.clientX - state.startX;
+	          state.deltaY = touch.clientY - state.startY;
+
+	          if (!state.lockedAxis) {
+	            if (Math.abs(state.deltaX) < 10 && Math.abs(state.deltaY) < 10) {
+	              return;
+	            }
+	            state.lockedAxis = Math.abs(state.deltaX) > Math.abs(state.deltaY) ? "x" : "y";
+	          }
+
+	          if (state.lockedAxis !== "x") {
+	            return;
+	          }
+
+	          event.preventDefault();
+	          const width = shell.clientWidth || 1;
+	          const dragPercent = Math.max(-18, Math.min(18, (state.deltaX / width) * 100));
+	          applyTransform(dragPercent, false);
+	        };
+
+	        const handleTouchEnd = () => {
+	          if (!mobileQuery.matches || !state.isTouching) {
+	            resetTouchState();
+	            return;
+	          }
+
+	          const shouldAdvance = state.lockedAxis === "x" && Math.abs(state.deltaX) > 52;
+	          if (shouldAdvance) {
+	            const direction = state.deltaX < 0 ? 1 : -1;
+	            setIndex(state.index + direction, { animate: true, persist: true });
+	          } else {
+	            setIndex(state.index, { animate: true, persist: false });
+	          }
+	          resetTouchState();
+	        };
+
+	        const syncForViewport = () => {
+	          if (!mobileQuery.matches) {
+	            track.style.transform = "";
+	            track.style.transitionDuration = "";
+	            syncActiveState();
+	            return;
+	          }
+	          setIndex(readSavedIndex(), { animate: false, persist: false });
+	        };
+
+	        navButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            handleTargetSelection(button.dataset.targetView || "");
+	          });
+	        });
+
+	        dots.forEach((dot) => {
+	          dot.addEventListener("click", () => {
+	            handleTargetSelection(dot.dataset.targetView || "");
+	          });
+	        });
+
+	        track.addEventListener("touchstart", handleTouchStart, { passive: true });
+	        track.addEventListener("touchmove", handleTouchMove, { passive: false });
+	        track.addEventListener("touchend", handleTouchEnd);
+	        track.addEventListener("touchcancel", handleTouchEnd);
+	        window.addEventListener("resize", syncForViewport);
+	        if (typeof mobileQuery.addEventListener === "function") {
+	          mobileQuery.addEventListener("change", syncForViewport);
+	        } else if (typeof mobileQuery.addListener === "function") {
+	          mobileQuery.addListener(syncForViewport);
+	        }
+
+	        syncForViewport();
+	      })();
+
+	      (() => {
+	        const modal = document.querySelector("[data-client-modal]");
         const openButtons = [...document.querySelectorAll("[data-open-client-modal]")];
         const closeButtons = [...document.querySelectorAll("[data-close-client-modal]")];
         const firstInput = modal ? modal.querySelector("#clientCompanyName") : null;
