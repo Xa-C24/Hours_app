@@ -69,8 +69,9 @@
           <p class="alert"><%= error %></p>
           <% } %>
 
-          <form action="/register" method="post" class="login-form">
-            <div class="field">
+	          <form action="/register" method="post" class="login-form">
+	            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+	            <div class="field">
               <label for="username">Nom utilisateur</label>
               <input
                 id="username"
@@ -86,12 +87,13 @@
               <label for="password">Mot de passe</label>
               <div class="password-field">
                 <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autocomplete="new-password"
-                  required
-                  data-password-input
+	                  id="password"
+	                  name="password"
+	                  type="password"
+	                  autocomplete="new-password"
+	                  minlength="10"
+	                  required
+	                  data-password-input
                 />
                 <button type="button" class="password-toggle secondary" data-password-toggle aria-label="Afficher le mot de passe" title="Afficher le mot de passe">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -116,8 +118,8 @@
                 required
                 value="<%= formData.recoveryCode || '' %>"
               />
-              <small class="field-hint">Conservez ce code: il sera demande si vous devez reinitialiser votre mot de passe.</small>
-            </div>
+	              <small class="field-hint">Conservez ce code: il sera demande si vous devez reinitialiser votre mot de passe.</small>
+	            </div>
 
             <button type="submit" data-ripple>Créer mon compte</button>
           </form>

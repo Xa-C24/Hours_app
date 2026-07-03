@@ -465,9 +465,74 @@
     </style>
   </head>
   <body class="home-premium-page">
+    <% const _csrfToken = typeof csrfToken === "string" ? csrfToken : ""; %>
     <% const _isEditing = typeof isEditing !== "undefined" ? isEditing : false; %>
     <% const _editingWorkDate = typeof editingWorkDate === "string" ? editingWorkDate : ""; %>
     <% const _selectedClientId = selectedClient ? selectedClient.id : ""; %>
+    <% const _clientError = typeof clientError === "string" ? clientError : ""; %>
+    <% const _errorMessage = typeof error === "string" ? error : ""; %>
+    <% const _showReplaceConfirmation = typeof showReplaceConfirmation !== "undefined" ? Boolean(showReplaceConfirmation) : false; %>
+    <% const _showSalaryEditor = typeof showSalaryEditor !== "undefined" ? Boolean(showSalaryEditor) : false; %>
+    <% const _showClientModal = typeof showClientModal !== "undefined" ? Boolean(showClientModal) : false; %>
+    <% const _showClientInfoModal = typeof showClientInfoModal !== "undefined" ? Boolean(showClientInfoModal) : false; %>
+    <% const _workedDayCount = typeof workedDayCount === "number" ? workedDayCount : 0; %>
+    <% const _payPeriodStartDate = typeof payPeriodStartDate === "string" ? payPeriodStartDate : ""; %>
+    <% const _payPeriodEndDate = typeof payPeriodEndDate === "string" ? payPeriodEndDate : ""; %>
+    <% const _payPeriodLabel = typeof payPeriodLabel === "string" ? payPeriodLabel : ""; %>
+    <% const _clientFormData = clientFormData && typeof clientFormData === "object" ? clientFormData : {}; %>
+    <%
+      const _userFirstName = user && typeof user.first_name === "string" ? user.first_name.trim() : "";
+      const _userLastName = user && typeof user.last_name === "string" ? user.last_name.trim() : "";
+      const _userFullName = [_userFirstName, _userLastName].filter(Boolean).join(" ").trim();
+      const authUser = _userFullName || (user && typeof user.email === "string" ? user.email.trim() : "");
+      const _userCompanyName = user && typeof user.company_name === "string" ? user.company_name.trim() : "";
+      const _userJobTitle = user && typeof user.job_title === "string" ? user.job_title.trim() : "";
+      const _userEmail = user && typeof user.email === "string" ? user.email.trim() : "";
+      const _mobileNavItems = [
+        { key: "dashboard", label: "Dashboard", icon: "◈" },
+        { key: "entry", label: "Saisie", icon: "✎" },
+        { key: "calendar", label: "Calendrier", icon: "▦" },
+        { key: "history", label: "Historique", icon: "🗂" },
+        { key: "stats", label: "Stats", icon: "◔" },
+        { key: "settings", label: "Réglages", icon: "⚙" },
+      ];
+      const _settingsSections = [
+        { key: "profile", icon: "👤", label: "Profil", description: "Informations personnelles et identité visuelle." },
+        { key: "work", icon: "💼", label: "Travail", description: "Cadre de travail, horaires et rythme par défaut." },
+        { key: "goals", icon: "🎯", label: "Objectifs", description: "Repères journaliers, hebdomadaires et annuels." },
+        { key: "appearance", icon: "🎨", label: "Apparence", description: "Thème, accent et confort visuel." },
+        { key: "notifications", icon: "🔔", label: "Notifications", description: "Rappels et hooks de communication." },
+        { key: "export", icon: "📄", label: "Export", description: "Formats, branding et conventions de sortie." },
+        { key: "security", icon: "🔐", label: "Sécurité", description: "Accès, sessions et protection du compte." },
+        { key: "help", icon: "📚", label: "Centre d'aide", description: "Base de connaissances, FAQ et support." },
+        { key: "about", icon: "❤️", label: "À propos", description: "Version, licence, roadmap et changelog." },
+      ];
+      const _settingsGoalCards = [
+        { label: "Journalier", value: "7 h 00", meta: "Repère par journée travaillée" },
+        { label: "Hebdomadaire", value: "35 h 00", meta: "Vision sprint sur cinq jours" },
+        { label: "Mensuel", value: "140 h", meta: "Projection premium sur la période active" },
+        { label: "Annuel", value: "1 607 h", meta: "Capacité cible et pilotage long terme" },
+      ];
+      const _settingsHelpCategories = [
+        "Premiers pas",
+        "Créer un client",
+        "Créer une journée",
+        "Calendrier",
+        "Exports",
+        "Objectifs",
+        "FAQ",
+        "Raccourcis clavier",
+        "Roadmap",
+        "Support",
+      ];
+      const _settingsPaletteItems = _settingsSections.map((section) => ({
+        key: section.key,
+        icon: section.icon,
+        label: section.label,
+        description: section.description,
+        aliases: `${section.label} ${section.description}`.toLowerCase(),
+      }));
+    %>
     <main class="container">
       <div class="between-sections-spacer" aria-hidden="true"></div>
       <header class="page-header page-header-premium">
@@ -547,24 +612,351 @@
               <option value="retro">SEGA</option>
             </select>
           </div>
-          <form action="/logout" method="post" class="logout-form">
-            <% if (authUser) { %>
-            <span class="user-chip"><%= authUser %></span>
-            <% } %>
-            <button type="submit" class="secondary" data-ripple>Déconnexion</button>
-          </form>
-        </div>
-      </header>
+	          <details class="user-menu">
+	            <summary class="user-menu-trigger" aria-label="Ouvrir le menu utilisateur">
+	              <% if (authUser) { %>
+	              <span class="user-chip"><%= authUser %></span>
+	              <% } else { %>
+	              <span class="user-chip">Compte</span>
+	              <% } %>
+	              <span class="user-menu-caret" aria-hidden="true">▾</span>
+	            </summary>
+	            <div class="user-menu-panel app-card-compact">
+	              <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="profile" data-ripple>
+	                ⚙️ Paramètres
+	              </button>
+	              <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="help" data-ripple>
+	                📚 Centre d'aide
+	              </button>
+	              <button type="button" class="button-link button-neutral user-menu-link" data-open-command-palette data-ripple>
+	                ⌘K Command Palette
+	              </button>
+	              <form action="/logout" method="post" class="logout-form user-menu-logout">
+	                <button type="submit" class="secondary" data-ripple>Déconnexion</button>
+	              </form>
+	            </div>
+	          </details>
+	        </div>
+	      </header>
 
-      <% if (clientError) { %>
-      <p class="alert"><%= clientError %></p>
+      <% if (_clientError) { %>
+      <p class="alert"><%= _clientError %></p>
       <% } %>
 
-      <% if (error && !showReplaceConfirmation) { %>
-      <p class="alert"><%= error %></p>
-      <% } %>
+	      <% if (_errorMessage && !_showReplaceConfirmation) { %>
+	      <p class="alert"><%= _errorMessage %></p>
+	      <% } %>
 
-      <% if (selectedClient) { %>
+	      <section class="settings-workspace card premium-surface app-surface app-card" data-settings-workspace hidden>
+	        <div class="settings-shell">
+	          <aside class="settings-sidebar">
+	            <div class="settings-sidebar-head">
+	              <span class="section-eyebrow">⚙️ Paramètres</span>
+	              <h2>Centre des paramètres</h2>
+	              <p>Un workspace personnel pour organiser profil, travail, sécurité, exports et support sans toucher au métier.</p>
+	            </div>
+	            <nav class="settings-nav" aria-label="Navigation paramètres">
+	              <% _settingsSections.forEach((section, index) => { %>
+	              <button
+	                type="button"
+	                class="settings-nav-item<%= index === 0 ? ' is-active' : '' %>"
+	                data-settings-nav-item
+	                data-settings-target="<%= section.key %>"
+	                aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+	              >
+	                <span class="settings-nav-icon" aria-hidden="true"><%= section.icon %></span>
+	                <span class="settings-nav-copy">
+	                  <strong><%= section.label %></strong>
+	                  <span><%= section.description %></span>
+	                </span>
+	              </button>
+	              <% }); %>
+	            </nav>
+	          </aside>
+	          <div class="settings-content">
+	            <header class="settings-content-head">
+	              <div>
+	                <span class="section-eyebrow">Personal Workspace</span>
+	                <h2>Préférences, posture de travail et centre d'aide</h2>
+	              </div>
+	              <div class="settings-head-actions">
+	                <button type="button" class="button-link button-neutral" data-open-command-palette data-ripple>⌘K Command Palette</button>
+	                <button type="button" class="button-link button-neutral" data-close-settings-workspace data-ripple>Fermer</button>
+	              </div>
+	            </header>
+
+	            <section class="settings-panel" data-settings-section="profile">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">👤 Profil</span>
+	                  <h3>Identité du workspace</h3>
+	                </div>
+	                <span class="badge-muted">Hook prêt</span>
+	              </div>
+	              <div class="settings-profile-hero app-card-compact">
+	                <div class="settings-avatar-stack">
+	                  <div class="settings-avatar-art" aria-hidden="true"><%= authUser ? authUser.slice(0, 1).toUpperCase() : "H" %></div>
+	                  <button type="button" class="button-link button-neutral">Changer la photo</button>
+	                </div>
+	                <div class="settings-hero-copy">
+	                  <strong><%= authUser || "Votre espace" %></strong>
+	                  <span>Préparez votre photo, votre signature visuelle et les métadonnées visibles dans l'application.</span>
+	                </div>
+	              </div>
+	              <div class="settings-grid settings-grid-profile">
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfileName">Nom</label>
+	                  <input class="form-input" id="settingsProfileName" type="text" placeholder="Nom complet" value="<%= authUser || '' %>" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfileCompany">Entreprise</label>
+		                  <input class="form-input" id="settingsProfileCompany" type="text" placeholder="Nom de société" value="<%= _userCompanyName || (selectedClient ? selectedClient.name : '') %>" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfileRole">Fonction</label>
+		                  <input class="form-input" id="settingsProfileRole" type="text" placeholder="Ex: Consultant, Chef de projet" value="<%= _userJobTitle %>" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfileEmail">Adresse mail</label>
+		                  <input class="form-input" id="settingsProfileEmail" type="email" placeholder="nom@entreprise.fr" value="<%= _userEmail %>" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfilePhoto">Photo</label>
+	                  <input class="form-input" id="settingsProfilePhoto" type="text" placeholder="URL ou média à connecter" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsProfileAvatar">Avatar</label>
+	                  <select class="form-select" id="settingsProfileAvatar">
+	                    <option>Monogramme premium</option>
+	                    <option>Avatar illustration</option>
+	                    <option>Logo société</option>
+	                  </select>
+	                </div>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="work">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">💼 Travail</span>
+	                  <h3>Cadre de travail</h3>
+	                </div>
+	                <span class="badge-info">Structure prête</span>
+	              </div>
+	              <div class="settings-grid settings-grid-work">
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsContract">Contrat</label>
+	                  <select class="form-select" id="settingsContract">
+	                    <option>35 h</option>
+	                    <option>39 h</option>
+	                    <option>Forfait</option>
+	                    <option>Personnalisé</option>
+	                  </select>
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsDailyTarget">Objectif journalier</label>
+	                  <input class="form-input" id="settingsDailyTarget" type="text" placeholder="07:00" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsDefaultBreak">Pause par défaut</label>
+	                  <input class="form-input" id="settingsDefaultBreak" type="number" placeholder="60" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsTypicalHours">Horaires habituels</label>
+	                  <input class="form-input" id="settingsTypicalHours" type="text" placeholder="08:30 → 17:30" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsWeekStart">Premier jour de semaine</label>
+	                  <select class="form-select" id="settingsWeekStart">
+	                    <option>Lundi</option>
+	                    <option>Dimanche</option>
+	                  </select>
+	                </div>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="goals">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">🎯 Objectifs</span>
+	                  <h3>Cartes de pilotage</h3>
+	                </div>
+	              </div>
+	              <div class="settings-kpi-grid">
+	                <% _settingsGoalCards.forEach((goalCard) => { %>
+	                <article class="stat-card app-card-compact">
+	                  <span class="stat-label"><%= goalCard.label %></span>
+	                  <strong class="stat-value"><%= goalCard.value %></strong>
+	                  <span class="stat-delta"><%= goalCard.meta %></span>
+	                </article>
+	                <% }); %>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="appearance">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">🎨 Apparence</span>
+	                  <h3>Confort et cohérence visuelle</h3>
+	                </div>
+	              </div>
+	              <div class="settings-grid settings-grid-appearance">
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsTheme">Thème</label>
+	                  <select class="form-select" id="settingsTheme">
+	                    <option>Ivoire</option>
+	                    <option>Nuit graphite</option>
+	                    <option>Bleu minuit</option>
+	                  </select>
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsAccent">Couleur d'accent</label>
+	                  <select class="form-select" id="settingsAccent">
+	                    <option>Ambre premium</option>
+	                    <option>Bleu acier</option>
+	                    <option>Sauge</option>
+	                  </select>
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsAnimations">Animations</label>
+	                  <select class="form-select" id="settingsAnimations">
+	                    <option>Subtiles</option>
+	                    <option>Réduites</option>
+	                    <option>Désactivées</option>
+	                  </select>
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsCompactMode">Mode compact</label>
+	                  <select class="form-select" id="settingsCompactMode">
+	                    <option>Standard</option>
+	                    <option>Compact</option>
+	                  </select>
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsFontSize">Taille police</label>
+	                  <select class="form-select" id="settingsFontSize">
+	                    <option>Confort</option>
+	                    <option>Compacte</option>
+	                    <option>Large</option>
+	                  </select>
+	                </div>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="notifications">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">🔔 Notifications</span>
+	                  <h3>Rappels et événements</h3>
+	                </div>
+	              </div>
+	              <div class="settings-toggle-grid">
+	                <label class="settings-toggle-card"><input type="checkbox" checked /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" checked /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" /><span><strong>Fin de semaine</strong><small>Préparer un bilan le vendredi.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" /><span><strong>Nouveautés</strong><small>Réserver un canal pour les évolutions produit.</small></span></label>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="export">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">📄 Export</span>
+	                  <h3>Sorties et branding</h3>
+	                </div>
+	              </div>
+	              <div class="settings-kpi-grid">
+	                <article class="app-card-compact"><strong>CSV</strong><span>Export brut compatible compta.</span></article>
+	                <article class="app-card-compact"><strong>PDF</strong><span>Mise en page premium à préparer.</span></article>
+	                <article class="app-card-compact"><strong>Excel</strong><span>Feuille structurée avec onglets.</span></article>
+	                <article class="app-card-compact"><strong>Logo & signature</strong><span>Hooks branding pour livrables clients.</span></article>
+	              </div>
+	              <div class="settings-grid">
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsFilenamePattern">Nom de fichiers</label>
+	                  <input class="form-input" id="settingsFilenamePattern" type="text" placeholder="hours_{client}_{month}" />
+	                </div>
+	                <div class="form-field">
+	                  <label class="form-label" for="settingsExportSignature">Signature</label>
+	                  <input class="form-input" id="settingsExportSignature" type="text" placeholder="Nom, fonction ou mention légale" />
+	                </div>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="security">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">🔐 Sécurité</span>
+	                  <h3>Accès et protection</h3>
+	                </div>
+	              </div>
+	              <div class="settings-kpi-grid">
+	                <article class="app-card-compact">
+	                  <strong>Changer mot de passe</strong>
+	                  <span>Préparer le chemin vers une révision sécurisée du mot de passe.</span>
+	                  <button type="button" class="button-link button-neutral">Préparer le flux</button>
+	                </article>
+	                <article class="app-card-compact">
+	                  <strong>Sessions actives</strong>
+	                  <span>Visualiser navigateur, localisation et dernière activité.</span>
+	                  <button type="button" class="button-link button-neutral">Voir les sessions</button>
+	                </article>
+	                <article class="app-card-compact">
+	                  <strong>Historique connexion</strong>
+	                  <span class="state-empty">Placeholder prêt pour journal d'accès.</span>
+	                </article>
+	                <article class="app-card-compact">
+	                  <strong>2FA</strong>
+	                  <span>Interface prête pour TOTP ou lien magique.</span>
+	                  <button type="button" class="button-link button-neutral">Activer plus tard</button>
+	                </article>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="help">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">📚 Centre d'aide</span>
+	                  <h3>Base de connaissances</h3>
+	                </div>
+	              </div>
+	              <div class="form-field settings-help-search">
+	                <label class="form-label" for="settingsHelpSearch">Recherche</label>
+	                <input class="form-input" id="settingsHelpSearch" type="search" placeholder="Rechercher un guide, une FAQ ou un raccourci..." data-settings-help-search />
+	              </div>
+	              <div class="settings-help-grid" data-settings-help-grid>
+	                <% _settingsHelpCategories.forEach((category) => { %>
+	                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>">
+	                  <strong><%= category %></strong>
+	                  <span>Structure premium prête pour articles, pas-à-pas et liens support.</span>
+	                </article>
+	                <% }); %>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel" data-settings-section="about">
+	              <div class="settings-panel-head">
+	                <div>
+	                  <span class="section-eyebrow">❤️ À propos</span>
+	                  <h3>Version, feuille de route et support</h3>
+	                </div>
+	              </div>
+	              <div class="settings-kpi-grid">
+	                <article class="app-card-compact"><strong>Version</strong><span>App_Hours 0.9</span></article>
+	                <article class="app-card-compact"><strong>Licence</strong><span>Placeholder prêt pour mentions légales.</span></article>
+	                <article class="app-card-compact"><strong>Roadmap</strong><span>Vue structurée des prochaines briques premium.</span></article>
+	                <article class="app-card-compact"><strong>Changelog</strong><span>Espace dédié aux évolutions produit.</span></article>
+	              </div>
+	              <div class="settings-inline-actions">
+	                <button type="button" class="button-link button-neutral">Signaler un bug</button>
+	                <button type="button" class="button-link button-neutral">Voir la roadmap</button>
+	              </div>
+	            </section>
+	          </div>
+	        </div>
+	      </section>
+
+	      <% if (selectedClient) { %>
       <%
         const _todayDate = defaultEntryFormData && defaultEntryFormData.date ? defaultEntryFormData.date : formData.date;
         const _todayEntry = entries.find((entry) => entry.work_date === _todayDate) || null;
@@ -617,7 +1009,7 @@
               ? `En retrait de ${_weekBalanceHHMM}`
               : "Semaine exactement à l'objectif";
         const _activeClientsCount = clients.length;
-        const _monthAverageMinutes = workedDayCount > 0 ? Math.round(totalMinutes / workedDayCount) : 0;
+        const _monthAverageMinutes = _workedDayCount > 0 ? Math.round(totalMinutes / _workedDayCount) : 0;
         const _monthAverageHHMM = `${String(Math.floor(Math.max(0, _monthAverageMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthAverageMinutes) % 60).padStart(2, "0")}`;
         const _monthTargetMinutes = entries.reduce((sum, entry) => sum + Number(entry.target_minutes || 0), 0);
         const _monthTargetHHMM = `${String(Math.floor(Math.max(0, _monthTargetMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthTargetMinutes) % 60).padStart(2, "0")}`;
@@ -685,33 +1077,26 @@
             });
           }
         }
-        const _mobileNavItems = [
-          { key: "dashboard", label: "Dashboard", icon: "◈" },
-          { key: "entry", label: "Saisie", icon: "✎" },
-          { key: "calendar", label: "Calendrier", icon: "▦" },
-          { key: "history", label: "Historique", icon: "🗂" },
-          { key: "stats", label: "Stats", icon: "◔" },
-        ];
-      %>
+	      %>
       <div class="mobile-premium-shell" data-mobile-shell>
 	        <div class="mobile-premium-track" data-mobile-track>
 	          <div class="mobile-premium-view" data-mobile-view="dashboard" data-mobile-title="Dashboard">
 	      <section class="premium-summary-grid premium-dashboard-grid cockpit-dashboard" aria-label="Dashboard">
-	        <article class="cockpit-hero card premium-surface">
+	        <article class="cockpit-hero card premium-surface app-surface app-card">
 	          <div class="cockpit-hero-copy">
 	            <span class="cockpit-kicker">Cockpit</span>
 	            <h2><%= _heroMessage %></h2>
 	            <p class="cockpit-hero-date"><%= _todayDateLabel || "Aujourd'hui" %></p>
-	            <p class="cockpit-hero-subtitle"><%= selectedClient.company_name %> · <%= payPeriodLabel || selectedMonth %></p>
+	            <p class="cockpit-hero-subtitle"><%= selectedClient.company_name %> · <%= _payPeriodLabel || selectedMonth %></p>
 	            <div class="cockpit-insight-inline">
-	              <span class="cockpit-badge is-live">Aujourd'hui</span>
-	              <span class="cockpit-badge"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
+		              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
+		              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
 	            </div>
 	          </div>
 	          <div class="cockpit-hero-progress">
-	            <div class="cockpit-progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
-	              <div class="cockpit-progress-ring-core">
-	                <span class="cockpit-progress-label">Temps travaillé</span>
+		            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
+		              <div class="cockpit-progress-ring-core">
+		                <span class="cockpit-progress-label progress-label">Temps travaillé</span>
 	                <strong><%= _todayWorkedHHMM %></strong>
 	                <span class="cockpit-progress-meta"><%= _todayProgress %>%</span>
 	              </div>
@@ -733,7 +1118,7 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-quick-actions card premium-surface">
+	        <article class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Quick Actions</span>
 	            <h3>Accès immédiat</h3>
@@ -766,7 +1151,7 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-week-activity card premium-surface">
+	        <article class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Activité</span>
 	            <h3>Semaine en cours</h3>
@@ -793,7 +1178,7 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-salary card premium-surface">
+	        <article class="cockpit-panel cockpit-salary card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Salaire</span>
 	            <h3>Lecture financière</h3>
@@ -816,13 +1201,13 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-objective card premium-surface">
+	        <article class="cockpit-panel cockpit-objective card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Objectif</span>
 	            <h3>Progression mensuelle</h3>
 	          </div>
 	          <div class="cockpit-objective-progress">
-	            <div class="cockpit-objective-bar" aria-hidden="true">
+		            <div class="cockpit-objective-bar progress-bar" aria-hidden="true">
 	              <span class="cockpit-objective-fill" data-cockpit-month-progress="<%= _monthProgress %>"></span>
 	            </div>
 	            <div class="cockpit-objective-meta">
@@ -842,7 +1227,7 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-insights card premium-surface">
+	        <article class="cockpit-panel cockpit-insights card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Insights</span>
 	            <h3>Situation immédiate</h3>
@@ -862,7 +1247,7 @@
 	            </div>
 	            <div class="cockpit-context-card">
 	              <span>Jours travaillés</span>
-	              <strong><%= workedDayCount %></strong>
+	              <strong><%= _workedDayCount %></strong>
 	            </div>
 	            <div class="cockpit-context-card">
 	              <span>Clients actifs</span>
@@ -874,7 +1259,7 @@
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
           <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie">
-      <section class="card entry-card premium-surface" data-entry-card>
+	      <section class="card entry-card premium-surface app-surface app-card" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
             <p class="section-eyebrow">Saisie</p>
@@ -895,7 +1280,7 @@
 	        <form
 	              action="/entries"
 	              method="post"
-	              class="entry-form"
+		              class="entry-form"
 	              id="entryFormPanel"
               data-entry-form
               data-default-day-type="<%= defaultEntryFormData.dayType %>"
@@ -912,9 +1297,9 @@
 
               <div class="entry-shell">
                 <div class="entry-daybar">
-                  <div class="field entry-daybar-date">
-                    <label for="date">Date selectionnee</label>
-                    <input id="date" name="date" type="date" required value="<%= formData.date %>" />
+	                  <div class="field form-field entry-daybar-date">
+	                    <label class="form-label" for="date">Date selectionnee</label>
+	                    <input class="form-input" id="date" name="date" type="date" required value="<%= formData.date %>" />
                   </div>
                   <div class="entry-daybar-meta">
                     <div class="entry-daybar-client">
@@ -929,9 +1314,9 @@
                 </div>
 
                 <div class="entry-main-layout">
-                  <div class="field entry-day-type-field">
-                    <label for="dayType">Type de journee</label>
-                    <select id="dayType" name="dayType" required data-day-type-select>
+	                  <div class="field form-field entry-day-type-field">
+	                    <label class="form-label" for="dayType">Type de journee</label>
+	                    <select class="form-select" id="dayType" name="dayType" required data-day-type-select>
                       <% dayTypeOptions.forEach((option) => { %>
                       <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
                         <%= option.label %>
@@ -950,9 +1335,10 @@
                     </div>
 
                     <div class="entry-hours-grid">
-                      <div class="field entry-time-field">
-                        <label for="arrivalTime">Heure d'arrivee</label>
-                        <input
+	                      <div class="field form-field entry-time-field">
+	                        <label class="form-label" for="arrivalTime">Heure d'arrivee</label>
+	                        <input
+	                          class="form-input"
                           id="arrivalTime"
                           name="arrivalTime"
                           type="time"
@@ -962,9 +1348,10 @@
                         />
                       </div>
 
-                      <div class="field entry-time-field">
-                        <label for="departureTime">Heure de depart</label>
-                        <input
+	                      <div class="field form-field entry-time-field">
+	                        <label class="form-label" for="departureTime">Heure de depart</label>
+	                        <input
+	                          class="form-input"
                           id="departureTime"
                           name="departureTime"
                           type="time"
@@ -974,9 +1361,10 @@
                         />
                       </div>
 
-                      <div class="field entry-time-field entry-pause-field">
-                        <label for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
-                        <input
+	                      <div class="field form-field entry-time-field entry-pause-field">
+	                        <label class="form-label" for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
+	                        <input
+	                          class="form-input"
                           id="lunchBreakMinutes"
                           name="lunchBreakMinutes"
                           type="number"
@@ -1000,9 +1388,9 @@
                     </div>
                   </section>
 
-                  <div class="field field-comment entry-comment-field">
+	                  <div class="field form-field field-comment entry-comment-field">
                     <div class="entry-comment-header">
-                      <label for="commentText">Commentaire</label>
+	                      <label class="form-label" for="commentText">Commentaire</label>
                       <div class="comment-toolbar">
                         <details class="comment-emoji-picker">
                           <summary class="comment-emoji-summary">
@@ -1015,7 +1403,8 @@
                         </details>
                       </div>
                     </div>
-                    <textarea
+	                    <textarea
+	                      class="form-textarea"
                       id="commentText"
                       name="commentText"
                       rows="2"
@@ -1036,8 +1425,8 @@
                     data-success-label="✓ Journée enregistrée"
                   ><%= _isEditing ? "Mettre a jour" : "Enregistrer" %></button>
 		            <% if (_isEditing) { %>
-	            <a
-	              class="button-link button-neutral"
+		            <a
+		              class="button-link button-neutral btn-ghost"
               href="/?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
 	              data-ripple
 	            >
@@ -1094,8 +1483,8 @@
           const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value);
           return Number.isNaN(parsed.getTime()) ? new Date(fallbackDate.getTime()) : parsed;
         };
-        const _calendarStartSource = _coerceDate(payPeriodStartDate, _calendarMonthDate);
-        const _calendarEndSource = _coerceDate(payPeriodEndDate, _calendarMonthDate);
+        const _calendarStartSource = _coerceDate(_payPeriodStartDate, _calendarMonthDate);
+        const _calendarEndSource = _coerceDate(_payPeriodEndDate, _calendarMonthDate);
         const _calendarStart = new Date(
           _calendarStartSource.getFullYear(),
           _calendarStartSource.getMonth(),
@@ -1188,12 +1577,12 @@
           _calendarWeeks.push(_weekDays);
         }
       %>
-      <section class="card premium-surface premium-surface-wide pay-period-card" data-pay-period-card>
+      <section class="card premium-surface premium-surface-wide pay-period-card app-surface app-card" data-pay-period-card>
         <div class="month-header">
           <div class="month-header-copy">
             <h2>Période de paie</h2>
-            <% if (payPeriodLabel) { %>
-            <p class="month-period-label"><%= payPeriodLabel %></p>
+            <% if (_payPeriodLabel) { %>
+            <p class="month-period-label"><%= _payPeriodLabel %></p>
             <% } %>
           </div>
 
@@ -1268,7 +1657,7 @@
                 </a>
                 <div class="calendar-nav-label">
                   <strong><%= _calendarMonthLabel %></strong>
-                  <span><%= payPeriodLabel %></span>
+                  <span><%= _payPeriodLabel %></span>
                 </div>
                 <a
                   class="calendar-nav-button"
@@ -1281,21 +1670,21 @@
               </div>
 
               <div class="calendar-summary-chips" aria-label="Résumé de période">
-                <div class="calendar-summary-chip">
-                  <span class="calendar-summary-chip-label">Jours travaillés</span>
-                  <strong><%= workedDayCount %></strong>
+                <div class="calendar-summary-chip stat-card">
+                  <span class="calendar-summary-chip-label stat-label">Jours travaillés</span>
+                  <strong class="stat-value"><%= _workedDayCount %></strong>
                 </div>
-                <div class="calendar-summary-chip">
-                  <span class="calendar-summary-chip-label">Total</span>
-                  <strong><%= totalHHMM %></strong>
+                <div class="calendar-summary-chip stat-card">
+                  <span class="calendar-summary-chip-label stat-label">Total</span>
+                  <strong class="stat-value"><%= totalHHMM %></strong>
                 </div>
-                <div class="calendar-summary-chip">
-                  <span class="calendar-summary-chip-label">Heures sup</span>
-                  <strong><%= totalOvertimeHHMM %></strong>
+                <div class="calendar-summary-chip stat-card">
+                  <span class="calendar-summary-chip-label stat-label">Heures sup</span>
+                  <strong class="stat-value"><%= totalOvertimeHHMM %></strong>
                 </div>
-                <div class="calendar-summary-chip">
-                  <span class="calendar-summary-chip-label">Salaire net</span>
-                  <strong><%= salaryAmountDisplay %></strong>
+                <div class="calendar-summary-chip stat-card">
+                  <span class="calendar-summary-chip-label stat-label">Salaire net</span>
+                  <strong class="stat-value"><%= salaryAmountDisplay %></strong>
                 </div>
               </div>
             </div>
@@ -1391,7 +1780,7 @@
           { value: "recovery", label: "Récupération", count: entries.filter((entry) => Number(entry.recovered_minutes || 0) > 0).length },
         ];
       %>
-      <section class="card premium-surface premium-surface-wide history-premium-card" data-history-premium-card>
+      <section class="card premium-surface premium-surface-wide history-premium-card app-surface app-card" data-history-premium-card>
         <div class="entry-card-top">
           <div class="section-heading">
             <p class="section-eyebrow">Historique</p>
@@ -1429,7 +1818,7 @@
             </div>
           </div>
           <% if (entries.length === 0) { %>
-          <div class="history-premium-empty">
+	          <div class="history-premium-empty state-empty">
             <strong>Aucune entrée enregistrée</strong>
             <span>Commencez par saisir une journée pour voir l’historique premium ici.</span>
           </div>
@@ -1437,7 +1826,7 @@
           <div class="history-premium-list" data-history-list>
             <% entries.forEach((entry) => { %>
             <article
-              class="history-entry-card <%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
+	              class="history-entry-card app-card-compact <%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
               data-day-entry-row
               data-day-type="<%= entry.day_type %>"
               data-week-key="<%= entry.week_start || '' %>"
@@ -1494,7 +1883,7 @@
               <% } %>
               <div class="history-entry-actions row-actions">
                 <a
-                  class="button-link secondary-link"
+	                  class="button-link secondary-link btn-secondary"
                   data-ripple
                   href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
                 >
@@ -1513,7 +1902,7 @@
             </article>
             <% }); %>
           </div>
-          <div class="history-premium-empty history-premium-empty-filter" data-history-empty-filter hidden>
+	          <div class="history-premium-empty history-premium-empty-filter state-empty" data-history-empty-filter hidden>
             <strong>Aucun résultat</strong>
             <span>Essayez une autre recherche ou un autre filtre rapide.</span>
           </div>
@@ -1524,7 +1913,7 @@
             </div>
             <div class="history-premium-total">
               <span>Jours travaillés</span>
-              <strong><%= workedDayCount %></strong>
+              <strong><%= _workedDayCount %></strong>
             </div>
             <div class="history-premium-total">
               <span>Heures sup</span>
@@ -1535,7 +1924,7 @@
               <strong><%= totalRecoveredHHMM %></strong>
             </div>
             <div class="history-premium-total history-premium-total-salary">
-              <details class="salary-editor" <%= showSalaryEditor ? "open" : "" %>>
+              <details class="salary-editor" <%= _showSalaryEditor ? "open" : "" %>>
                 <summary class="salary-editor-summary">
                   <span>Salaire net</span>
                   <span class="salary-editor-trigger" aria-hidden="true">+</span>
@@ -1568,8 +1957,8 @@
       </section>
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
-          <div class="mobile-premium-view mobile-premium-view-stats" data-mobile-view="stats" data-mobile-title="Stats">
-            <section class="card premium-surface mobile-stats-card">
+	          <div class="mobile-premium-view mobile-premium-view-stats" data-mobile-view="stats" data-mobile-title="Stats">
+	            <section class="card premium-surface mobile-stats-card">
               <div class="entry-card-top">
                 <div class="section-heading">
                   <p class="section-eyebrow">Stats</p>
@@ -1580,12 +1969,12 @@
                 <article class="mobile-stat-tile">
                   <span class="mobile-stat-label">Total période</span>
                   <strong class="mobile-stat-value"><%= totalHHMM %></strong>
-                  <span class="mobile-stat-meta">Vue active sur <%= payPeriodLabel || selectedMonth %></span>
+                  <span class="mobile-stat-meta">Vue active sur <%= _payPeriodLabel || selectedMonth %></span>
                 </article>
                 <article class="mobile-stat-tile">
                   <span class="mobile-stat-label">Moyenne / jour travaillé</span>
                   <strong class="mobile-stat-value"><%= _monthAverageHHMM %></strong>
-                  <span class="mobile-stat-meta"><%= workedDayCount %> jour<%= workedDayCount > 1 ? "s" : "" %> productif<%= workedDayCount > 1 ? "s" : "" %></span>
+                  <span class="mobile-stat-meta"><%= _workedDayCount %> jour<%= _workedDayCount > 1 ? "s" : "" %> productif<%= _workedDayCount > 1 ? "s" : "" %></span>
                 </article>
                 <article class="mobile-stat-tile">
                   <span class="mobile-stat-label">Heures sup</span>
@@ -1605,10 +1994,82 @@
                   <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
                 </article>
                 <% }); %>
-              </div>
-            </section>
-          </div>
-        </div>
+	              </div>
+	            </section>
+	          </div>
+	          <div class="mobile-premium-view mobile-premium-view-settings" data-mobile-view="settings" data-mobile-title="Réglages">
+	            <section class="card premium-surface app-surface app-card settings-mobile-card">
+	              <div class="settings-mobile-head">
+	                <div>
+	                  <p class="section-eyebrow">⚙️ Paramètres</p>
+	                  <h2>Centre personnel</h2>
+	                </div>
+	                <button type="button" class="button-link button-neutral" data-open-command-palette data-ripple>⌘K</button>
+	              </div>
+	              <div class="settings-mobile-nav" aria-label="Navigation paramètres mobile">
+	                <% _settingsSections.forEach((section, index) => { %>
+	                <button
+	                  type="button"
+	                  class="settings-mobile-chip<%= index === 0 ? ' is-active' : '' %>"
+	                  data-settings-nav-item
+	                  data-settings-target="<%= section.key %>"
+	                  aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+	                >
+	                  <span aria-hidden="true"><%= section.icon %></span>
+	                  <span><%= section.label %></span>
+	                </button>
+	                <% }); %>
+	              </div>
+	              <div class="settings-mobile-sections">
+	                <% _settingsSections.forEach((section) => { %>
+	                <article class="settings-mobile-section app-card-compact" data-settings-section="<%= section.key %>">
+	                  <span class="section-eyebrow"><%= section.icon %> <%= section.label %></span>
+	                  <h3><%= section.label %></h3>
+	                  <p><%= section.description %></p>
+	                  <% if (section.key === "profile") { %>
+	                  <div class="settings-mobile-stack">
+	                    <div class="form-field"><label class="form-label">Nom</label><input class="form-input" type="text" placeholder="Nom complet" value="<%= authUser || '' %>" /></div>
+		                    <div class="form-field"><label class="form-label">Entreprise</label><input class="form-input" type="text" placeholder="Entreprise" value="<%= _userCompanyName || (selectedClient ? selectedClient.name : '') %>" /></div>
+	                  </div>
+	                  <% } else if (section.key === "work") { %>
+	                  <div class="settings-mobile-stack">
+	                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select"><option>35 h</option><option>39 h</option><option>Forfait</option><option>Personnalisé</option></select></div>
+	                    <div class="form-field"><label class="form-label">Objectif journalier</label><input class="form-input" type="text" placeholder="07:00" /></div>
+	                  </div>
+	                  <% } else if (section.key === "goals") { %>
+	                  <div class="settings-kpi-grid">
+	                    <% _settingsGoalCards.forEach((goalCard) => { %>
+	                    <article class="stat-card app-card-compact">
+	                      <span class="stat-label"><%= goalCard.label %></span>
+	                      <strong class="stat-value"><%= goalCard.value %></strong>
+	                    </article>
+	                    <% }); %>
+	                  </div>
+	                  <% } else if (section.key === "help") { %>
+	                  <div class="settings-mobile-stack">
+	                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
+	                    <div class="settings-help-grid" data-settings-help-grid>
+	                      <% _settingsHelpCategories.slice(0, 6).forEach((category) => { %>
+	                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>"><strong><%= category %></strong><span>Base prête.</span></article>
+	                      <% }); %>
+	                    </div>
+	                  </div>
+	                  <% } else if (section.key === "about") { %>
+	                  <div class="settings-mobile-stack">
+	                    <article class="app-card-compact"><strong>Version 0.9</strong><span>Roadmap et changelog prêts.</span></article>
+	                    <button type="button" class="button-link button-neutral">Signaler un bug</button>
+	                  </div>
+	                  <% } else { %>
+	                  <div class="settings-mobile-stack">
+	                    <article class="app-card-compact"><strong>Hook UI prêt</strong><span>Section préparée pour activation progressive.</span></article>
+	                  </div>
+	                  <% } %>
+	                </article>
+	                <% }); %>
+	              </div>
+	            </section>
+	          </div>
+	        </div>
         <div class="mobile-premium-status" data-mobile-status>
           <div class="mobile-premium-dots" aria-label="Indicateurs de vue">
             <% _mobileNavItems.forEach((item, index) => { %>
@@ -1651,7 +2112,7 @@
       </section>
       <% } %>
 
-      <% if (archivedClients && archivedClients.length > 0) { %>
+	      <% if (archivedClients && archivedClients.length > 0) { %>
       <div class="between-sections-spacer" aria-hidden="true"></div>
       <section class="card premium-surface archived-clients-card" data-archived-clients-card>
         <div class="entry-card-top">
@@ -1788,10 +2249,45 @@
             <p class="empty" data-archived-client-empty hidden>Aucun client archive ne correspond a cette recherche.</p>
           </div>
         </div>
-      </section>
-      <% } %>
+	      </section>
+	      <% } %>
 
-      <footer class="app-footer">
+	      <div class="command-palette" data-command-palette hidden>
+	        <button type="button" class="command-palette-backdrop" data-close-command-palette aria-label="Fermer la Command Palette"></button>
+	        <section class="command-palette-dialog card premium-surface app-surface app-card" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+	          <div class="command-palette-head">
+	            <div>
+	              <p class="section-eyebrow">Command Palette</p>
+	              <h2 id="commandPaletteTitle">Aller vers un réglage</h2>
+	            </div>
+	            <button type="button" class="button-link button-neutral" data-close-command-palette data-ripple>Fermer</button>
+	          </div>
+	          <div class="form-field">
+	            <label class="form-label" for="commandPaletteSearch">Recherche</label>
+	            <input class="form-input" id="commandPaletteSearch" type="search" placeholder="Profil, sécurité, export, aide..." data-command-palette-input />
+	          </div>
+	          <div class="command-palette-list" data-command-palette-list>
+	            <% _settingsPaletteItems.forEach((item) => { %>
+	            <button
+	              type="button"
+	              class="command-palette-item"
+	              data-command-item
+	              data-target-section="<%= item.key %>"
+	              data-search-text="<%= item.aliases %>"
+	              data-ripple
+	            >
+	              <span class="command-palette-icon" aria-hidden="true"><%= item.icon %></span>
+	              <span class="command-palette-copy">
+	                <strong><%= item.label %></strong>
+	                <span><%= item.description %></span>
+	              </span>
+	            </button>
+	            <% }); %>
+	          </div>
+	        </section>
+	      </div>
+
+	      <footer class="app-footer">
         <div class="app-footer-content">
           <p>Application conçue et développée par XPérienceWeb</p>
           <p>
@@ -1802,7 +2298,7 @@
       </footer>
     </main>
 
-    <div class="client-modal" data-client-modal <%= showClientModal ? "" : "hidden" %>>
+    <div class="client-modal" data-client-modal <%= _showClientModal ? "" : "hidden" %>>
       <div class="client-modal-backdrop" data-close-client-modal></div>
       <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="clientModalTitle">
         <div class="client-modal-header">
@@ -1817,27 +2313,27 @@
           <div class="client-modal-grid">
             <div class="field">
               <label for="clientCompanyName">Entreprise</label>
-              <input id="clientCompanyName" name="company_name" type="text" required value="<%= clientFormData.company_name || '' %>" />
+              <input id="clientCompanyName" name="company_name" type="text" required value="<%= _clientFormData.company_name || '' %>" />
             </div>
             <div class="field">
               <label for="clientContactName">Contact</label>
-              <input id="clientContactName" name="contact_name" type="text" value="<%= clientFormData.contact_name || '' %>" />
+              <input id="clientContactName" name="contact_name" type="text" value="<%= _clientFormData.contact_name || '' %>" />
             </div>
             <div class="field">
               <label for="clientEmail">Email</label>
-              <input id="clientEmail" name="email" type="email" value="<%= clientFormData.email || '' %>" />
+              <input id="clientEmail" name="email" type="email" value="<%= _clientFormData.email || '' %>" />
             </div>
             <div class="field">
               <label for="clientPhone">Téléphone</label>
-              <input id="clientPhone" name="phone" type="text" value="<%= clientFormData.phone || '' %>" />
+              <input id="clientPhone" name="phone" type="text" value="<%= _clientFormData.phone || '' %>" />
             </div>
             <div class="field field-full">
               <label for="clientAddress">Adresse</label>
-              <textarea id="clientAddress" name="address" rows="2"><%= clientFormData.address || '' %></textarea>
+              <textarea id="clientAddress" name="address" rows="2"><%= _clientFormData.address || '' %></textarea>
             </div>
             <div class="field field-full">
               <label for="clientNotes">Notes</label>
-              <textarea id="clientNotes" name="notes" rows="4"><%= clientFormData.notes || '' %></textarea>
+              <textarea id="clientNotes" name="notes" rows="4"><%= _clientFormData.notes || '' %></textarea>
             </div>
           </div>
           <div class="form-actions">
@@ -1848,7 +2344,7 @@
       </section>
     </div>
 
-    <div class="client-modal" data-client-info-modal <%= showClientInfoModal ? "" : "hidden" %>>
+    <div class="client-modal" data-client-info-modal <%= _showClientInfoModal ? "" : "hidden" %>>
       <div class="client-modal-backdrop" data-close-client-info-modal></div>
       <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="clientInfoModalTitle">
         <div class="client-modal-header">
@@ -1916,7 +2412,7 @@
       </section>
     </div>
 
-    <div class="client-modal" data-confirm-replace-modal <%= showReplaceConfirmation ? "" : "hidden" %>>
+    <div class="client-modal" data-confirm-replace-modal <%= _showReplaceConfirmation ? "" : "hidden" %>>
       <div class="client-modal-backdrop" data-close-confirm-replace-modal></div>
       <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmReplaceTitle">
         <div class="client-modal-header">
@@ -1936,8 +2432,24 @@
       </section>
     </div>
 
-    <script src="/theme.js"></script>
-    <script>
+	    <script src="/theme.js"></script>
+	    <script>
+	      (() => {
+	        const csrfToken = <%- JSON.stringify(_csrfToken) %>;
+	        if (!csrfToken) {
+	          return;
+	        }
+	        document.querySelectorAll('form[method="post"]').forEach((form) => {
+	          let csrfInput = form.querySelector('input[name="_csrf"]');
+	          if (!csrfInput) {
+	            csrfInput = document.createElement("input");
+	            csrfInput.type = "hidden";
+	            csrfInput.name = "_csrf";
+	            form.prepend(csrfInput);
+	          }
+	          csrfInput.value = csrfToken;
+	        });
+	      })();
       (() => {
         const commentField = document.querySelector("[data-comment-target]");
         const emojiPicker = document.querySelector(".comment-emoji-component");
@@ -2878,11 +3390,189 @@
 	          mobileQuery.addListener(syncForViewport);
 	        }
 
-	        syncForViewport();
-	      })();
+		        syncForViewport();
+		      })();
 
-	      (() => {
-	        const modal = document.querySelector("[data-client-modal]");
+		      (() => {
+		        const workspace = document.querySelector("[data-settings-workspace]");
+		        const openButtons = Array.from(document.querySelectorAll("[data-open-settings-workspace]"));
+		        const closeButtons = Array.from(document.querySelectorAll("[data-close-settings-workspace]"));
+		        const navButtons = Array.from(document.querySelectorAll("[data-settings-nav-item]"));
+		        const sections = Array.from(document.querySelectorAll("[data-settings-section]"));
+		        const helpSearchInputs = Array.from(document.querySelectorAll("[data-settings-help-search]"));
+		        const helpItems = Array.from(document.querySelectorAll("[data-settings-help-item]"));
+		        const commandPalette = document.querySelector("[data-command-palette]");
+		        const commandPaletteInput = document.querySelector("[data-command-palette-input]");
+		        const commandPaletteItems = Array.from(document.querySelectorAll("[data-command-item]"));
+		        const commandPaletteCloseButtons = Array.from(document.querySelectorAll("[data-close-command-palette]"));
+		        const mobileSettingsButton = document.querySelector('[data-mobile-nav-button][data-target-view="settings"]');
+		        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+
+		        if (!workspace || navButtons.length === 0 || sections.length === 0) {
+		          return;
+		        }
+
+		        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+		        const detailMenus = Array.from(document.querySelectorAll("details.user-menu"));
+
+		        const scrollBehavior = () => (prefersReducedMotion.matches ? "auto" : "smooth");
+
+		        const syncNavState = (targetKey) => {
+		          navButtons.forEach((button) => {
+		            const isActive = button.dataset.settingsTarget === targetKey;
+		            button.classList.toggle("is-active", isActive);
+		            button.setAttribute("aria-pressed", String(isActive));
+		          });
+		        };
+
+		        const revealWorkspace = () => {
+		          workspace.hidden = false;
+		          workspace.classList.add("is-open");
+		        };
+
+		        const closeWorkspace = () => {
+		          workspace.hidden = true;
+		          workspace.classList.remove("is-open");
+		        };
+
+		        const focusSection = (targetKey) => {
+		          const matchingSections = sections.filter((item) => item.dataset.settingsSection === targetKey);
+		          const section = mobileQuery.matches
+		            ? matchingSections.find((item) => item.closest('[data-mobile-view="settings"]')) || matchingSections[0] || sections[0]
+		            : matchingSections.find((item) => item.closest("[data-settings-workspace]")) || matchingSections[0] || sections[0];
+		          if (!section) {
+		            return;
+		          }
+		          syncNavState(section.dataset.settingsSection || "");
+		          section.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+		        };
+
+		        const openWorkspace = (targetKey = "profile") => {
+		          if (mobileQuery.matches && mobileSettingsButton) {
+		            mobileSettingsButton.click();
+		            window.setTimeout(() => {
+		              focusSection(targetKey);
+		            }, 140);
+		            return;
+		          }
+		          revealWorkspace();
+		          window.setTimeout(() => {
+		            workspace.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+		            focusSection(targetKey);
+		          }, 20);
+		        };
+
+		        const closeCommandPalette = () => {
+		          if (!commandPalette) {
+		            return;
+		          }
+		          commandPalette.hidden = true;
+		          document.body.classList.remove("has-command-palette");
+		        };
+
+		        const filterCommandPalette = () => {
+		          if (!commandPaletteInput) {
+		            return;
+		          }
+		          const query = (commandPaletteInput.value || "").trim().toLowerCase();
+		          commandPaletteItems.forEach((item) => {
+		            const searchText = item.dataset.searchText || "";
+		            item.hidden = Boolean(query) && !searchText.includes(query);
+		          });
+		        };
+
+		        const openCommandPalette = () => {
+		          if (!commandPalette) {
+		            return;
+		          }
+		          commandPalette.hidden = false;
+		          document.body.classList.add("has-command-palette");
+		          window.setTimeout(() => {
+		            if (commandPaletteInput) {
+		              commandPaletteInput.focus();
+		              commandPaletteInput.select();
+		            }
+		          }, 20);
+		          window.dispatchEvent(new CustomEvent("app:command-palette-open"));
+		        };
+
+		        const applyHelpSearch = (query) => {
+		          const normalized = (query || "").trim().toLowerCase();
+		          helpItems.forEach((item) => {
+		            const text = item.dataset.searchText || "";
+		            item.hidden = Boolean(normalized) && !text.includes(normalized);
+		          });
+		        };
+
+		        openButtons.forEach((button) => {
+		          button.addEventListener("click", () => {
+		            detailMenus.forEach((menu) => {
+		              menu.open = false;
+		            });
+		            openWorkspace(button.dataset.settingsTarget || "profile");
+		          });
+		        });
+
+		        closeButtons.forEach((button) => {
+		          button.addEventListener("click", closeWorkspace);
+		        });
+
+		        navButtons.forEach((button) => {
+		          button.addEventListener("click", () => {
+		            focusSection(button.dataset.settingsTarget || "profile");
+		          });
+		        });
+
+		        helpSearchInputs.forEach((input) => {
+		          input.addEventListener("input", () => {
+		            applyHelpSearch(input.value || "");
+		          });
+		        });
+
+		        document.querySelectorAll("[data-open-command-palette]").forEach((button) => {
+		          button.addEventListener("click", () => {
+		            detailMenus.forEach((menu) => {
+		              menu.open = false;
+		            });
+		            openCommandPalette();
+		          });
+		        });
+
+		        commandPaletteCloseButtons.forEach((button) => {
+		          button.addEventListener("click", closeCommandPalette);
+		        });
+
+		        if (commandPaletteInput) {
+		          commandPaletteInput.addEventListener("input", filterCommandPalette);
+		        }
+
+		        commandPaletteItems.forEach((item) => {
+		          item.addEventListener("click", () => {
+		            closeCommandPalette();
+		            openWorkspace(item.dataset.targetSection || "profile");
+		          });
+		        });
+
+		        document.addEventListener("keydown", (event) => {
+		          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+		            event.preventDefault();
+		            openCommandPalette();
+		            return;
+		          }
+		          if (event.key === "Escape") {
+		            if (commandPalette && !commandPalette.hidden) {
+		              closeCommandPalette();
+		              return;
+		            }
+		          }
+		        });
+
+		        window.addEventListener("app:open-command-palette", openCommandPalette);
+		        window.dispatchEvent(new CustomEvent("app:command-palette-ready"));
+		      })();
+
+		      (() => {
+		        const modal = document.querySelector("[data-client-modal]");
         const openButtons = [...document.querySelectorAll("[data-open-client-modal]")];
         const closeButtons = [...document.querySelectorAll("[data-close-client-modal]")];
         const firstInput = modal ? modal.querySelector("#clientCompanyName") : null;

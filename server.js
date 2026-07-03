@@ -7,13 +7,21 @@ const app = express();
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const DAILY_TARGET_MINUTES = 7 * 60;
 const SESSION_COOKIE_NAME = "hours_session";
+const CSRF_COOKIE_NAME = "hours_csrf";
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
+const CSRF_TOKEN_DURATION_MS = 12 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/;
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 10;
 const RECOVERY_CODE_REGEX = /^\d{6}$/;
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_CLIENT_FIELD_LENGTH = 500;
 const CSV_SEPARATOR = ";";
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_RATE_LIMITS = {
+  login: { maxAttempts: 5, windowMs: RATE_LIMIT_WINDOW_MS },
+  register: { maxAttempts: 4, windowMs: RATE_LIMIT_WINDOW_MS },
+  forgotPassword: { maxAttempts: 5, windowMs: RATE_LIMIT_WINDOW_MS },
+};
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -87,6 +95,11 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+app.use((req, res, next) => {
+  ensureCsrfToken(req, res);
   next();
 });
 
@@ -199,6 +212,108 @@ function verifyPassword(password, saltHex, expectedHashHex) {
   } catch (error) {
     return false;
   }
+}
+
+function getRequestIp(req) {
+  if (typeof req.ip === "string" && req.ip) {
+    return req.ip;
+  }
+  if (typeof req.socket?.remoteAddress === "string" && req.socket.remoteAddress) {
+    return req.socket.remoteAddress;
+  }
+  return "unknown";
+}
+
+function logSecurityEvent(event, details = {}) {
+  const safeDetails = {};
+  for (const [key, value] of Object.entries(details)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    if (["password", "token", "csrfToken", "recoveryCode", "newPassword", "confirmPassword"].includes(key)) {
+      continue;
+    }
+    safeDetails[key] = value;
+  }
+  console.warn(
+    `[security] ${event} ${JSON.stringify({
+      at: new Date().toISOString(),
+      ...safeDetails,
+    })}`
+  );
+}
+
+function safeEqualString(leftValue, rightValue) {
+  if (typeof leftValue !== "string" || typeof rightValue !== "string") {
+    return false;
+  }
+  const leftBuffer = Buffer.from(leftValue);
+  const rightBuffer = Buffer.from(rightValue);
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function generateCsrfToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function isValidCsrfToken(value) {
+  return typeof value === "string" && /^[a-f0-9]{48}$/i.test(value);
+}
+
+function setCsrfCookie(res, csrfToken) {
+  res.cookie(CSRF_COOKIE_NAME, csrfToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: CSRF_TOKEN_DURATION_MS,
+  });
+}
+
+function getCsrfTokenFromRequest(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  const csrfToken = cookies[CSRF_COOKIE_NAME] || "";
+  return isValidCsrfToken(csrfToken) ? csrfToken : "";
+}
+
+function ensureCsrfToken(req, res) {
+  const existingToken = getCsrfTokenFromRequest(req);
+  if (existingToken) {
+    req.csrfToken = existingToken;
+    res.locals.csrfToken = existingToken;
+    return existingToken;
+  }
+  const nextToken = generateCsrfToken();
+  setCsrfCookie(res, nextToken);
+  req.csrfToken = nextToken;
+  res.locals.csrfToken = nextToken;
+  return nextToken;
+}
+
+function buildSecurityErrorMessage(actionLabel) {
+  return `${actionLabel} impossible pour le moment. Rechargez la page puis réessayez.`;
+}
+
+const authAttemptStore = new Map();
+
+function consumeRateLimitBucket(key, maxAttempts, windowMs) {
+  const now = Date.now();
+  const entry = authAttemptStore.get(key);
+  if (!entry || entry.resetAtMs <= now) {
+    authAttemptStore.set(key, {
+      count: 1,
+      resetAtMs: now + windowMs,
+    });
+    return { allowed: true, remaining: Math.max(0, maxAttempts - 1) };
+  }
+  if (entry.count >= maxAttempts) {
+    return { allowed: false, remaining: 0, retryAfterMs: entry.resetAtMs - now };
+  }
+  entry.count += 1;
+  authAttemptStore.set(key, entry);
+  return { allowed: true, remaining: Math.max(0, maxAttempts - entry.count) };
 }
 
 function isDuplicateUsernameError(error) {
@@ -1063,6 +1178,7 @@ async function renderIndex(res, options = {}) {
     isEditing: Boolean(editingWorkDate),
     editingWorkDate,
     authUser: res.locals.authUser || "",
+    csrfToken: res.locals.csrfToken || "",
   });
 }
 
@@ -1071,6 +1187,7 @@ function renderLogin(res, options = {}) {
     error: options.error || "",
     success: options.success || "",
     formData: options.formData || { username: "" },
+    csrfToken: res.locals.csrfToken || "",
   });
 }
 
@@ -1080,6 +1197,7 @@ function renderRegister(res, options = {}) {
     success: options.success || "",
     recoveryCode: options.recoveryCode || "",
     formData: options.formData || { username: "", recoveryCode: "" },
+    csrfToken: res.locals.csrfToken || "",
   });
 }
 
@@ -1089,6 +1207,7 @@ function renderForgotPassword(res, options = {}) {
     success: options.success || "",
     recoveryCode: options.recoveryCode || "",
     formData: options.formData || { username: "" },
+    csrfToken: res.locals.csrfToken || "",
   });
 }
 
@@ -1106,11 +1225,114 @@ app.use(async (req, res, next) => {
   }
 });
 
+app.use(requireCsrf);
+
 function requireAuth(req, res, next) {
   if (!req.authUser) {
     return res.redirect("/login");
   }
   return next();
+}
+
+async function renderCsrfFailure(req, res) {
+  const message = buildSecurityErrorMessage("Action");
+  const statusCode = 403;
+  if (req.path === "/login") {
+    res.status(statusCode);
+    renderLogin(res, {
+      error: message,
+      formData: { username: typeof req.body?.username === "string" ? req.body.username.trim() : "" },
+    });
+    return;
+  }
+  if (req.path === "/register") {
+    res.status(statusCode);
+    renderRegister(res, {
+      error: message,
+      formData: {
+        username: typeof req.body?.username === "string" ? req.body.username.trim() : "",
+        recoveryCode: normalizeRecoveryCode(req.body?.recoveryCode),
+      },
+    });
+    return;
+  }
+  if (req.path === "/forgot-password") {
+    res.status(statusCode);
+    renderForgotPassword(res, {
+      error: message,
+      formData: { username: typeof req.body?.username === "string" ? req.body.username.trim() : "" },
+    });
+    return;
+  }
+  if (req.authUser) {
+    res.status(statusCode);
+    await renderIndex(res, {
+      username: req.authUser,
+      month: req.body?.selectedMonth || req.query?.month,
+      clientId: req.body?.clientId || req.query?.clientId,
+      editDate: req.body?.originalWorkDate || req.query?.editDate,
+      error: message,
+    });
+    return;
+  }
+  return res.status(statusCode).send(message);
+}
+
+async function requireCsrf(req, res, next) {
+  if (req.method !== "POST") {
+    return next();
+  }
+  const cookieToken = getCsrfTokenFromRequest(req);
+  const bodyToken = typeof req.body?._csrf === "string" ? req.body._csrf.trim() : "";
+  if (!cookieToken || !bodyToken || !safeEqualString(cookieToken, bodyToken)) {
+    logSecurityEvent("csrf_validation_failed", {
+      path: req.path,
+      ip: getRequestIp(req),
+      username: req.authUser || (typeof req.body?.username === "string" ? req.body.username.trim() : ""),
+    });
+    await renderCsrfFailure(req, res);
+    return;
+  }
+  return next();
+}
+
+function createRateLimitMiddleware(actionKey, actionLabel, options) {
+  const { maxAttempts, windowMs } = options;
+  return (req, res, next) => {
+    const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
+    const rateKey = `${actionKey}:${getRequestIp(req)}:${username.toLowerCase()}`;
+    const bucket = consumeRateLimitBucket(rateKey, maxAttempts, windowMs);
+    if (bucket.allowed) {
+      return next();
+    }
+    logSecurityEvent("rate_limit_reached", {
+      action: actionKey,
+      ip: getRequestIp(req),
+      username,
+      path: req.path,
+    });
+    const message = `Trop de tentatives pour ${actionLabel}. Réessayez dans quelques minutes.`;
+    res.status(429);
+    if (actionKey === "login") {
+      return renderLogin(res, {
+        error: message,
+        formData: { username },
+      });
+    }
+    if (actionKey === "register") {
+      return renderRegister(res, {
+        error: message,
+        formData: {
+          username,
+          recoveryCode: normalizeRecoveryCode(req.body?.recoveryCode),
+        },
+      });
+    }
+    return renderForgotPassword(res, {
+      error: message,
+      formData: { username },
+    });
+  };
 }
 
 app.get("/login", (req, res) => {
@@ -1128,21 +1350,26 @@ app.get("/login", (req, res) => {
   });
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", createRateLimitMiddleware("login", "la connexion", AUTH_RATE_LIMITS.login), async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
 
   if (!username || !password) {
     return renderLogin(res, {
-      error: "Nom d'utilisateur et mot de passe obligatoires.",
+      error: "Renseignez votre identifiant et votre mot de passe.",
       formData: { username },
     });
   }
 
   const user = await db.getUserByUsername(username);
   if (!user || !verifyPassword(password, user.password_salt, user.password_hash)) {
+    logSecurityEvent("login_failed", {
+      username,
+      ip: getRequestIp(req),
+      path: req.path,
+    });
     return renderLogin(res, {
-      error: "Identifiants invalides.",
+      error: "Connexion impossible avec les informations fournies.",
       formData: { username },
     });
   }
@@ -1154,6 +1381,7 @@ app.post("/login", async (req, res) => {
     secure: process.env.NODE_ENV === "production",
     maxAge: SESSION_DURATION_MS,
   });
+  setCsrfCookie(res, generateCsrfToken());
 
   return res.redirect("/");
 });
@@ -1165,7 +1393,7 @@ app.get("/register", (req, res) => {
   return renderRegister(res);
 });
 
-app.post("/register", async (req, res) => {
+app.post("/register", createRateLimitMiddleware("register", "l'inscription", AUTH_RATE_LIMITS.register), async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
   const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
@@ -1193,8 +1421,14 @@ app.post("/register", async (req, res) => {
 
   const existingUser = await db.getUserByUsername(username);
   if (existingUser) {
+    logSecurityEvent("register_rejected", {
+      username,
+      ip: getRequestIp(req),
+      path: req.path,
+      reason: "existing_or_unavailable",
+    });
     return renderRegister(res, {
-      error: "Ce nom utilisateur existe deja.",
+      error: "Inscription impossible avec les informations fournies.",
       formData: { username, recoveryCode },
     });
   }
@@ -1212,8 +1446,14 @@ app.post("/register", async (req, res) => {
     await db.ensureUserDatabase(username);
   } catch (error) {
     if (isDuplicateUsernameError(error)) {
+      logSecurityEvent("register_rejected", {
+        username,
+        ip: getRequestIp(req),
+        path: req.path,
+        reason: "duplicate_or_unavailable",
+      });
       return renderRegister(res, {
-        error: "Ce nom utilisateur existe deja.",
+        error: "Inscription impossible avec les informations fournies.",
         formData: { username, recoveryCode },
       });
     }
@@ -1232,7 +1472,7 @@ app.get("/forgot-password", (req, res) => {
   });
 });
 
-app.post("/forgot-password", async (req, res) => {
+app.post("/forgot-password", createRateLimitMiddleware("forgotPassword", "la réinitialisation", AUTH_RATE_LIMITS.forgotPassword), async (req, res) => {
   if (req.authUser) {
     return res.redirect("/");
   }
@@ -1241,6 +1481,11 @@ app.post("/forgot-password", async (req, res) => {
   const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
   const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
   const confirmPassword = typeof req.body.confirmPassword === "string" ? req.body.confirmPassword : "";
+  logSecurityEvent("password_reset_requested", {
+    username,
+    ip: getRequestIp(req),
+    path: req.path,
+  });
 
   if (!username || !recoveryCode || !newPassword || !confirmPassword) {
     return renderForgotPassword(res, {
@@ -1275,7 +1520,7 @@ app.post("/forgot-password", async (req, res) => {
     !verifyPassword(recoveryCode, user.recovery_code_salt, user.recovery_code_hash)
   ) {
     return renderForgotPassword(res, {
-      error: "Nom utilisateur ou code de recuperation invalide.",
+      error: "Réinitialisation impossible avec les informations fournies.",
       formData: { username },
     });
   }
@@ -1307,6 +1552,7 @@ app.post("/logout", async (req, res) => {
     await db.deleteSession(req.authSessionToken);
   }
   clearSessionCookie(res);
+  setCsrfCookie(res, generateCsrfToken());
   return res.redirect("/login");
 });
 
