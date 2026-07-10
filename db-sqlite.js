@@ -113,6 +113,14 @@ CREATE INDEX IF NOT EXISTS idx_pay_period_salaries_client_month
   ON pay_period_salaries (client_id, pay_period_month);
 `;
 
+const settingsSchemaSql = `
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
 authDb.exec(authSchemaSql);
 
 function tableExists(database, tableName) {
@@ -381,6 +389,7 @@ function initializeUserDatabase(database) {
   ensureClientsTable(database);
   migrateWorkEntriesTable(database);
   migratePayPeriodSalariesTable(database);
+  database.exec(settingsSchemaSql);
 }
 
 ensureUsersRecoveryColumns(authDb);
@@ -514,6 +523,22 @@ function getUserStore(username) {
   const userDbPath = getUserDbPath(safeUsername);
   const userDb = new Database(userDbPath);
   initializeUserDatabase(userDb);
+
+  const upsertSettingStmt = userDb.prepare(`
+    INSERT INTO settings (
+      key,
+      value,
+      updated_at
+    )
+    VALUES (
+      @key,
+      @value,
+      datetime('now')
+    )
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = datetime('now')
+  `);
 
   const store = {
     getAllClientsStmt: userDb.prepare(`
@@ -723,6 +748,19 @@ function getUserStore(username) {
       WHERE client_id = ?
         AND pay_period_month = ?
     `),
+    getAllSettingsStmt: userDb.prepare(`
+      SELECT key, value
+      FROM settings
+    `),
+    upsertSettingStmt,
+    upsertSettingsTransaction: userDb.transaction((entries) => {
+      for (const [key, value] of entries) {
+        upsertSettingStmt.run({ key, value });
+      }
+    }),
+    resetSettingsStmt: userDb.prepare(`
+      DELETE FROM settings
+    `),
   };
 
   userStores.set(safeUsername, store);
@@ -832,6 +870,31 @@ function getPayPeriodSalary(username, clientId, payPeriodMonth) {
   return row ? row.salary_amount_cents : null;
 }
 
+function getSettings(username) {
+  const store = getUserStore(username);
+  return Object.fromEntries(
+    store.getAllSettingsStmt.all().map((row) => {
+      try {
+        return [row.key, JSON.parse(row.value)];
+      } catch (error) {
+        return [row.key, row.value];
+      }
+    })
+  );
+}
+
+function upsertSettings(username, settings) {
+  const store = getUserStore(username);
+  store.upsertSettingsTransaction(
+    Object.entries(settings).map(([key, value]) => [key, JSON.stringify(value)])
+  );
+}
+
+function resetSettings(username) {
+  const store = getUserStore(username);
+  store.resetSettingsStmt.run();
+}
+
 function getUserByUsername(username) {
   return getUserByUsernameStmt.get(username) || null;
 }
@@ -881,6 +944,9 @@ module.exports = {
   upsertPayPeriodSalary,
   deletePayPeriodSalary,
   getPayPeriodSalary,
+  getSettings,
+  upsertSettings,
+  resetSettings,
   getUserByUsername,
   createUser,
   updateUserPassword,

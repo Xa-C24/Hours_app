@@ -2,6 +2,12 @@ const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
 const db = require("./db");
+const {
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  normalizeSettingsPatch,
+  mergeSettings,
+} = require("./settings");
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -82,6 +88,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set("trust proxy", 1);
 
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(
   "/vendor/emoji-picker-element",
@@ -554,6 +561,22 @@ function formatMinutesToHHMM(totalMinutes) {
   const hours = Math.floor(safeMinutes / 60);
   const minutes = safeMinutes % 60;
   return `${pad2(hours)}:${pad2(minutes)}`;
+}
+
+async function getUserSettings(username) {
+  const storedSettings = await db.getSettings(username);
+  return normalizeSettings(mergeSettings(DEFAULT_SETTINGS, storedSettings));
+}
+
+async function saveUserSettings(username, input) {
+  const nextSettings = normalizeSettingsPatch(input);
+  await db.upsertSettings(username, nextSettings);
+  return getUserSettings(username);
+}
+
+async function resetUserSettings(username) {
+  await db.resetSettings(username);
+  return normalizeSettings(DEFAULT_SETTINGS);
 }
 
 function getOvertimeMinutes(workedMinutes) {
@@ -1071,6 +1094,7 @@ function buildHistoryExportLines(client, entries) {
 
 async function renderIndex(res, options = {}) {
   const username = options.username || res.locals.authUser || "";
+  const userSettings = await getUserSettings(username);
   const month = normalizeMonth(options.month);
   const { clients, selectedClient } = await getClientSelection(username, options.clientId);
   const archivedClients = await getArchivedClientHistory(username);
@@ -1094,9 +1118,9 @@ async function renderIndex(res, options = {}) {
   const defaultFormData = {
     date: formatDate(new Date()),
     dayType: DEFAULT_DAY_TYPE,
-    arrivalTime: "09:00",
-    departureTime: "17:00",
-    lunchBreakMinutes: 60,
+    arrivalTime: userSettings.defaultStartTime,
+    departureTime: userSettings.defaultEndTime,
+    lunchBreakMinutes: userSettings.defaultPause,
     commentText: "",
     originalWorkDate: "",
   };
@@ -1156,6 +1180,8 @@ async function renderIndex(res, options = {}) {
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
+    userSettings,
+    settingsDefaults: DEFAULT_SETTINGS,
     error: options.error || "",
     clientError: options.clientError || "",
     clientFormData: options.clientFormData || {
@@ -1599,6 +1625,21 @@ app.get("/api/entries/by-date", async (req, res) => {
       commentText: entry.comment_text || "",
     },
   });
+});
+
+app.get("/api/settings", async (req, res) => {
+  return res.json({ settings: await getUserSettings(req.authUser) });
+});
+
+app.post("/api/settings", async (req, res) => {
+  const input = req.body && typeof req.body === "object" ? req.body : {};
+  const nextSettings = await saveUserSettings(req.authUser, input);
+  return res.json({ settings: nextSettings });
+});
+
+app.post("/api/settings/reset", async (req, res) => {
+  const nextSettings = await resetUserSettings(req.authUser);
+  return res.json({ settings: nextSettings });
 });
 
 app.get("/entries/:workDate/edit", async (req, res) => {

@@ -1,8 +1,11 @@
-const STATIC_CACHE_NAME = "hours-static-v3";
+const STATIC_CACHE_NAME = "hours-static-v6";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
   "/theme.js",
+  "/settings-store.js",
+  "/onboarding.js",
+  "/workspace-tabs.js",
   "/icon.svg",
   "/icon-192.png",
   "/icon-512.png",

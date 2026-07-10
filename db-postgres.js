@@ -123,6 +123,21 @@ async function initializeDatabase() {
             ON pay_period_salaries (username, client_id, pay_period_month)
         `);
 
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS settings (
+            username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
+            key TEXT NOT NULL,
+            value JSONB NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (username, key)
+          )
+        `);
+
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_settings_username
+            ON settings (username)
+        `);
+
         await client.query("COMMIT");
       } catch (error) {
         await client.query("ROLLBACK");
@@ -465,6 +480,46 @@ async function getPayPeriodSalary(username, clientId, payPeriodMonth) {
   return result.rows[0] ? Number(result.rows[0].salary_amount_cents) : null;
 }
 
+async function getSettings(username) {
+  await initializeDatabase();
+  const result = await pool.query(
+    `
+      SELECT key, value
+      FROM settings
+      WHERE username = $1
+    `,
+    [username]
+  );
+  return Object.fromEntries(result.rows.map((row) => [row.key, row.value]));
+}
+
+async function upsertSettings(username, settings) {
+  await initializeDatabase();
+  const entries = Object.entries(settings);
+  for (const [key, value] of entries) {
+    await pool.query(
+      `
+        INSERT INTO settings (
+          username,
+          key,
+          value,
+          updated_at
+        )
+        VALUES ($1, $2, $3::jsonb, NOW())
+        ON CONFLICT (username, key) DO UPDATE SET
+          value = EXCLUDED.value,
+          updated_at = NOW()
+      `,
+      [username, key, JSON.stringify(value)]
+    );
+  }
+}
+
+async function resetSettings(username) {
+  await initializeDatabase();
+  await pool.query(`DELETE FROM settings WHERE username = $1`, [username]);
+}
+
 async function getUserByUsername(username) {
   await initializeDatabase();
   const result = await pool.query(
@@ -601,6 +656,9 @@ module.exports = {
   upsertPayPeriodSalary,
   deletePayPeriodSalary,
   getPayPeriodSalary,
+  getSettings,
+  upsertSettings,
+  resetSettings,
   getUserByUsername,
   createUser,
   updateUserPassword,

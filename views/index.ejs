@@ -478,24 +478,31 @@
     <% const _workedDayCount = typeof workedDayCount === "number" ? workedDayCount : 0; %>
     <% const _payPeriodStartDate = typeof payPeriodStartDate === "string" ? payPeriodStartDate : ""; %>
     <% const _payPeriodEndDate = typeof payPeriodEndDate === "string" ? payPeriodEndDate : ""; %>
-    <% const _payPeriodLabel = typeof payPeriodLabel === "string" ? payPeriodLabel : ""; %>
-    <% const _clientFormData = clientFormData && typeof clientFormData === "object" ? clientFormData : {}; %>
-    <%
-      const _userFirstName = user && typeof user.first_name === "string" ? user.first_name.trim() : "";
-      const _userLastName = user && typeof user.last_name === "string" ? user.last_name.trim() : "";
-      const _userFullName = [_userFirstName, _userLastName].filter(Boolean).join(" ").trim();
-      const authUser = _userFullName || (user && typeof user.email === "string" ? user.email.trim() : "");
-      const _userCompanyName = user && typeof user.company_name === "string" ? user.company_name.trim() : "";
-      const _userJobTitle = user && typeof user.job_title === "string" ? user.job_title.trim() : "";
-      const _userEmail = user && typeof user.email === "string" ? user.email.trim() : "";
-      const _mobileNavItems = [
-        { key: "dashboard", label: "Dashboard", icon: "◈" },
-        { key: "entry", label: "Saisie", icon: "✎" },
-        { key: "calendar", label: "Calendrier", icon: "▦" },
-        { key: "history", label: "Historique", icon: "🗂" },
-        { key: "stats", label: "Stats", icon: "◔" },
-        { key: "settings", label: "Réglages", icon: "⚙" },
-      ];
+	    <% const _payPeriodLabel = typeof payPeriodLabel === "string" ? payPeriodLabel : ""; %>
+	    <% const _clientFormData = clientFormData && typeof clientFormData === "object" ? clientFormData : {}; %>
+	    <%
+	      const _accountName = typeof authUser === "string" ? authUser.trim() : "";
+	      const _userCompanyName =
+	        _clientFormData && typeof _clientFormData.company_name === "string" && _clientFormData.company_name.trim()
+	          ? _clientFormData.company_name.trim()
+	          : selectedClient && typeof selectedClient.company_name === "string"
+	            ? selectedClient.company_name.trim()
+	            : "";
+	      const _userJobTitle = "";
+	      const _userEmail = "";
+	      const _userSettings = userSettings && typeof userSettings === "object" ? userSettings : {};
+	      const _settingsDailyGoalMinutes = Number(_userSettings.dailyGoal || 0);
+	      const _settingsDailyGoalHHMM = `${String(Math.floor(Math.max(0, _settingsDailyGoalMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _settingsDailyGoalMinutes) % 60).padStart(2, "0")}`;
+	      const _settingsWeeklyGoalHHMM = `${String(Math.floor((_settingsDailyGoalMinutes * 5) / 60)).padStart(2, "0")}:${String((_settingsDailyGoalMinutes * 5) % 60).padStart(2, "0")}`;
+	      const _settingsMonthlyGoalHours = Math.round((_settingsDailyGoalMinutes * 20) / 60);
+	      const _mobileNavItems = [
+	        { key: "dashboard", label: "Dashboard", icon: "◈" },
+	        { key: "entry", label: "Saisie", icon: "✎" },
+	        { key: "calendar", label: "Calendrier", icon: "▦" },
+	        { key: "history", label: "Archives", icon: "🗂" },
+	        { key: "stats", label: "Stats", icon: "◔" },
+	        { key: "settings", label: "Réglages", icon: "⚙" },
+	      ];
       const _settingsSections = [
         { key: "profile", icon: "👤", label: "Profil", description: "Informations personnelles et identité visuelle." },
         { key: "work", icon: "💼", label: "Travail", description: "Cadre de travail, horaires et rythme par défaut." },
@@ -506,13 +513,13 @@
         { key: "security", icon: "🔐", label: "Sécurité", description: "Accès, sessions et protection du compte." },
         { key: "help", icon: "📚", label: "Centre d'aide", description: "Base de connaissances, FAQ et support." },
         { key: "about", icon: "❤️", label: "À propos", description: "Version, licence, roadmap et changelog." },
-      ];
-      const _settingsGoalCards = [
-        { label: "Journalier", value: "7 h 00", meta: "Repère par journée travaillée" },
-        { label: "Hebdomadaire", value: "35 h 00", meta: "Vision sprint sur cinq jours" },
-        { label: "Mensuel", value: "140 h", meta: "Projection premium sur la période active" },
-        { label: "Annuel", value: "1 607 h", meta: "Capacité cible et pilotage long terme" },
-      ];
+	      ];
+	      const _settingsGoalCards = [
+	        { label: "Journalier", value: _settingsDailyGoalHHMM.replace(":", " h "), meta: "Repère piloté par la préférence active" },
+	        { label: "Hebdomadaire", value: _settingsWeeklyGoalHHMM.replace(":", " h "), meta: "Projection sur cinq journées travaillées" },
+	        { label: "Mensuel", value: `${_settingsMonthlyGoalHours} h`, meta: "Projection visuelle sur vingt journées" },
+	        { label: "Annuel", value: "1 607 h", meta: "Capacité cible et pilotage long terme" },
+	      ];
       const _settingsHelpCategories = [
         "Premiers pas",
         "Créer un client",
@@ -592,9 +599,9 @@
               title="Ajouter un client"
             >+</button>
           </form>
-          <div class="theme-picker">
-            <label for="themeSelectApp">Theme</label>
-            <select id="themeSelectApp" data-theme-selector>
+	          <div class="theme-picker">
+	            <label for="themeSelectApp">Theme</label>
+	            <select id="themeSelectApp" data-theme-selector data-setting-key="theme">
               <option value="light">Ivoire</option>
               <option value="dark">Nuit graphite</option>
               <option value="deep-ocean-blue">Bleu minuit</option>
@@ -735,16 +742,19 @@
 	              </div>
 	            </section>
 
-	            <section class="settings-panel" data-settings-section="work">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">💼 Travail</span>
-	                  <h3>Cadre de travail</h3>
-	                </div>
-	                <span class="badge-info">Structure prête</span>
-	              </div>
-	              <div class="settings-grid settings-grid-work">
-	                <div class="form-field">
+		            <section class="settings-panel" data-settings-section="work">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">💼 Travail</span>
+		                  <h3>Cadre de travail</h3>
+		                </div>
+		                <div class="settings-inline-actions">
+		                  <span class="badge-info">Store unique</span>
+		                  <button type="button" class="button-link button-neutral" data-settings-reset data-ripple>Réinitialiser les préférences</button>
+		                </div>
+		              </div>
+		              <div class="settings-grid settings-grid-work">
+		                <div class="form-field">
 	                  <label class="form-label" for="settingsContract">Contrat</label>
 	                  <select class="form-select" id="settingsContract">
 	                    <option>35 h</option>
@@ -752,27 +762,31 @@
 	                    <option>Forfait</option>
 	                    <option>Personnalisé</option>
 	                  </select>
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsDailyTarget">Objectif journalier</label>
-	                  <input class="form-input" id="settingsDailyTarget" type="text" placeholder="07:00" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsDefaultBreak">Pause par défaut</label>
-	                  <input class="form-input" id="settingsDefaultBreak" type="number" placeholder="60" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsTypicalHours">Horaires habituels</label>
-	                  <input class="form-input" id="settingsTypicalHours" type="text" placeholder="08:30 → 17:30" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsWeekStart">Premier jour de semaine</label>
-	                  <select class="form-select" id="settingsWeekStart">
-	                    <option>Lundi</option>
-	                    <option>Dimanche</option>
-	                  </select>
-	                </div>
-	              </div>
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsDailyTarget">Objectif journalier</label>
+		                  <input class="form-input" id="settingsDailyTarget" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsDefaultBreak">Pause par défaut</label>
+		                  <input class="form-input" id="settingsDefaultBreak" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsDefaultStartTime">Heure de début habituelle</label>
+		                  <input class="form-input" id="settingsDefaultStartTime" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsDefaultEndTime">Heure de fin habituelle</label>
+		                  <input class="form-input" id="settingsDefaultEndTime" type="time" step="60" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsWeekStart">Premier jour de semaine</label>
+		                  <select class="form-select" id="settingsWeekStart" data-setting-key="firstDayOfWeek">
+		                    <option value="monday" <%= _userSettings.firstDayOfWeek === 'monday' ? 'selected' : '' %>>Lundi</option>
+		                    <option value="sunday" <%= _userSettings.firstDayOfWeek === 'sunday' ? 'selected' : '' %>>Dimanche</option>
+		                  </select>
+		                </div>
+		              </div>
 	            </section>
 
 	            <section class="settings-panel" data-settings-section="goals">
@@ -800,38 +814,43 @@
 	                  <h3>Confort et cohérence visuelle</h3>
 	                </div>
 	              </div>
-	              <div class="settings-grid settings-grid-appearance">
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsTheme">Thème</label>
-	                  <select class="form-select" id="settingsTheme">
-	                    <option>Ivoire</option>
-	                    <option>Nuit graphite</option>
-	                    <option>Bleu minuit</option>
-	                  </select>
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsAccent">Couleur d'accent</label>
-	                  <select class="form-select" id="settingsAccent">
-	                    <option>Ambre premium</option>
-	                    <option>Bleu acier</option>
-	                    <option>Sauge</option>
-	                  </select>
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsAnimations">Animations</label>
-	                  <select class="form-select" id="settingsAnimations">
-	                    <option>Subtiles</option>
-	                    <option>Réduites</option>
-	                    <option>Désactivées</option>
-	                  </select>
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsCompactMode">Mode compact</label>
-	                  <select class="form-select" id="settingsCompactMode">
-	                    <option>Standard</option>
-	                    <option>Compact</option>
-	                  </select>
-	                </div>
+		              <div class="settings-grid settings-grid-appearance">
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsTheme">Thème</label>
+		                  <select class="form-select" id="settingsTheme" data-setting-key="theme">
+		                    <option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option>
+		                    <option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option>
+		                    <option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option>
+		                    <option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option>
+		                    <option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option>
+		                    <option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option>
+		                    <option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option>
+		                  </select>
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsAccent">Couleur d'accent</label>
+		                  <select class="form-select" id="settingsAccent" data-setting-key="accentColor">
+		                    <option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option>
+		                    <option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option>
+		                    <option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option>
+		                    <option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option>
+		                  </select>
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsAnimations">Animations</label>
+		                  <select class="form-select" id="settingsAnimations" data-setting-key="animations">
+		                    <option value="subtle" <%= _userSettings.animations === 'subtle' ? 'selected' : '' %>>Subtiles</option>
+		                    <option value="reduced" <%= _userSettings.animations === 'reduced' ? 'selected' : '' %>>Réduites</option>
+		                    <option value="off" <%= _userSettings.animations === 'off' ? 'selected' : '' %>>Désactivées</option>
+		                  </select>
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsCompactMode">Mode compact</label>
+		                  <select class="form-select" id="settingsCompactMode" data-setting-key="compactMode">
+		                    <option value="false" <%= !_userSettings.compactMode ? 'selected' : '' %>>Standard</option>
+		                    <option value="true" <%= _userSettings.compactMode ? 'selected' : '' %>>Compact</option>
+		                  </select>
+		                </div>
 	                <div class="form-field">
 	                  <label class="form-label" for="settingsFontSize">Taille police</label>
 	                  <select class="form-select" id="settingsFontSize">
@@ -850,12 +869,12 @@
 	                  <h3>Rappels et événements</h3>
 	                </div>
 	              </div>
-	              <div class="settings-toggle-grid">
-	                <label class="settings-toggle-card"><input type="checkbox" checked /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
-	                <label class="settings-toggle-card"><input type="checkbox" checked /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
-	                <label class="settings-toggle-card"><input type="checkbox" /><span><strong>Fin de semaine</strong><small>Préparer un bilan le vendredi.</small></span></label>
-	                <label class="settings-toggle-card"><input type="checkbox" /><span><strong>Nouveautés</strong><small>Réserver un canal pour les évolutions produit.</small></span></label>
-	              </div>
+		              <div class="settings-toggle-grid">
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.goalReached ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="goalReached" /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklySummary ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklySummary" /><span><strong>Fin de semaine</strong><small>Préparer un bilan le vendredi.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.productNews ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="productNews" /><span><strong>Nouveautés</strong><small>Réserver un canal pour les évolutions produit.</small></span></label>
+		              </div>
 	            </section>
 
 	            <section class="settings-panel" data-settings-section="export">
@@ -924,15 +943,20 @@
 	                <label class="form-label" for="settingsHelpSearch">Recherche</label>
 	                <input class="form-input" id="settingsHelpSearch" type="search" placeholder="Rechercher un guide, une FAQ ou un raccourci..." data-settings-help-search />
 	              </div>
-	              <div class="settings-help-grid" data-settings-help-grid>
-	                <% _settingsHelpCategories.forEach((category) => { %>
-	                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>">
-	                  <strong><%= category %></strong>
-	                  <span>Structure premium prête pour articles, pas-à-pas et liens support.</span>
-	                </article>
-	                <% }); %>
-	              </div>
-	            </section>
+		              <div class="settings-help-grid" data-settings-help-grid>
+		                <% _settingsHelpCategories.forEach((category) => { %>
+		                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>">
+		                  <strong><%= category %></strong>
+		                  <span>Structure premium prête pour articles, pas-à-pas et liens support.</span>
+		                </article>
+		                <% }); %>
+		                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer">
+		                  <strong>Relancer l'onboarding</strong>
+		                  <span>Rejouer l'expérience premium de bienvenue à tout moment.</span>
+		                  <button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer l'onboarding</button>
+		                </article>
+		              </div>
+		            </section>
 
 	            <section class="settings-panel" data-settings-section="about">
 	              <div class="settings-panel-head">
@@ -1094,27 +1118,27 @@
 	            </div>
 	          </div>
 	          <div class="cockpit-hero-progress">
-		            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
-		              <div class="cockpit-progress-ring-core">
-		                <span class="cockpit-progress-label progress-label">Temps travaillé</span>
-	                <strong><%= _todayWorkedHHMM %></strong>
-	                <span class="cockpit-progress-meta"><%= _todayProgress %>%</span>
-	              </div>
-	            </div>
-	            <div class="cockpit-progress-legend">
-	              <div class="cockpit-progress-item">
-	                <span>Objectif</span>
-	                <strong><%= _todayTargetHHMM %></strong>
-	              </div>
-	              <div class="cockpit-progress-item">
-	                <span>Restant</span>
-	                <strong><%= _todayRemainingHHMM %></strong>
-	              </div>
-	              <div class="cockpit-progress-item">
-	                <span>Lecture</span>
-	                <strong><%= _todayProgressMeta %></strong>
-	              </div>
-	            </div>
+			            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
+			              <div class="cockpit-progress-ring-core">
+			                <span class="cockpit-progress-label progress-label">Temps travaillé</span>
+		                <strong data-settings-cockpit="todayWorked"><%= _todayWorkedHHMM %></strong>
+		                <span class="cockpit-progress-meta" data-settings-cockpit="todayProgress"><%= _todayProgress %>%</span>
+		              </div>
+		            </div>
+		            <div class="cockpit-progress-legend">
+		              <div class="cockpit-progress-item">
+		                <span>Objectif</span>
+		                <strong data-settings-cockpit="todayTarget"><%= _todayTargetHHMM %></strong>
+		              </div>
+		              <div class="cockpit-progress-item">
+		                <span>Restant</span>
+		                <strong data-settings-cockpit="todayRemaining"><%= _todayRemainingHHMM %></strong>
+		              </div>
+		              <div class="cockpit-progress-item">
+		                <span>Lecture</span>
+		                <strong data-settings-cockpit="todayMeta"><%= _todayProgressMeta %></strong>
+		              </div>
+		            </div>
 	          </div>
 	        </article>
 
@@ -1143,11 +1167,11 @@
 	              <strong>Exporter</strong>
 	              <span>Télécharger la période active</span>
 	            </a>
-	            <button type="button" class="cockpit-action-card" data-dashboard-action="history" data-ripple>
-	              <span class="cockpit-action-icon" aria-hidden="true">🗂</span>
-	              <strong>Historique</strong>
-	              <span>Voir les journées détaillées</span>
-	            </button>
+		            <button type="button" class="cockpit-action-card" data-dashboard-action="history" data-ripple>
+		              <span class="cockpit-action-icon" aria-hidden="true">🗂</span>
+		              <strong>Archives</strong>
+		              <span>Ouvrir les clients archivés</span>
+		            </button>
 	          </div>
 	        </article>
 
@@ -1166,16 +1190,16 @@
 	            </div>
 	            <% }); %>
 	          </div>
-	          <div class="cockpit-week-summary">
-	            <div class="cockpit-stat-pill">
-	              <span>Semaine</span>
-	              <strong><%= _weekTotalHHMM %></strong>
-	            </div>
-	            <div class="cockpit-stat-pill">
-	              <span>Supplémentaires</span>
-	              <strong><%= _weekOvertimeHHMM %></strong>
-	            </div>
-	          </div>
+		          <div class="cockpit-week-summary">
+		            <div class="cockpit-stat-pill">
+		              <span>Semaine</span>
+		              <strong data-settings-cockpit="weekTotal"><%= _weekTotalHHMM %></strong>
+		            </div>
+		            <div class="cockpit-stat-pill">
+		              <span>Écart</span>
+		              <strong data-settings-cockpit="weekBalance"><%= _weekTrendLabel %></strong>
+		            </div>
+		          </div>
 	        </article>
 
 	        <article class="cockpit-panel cockpit-salary card premium-surface app-surface app-panel">
@@ -1213,17 +1237,17 @@
 	            <div class="cockpit-objective-meta">
 	              <div>
 	                <span>Objectif mensuel</span>
-	                <strong><%= _monthTargetHHMM %></strong>
-	              </div>
-	              <div>
-	                <span>Progression</span>
-	                <strong><%= _monthProgress %>%</strong>
-	              </div>
-	              <div>
-	                <span>Restant</span>
-	                <strong><%= _monthRemainingHHMM %></strong>
-	              </div>
-	            </div>
+		                <strong data-settings-cockpit="monthTarget"><%= _monthTargetHHMM %></strong>
+		              </div>
+		              <div>
+		                <span>Progression</span>
+		                <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
+		              </div>
+		              <div>
+		                <span>Restant</span>
+		                <strong data-settings-cockpit="monthRemaining"><%= _monthRemainingHHMM %></strong>
+		              </div>
+		            </div>
 	          </div>
 	        </article>
 
@@ -1254,11 +1278,25 @@
 	              <strong><%= _activeClientsCount %></strong>
 	            </div>
 	          </div>
-	        </article>
-	      </section>
-            <div class="between-sections-spacer" aria-hidden="true"></div>
-          </div>
-          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie">
+		        </article>
+		      </section>
+	              <section class="workspace-tabs-panel desktop-workspace-tabs card premium-surface app-surface app-card" data-workspace-tabs>
+	                <div class="workspace-tabs-header">
+	                  <div>
+	                    <span class="section-eyebrow">Navigation</span>
+	                    <h3>Accès rapides</h3>
+	                  </div>
+	                  <span class="badge-info">Une seule section active</span>
+	                </div>
+	                <div class="workspace-tabs-nav" aria-label="Sous-onglets de travail">
+	                  <button type="button" class="workspace-tab-button" data-workspace-tab data-workspace-target="entry" aria-pressed="false">1. Saisir une journée</button>
+	                  <button type="button" class="workspace-tab-button is-active" data-workspace-tab data-workspace-target="calendar" aria-pressed="true">2. Période de paie</button>
+	                  <button type="button" class="workspace-tab-button" data-workspace-tab data-workspace-target="history" aria-pressed="false">3. Archives</button>
+	                </div>
+	              </section>
+	            <div class="between-sections-spacer" aria-hidden="true"></div>
+	          </div>
+	          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie" data-workspace-panel="entry">
 	      <section class="card entry-card premium-surface app-surface app-card" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
@@ -1439,7 +1477,7 @@
       </section>
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
-          <div class="mobile-premium-view" data-mobile-view="calendar" data-mobile-title="Calendrier">
+	          <div class="mobile-premium-view" data-mobile-view="calendar" data-mobile-title="Calendrier" data-workspace-panel="calendar">
       <%
         const _safeFormData = formData && typeof formData === "object" ? formData : {};
         const _safeDefaultEntryFormData =
@@ -1762,201 +1800,152 @@
             </div>
             <p class="calendar-empty-filter" data-calendar-empty hidden>Aucune journée ne correspond à ce filtre.</p>
 
-            <div class="calendar-history-shortcut">
-              <span>Historique premium disponible dans le panneau Historique.</span>
-            </div>
+	            <div class="calendar-history-shortcut">
+	              <span>Sélectionnez une date pour ouvrir son détail premium ou créer une journée.</span>
+	            </div>
           </div>
         </div>
       </section>
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
-          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Historique">
-      <%
-        const _historyQuickFilters = [
-          { value: "all", label: "Toutes", count: entries.length },
-          { value: "work", label: "Travail", count: entries.filter((entry) => entry.is_worked_day).length },
-          { value: "leave", label: "Congé", count: entries.filter((entry) => ["leave", "rtt", "holiday"].includes(entry.day_type)).length },
-          { value: "sick", label: "Maladie", count: entries.filter((entry) => entry.day_type === "sick_leave").length },
-          { value: "recovery", label: "Récupération", count: entries.filter((entry) => Number(entry.recovered_minutes || 0) > 0).length },
-        ];
-      %>
-      <section class="card premium-surface premium-surface-wide history-premium-card app-surface app-card" data-history-premium-card>
-        <div class="entry-card-top">
-          <div class="section-heading">
-            <p class="section-eyebrow">Historique</p>
-            <h2>Journées détaillées</h2>
-          </div>
-          <div class="history-premium-summary">
-            <span><%= entries.length %> entrée<%= entries.length > 1 ? "s" : "" %></span>
-            <span><%= totalHHMM %></span>
-          </div>
-        </div>
-        <div class="history-premium-panel">
-          <div class="history-premium-toolbar">
-            <div class="field">
-              <label for="historySearchInput">Recherche rapide</label>
-              <input
-                id="historySearchInput"
-                type="search"
-                placeholder="Date, type, commentaire, durée, horaires..."
-                data-history-search
-              />
-            </div>
-            <div class="history-premium-quickfilters" data-history-quickfilters>
-              <% _historyQuickFilters.forEach((filter, index) => { %>
-              <button
-                type="button"
-                class="history-quickfilter-chip <%= index === 0 ? 'is-active' : '' %>"
-                data-history-quickfilter="<%= filter.value %>"
-                data-ripple
-                aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-              >
-                <span><%= filter.label %></span>
-                <span class="history-quickfilter-count"><%= filter.count %></span>
-              </button>
-              <% }); %>
-            </div>
-          </div>
-          <% if (entries.length === 0) { %>
-	          <div class="history-premium-empty state-empty">
-            <strong>Aucune entrée enregistrée</strong>
-            <span>Commencez par saisir une journée pour voir l’historique premium ici.</span>
-          </div>
-          <% } else { %>
-          <div class="history-premium-list" data-history-list>
-            <% entries.forEach((entry) => { %>
-            <article
-	              class="history-entry-card app-card-compact <%= [entry.week_color_class, entry.under_target ? 'under-target' : '', _editingWorkDate === entry.work_date ? 'editing-row' : ''].filter(Boolean).join(' ') %>"
-              data-day-entry-row
-              data-day-type="<%= entry.day_type %>"
-              data-week-key="<%= entry.week_start || '' %>"
-              data-history-item
-              data-history-category="<%= entry.recovered_minutes > 0 ? 'recovery' : entry.is_worked_day ? 'work' : entry.day_type === 'sick_leave' ? 'sick' : ['leave', 'rtt', 'holiday'].includes(entry.day_type) ? 'leave' : 'all' %>"
-              data-history-search="<%= [
-                entry.work_date,
-                entry.work_date_display,
-                entry.day_type_display,
-                entry.comment_text || '',
-                entry.worked_hhmm,
-                entry.arrival_time_display,
-                entry.departure_time_display,
-                entry.lunch_break_minutes_display,
-                entry.overtime_hhmm,
-                entry.recovered_hhmm
-              ].join(' ').toLowerCase() %>"
-            >
-              <div class="history-entry-head">
-                <div class="history-entry-dateblock">
-                  <span class="history-entry-kicker"><%= entry.work_date %></span>
-                  <h3><%= entry.work_date_display %></h3>
-                </div>
-                <div class="history-entry-durationblock">
-                  <span class="history-entry-kicker">Durée</span>
-                  <strong><%= entry.worked_hhmm %></strong>
-                </div>
-              </div>
-              <div class="history-entry-metrics">
-                <div class="history-entry-metric">
-                  <span class="history-entry-metric-label">Horaire</span>
-                  <strong><%= entry.arrival_time_display && entry.departure_time_display ? `${entry.arrival_time_display} → ${entry.departure_time_display}` : "Aucun horaire" %></strong>
-                </div>
-                <div class="history-entry-metric">
-                  <span class="history-entry-metric-label">Pause</span>
-                  <strong><%= entry.lunch_break_minutes_display !== "" ? `${entry.lunch_break_minutes_display} min` : "Aucune" %></strong>
-                </div>
-                <div class="history-entry-metric">
-                  <span class="history-entry-metric-label">Type</span>
-                  <strong><%= entry.day_type_display %></strong>
-                </div>
-                <div class="history-entry-metric">
-                  <span class="history-entry-metric-label">État</span>
-                  <span class="status-pill <%= !entry.is_worked_day ? 'neutral' : entry.recovered_minutes > 0 ? 'recovered' : entry.under_target ? 'under' : 'ok' %>">
-                    <%= !entry.is_worked_day ? entry.day_type_display : entry.recovered_minutes > 0 ? `Recup ${entry.recovered_hhmm}` : entry.under_target ? 'Moins de 7h' : 'OK' %>
-                  </span>
-                </div>
-              </div>
-              <% if (entry.comment_text) { %>
-              <div class="history-entry-comment">
-                <span class="history-entry-metric-label">Commentaire</span>
-                <p><%= entry.comment_text %></p>
-              </div>
-              <% } %>
-              <div class="history-entry-actions row-actions">
-                <a
-	                  class="button-link secondary-link btn-secondary"
-                  data-ripple
-                  href="/entries/<%= entry.work_date %>/edit?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-                >
-                  Modifier
-                </a>
-                <form
-                  action="/entries/<%= entry.work_date %>/delete"
-                  method="post"
-                  onsubmit="return confirm('Supprimer cette journee ?');"
-                >
-                  <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                  <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-                  <button type="submit" class="danger" data-ripple>Supprimer</button>
-                </form>
-              </div>
-            </article>
-            <% }); %>
-          </div>
-	          <div class="history-premium-empty history-premium-empty-filter state-empty" data-history-empty-filter hidden>
-            <strong>Aucun résultat</strong>
-            <span>Essayez une autre recherche ou un autre filtre rapide.</span>
-          </div>
-          <div class="history-premium-footer">
-            <div class="history-premium-total">
-              <span>Total période</span>
-              <strong><%= totalHHMM %></strong>
-            </div>
-            <div class="history-premium-total">
-              <span>Jours travaillés</span>
-              <strong><%= _workedDayCount %></strong>
-            </div>
-            <div class="history-premium-total">
-              <span>Heures sup</span>
-              <strong><%= totalOvertimeHHMM %></strong>
-            </div>
-            <div class="history-premium-total">
-              <span>Récup</span>
-              <strong><%= totalRecoveredHHMM %></strong>
-            </div>
-            <div class="history-premium-total history-premium-total-salary">
-              <details class="salary-editor" <%= _showSalaryEditor ? "open" : "" %>>
-                <summary class="salary-editor-summary">
-                  <span>Salaire net</span>
-                  <span class="salary-editor-trigger" aria-hidden="true">+</span>
-                </summary>
-                <form action="/pay-period-salary" method="post" class="salary-editor-panel">
-                  <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                  <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
-                  <label for="salaryAmountInline">Montant</label>
-                  <input
-                    id="salaryAmountInline"
-                    name="salaryAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputmode="decimal"
-                    value="<%= salaryAmountInput %>"
-                    placeholder="Ex: 4850.00"
-                  />
-                  <button type="submit" data-ripple>OK</button>
-                </form>
-              </details>
-              <strong><%= salaryAmountDisplay %></strong>
-              <% if (hourlyRateDisplay) { %>
-              <span><%= hourlyRateDisplay %> sur <%= totalHHMM %></span>
-              <% } %>
-            </div>
-          </div>
-          <% } %>
-        </div>
-      </section>
-            <div class="between-sections-spacer" aria-hidden="true"></div>
-          </div>
+	          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Archives" data-workspace-panel="history">
+	      <% if (archivedClients && archivedClients.length > 0) { %>
+	      <section class="card premium-surface archived-clients-card app-surface app-card" data-archived-clients-card>
+	        <div class="entry-card-top">
+	          <div class="section-heading">
+	            <p class="section-eyebrow">Archives</p>
+	            <h2>Clients archives</h2>
+	          </div>
+	          <button
+	            type="button"
+	            class="card-toggle"
+	            data-archived-clients-toggle
+	            data-ripple
+	            aria-expanded="true"
+	            aria-controls="archivedClientsPanel"
+	            title="Replier ou ouvrir les archives"
+	          >
+	            <span class="card-toggle-icon" aria-hidden="true">&#9662;</span>
+	          </button>
+	        </div>
+	        <div id="archivedClientsPanel" class="archived-clients-panel" data-archived-clients-panel>
+	          <div class="archived-clients-toolbar">
+	            <div class="field">
+	              <label for="archivedClientSearch">Recherche par nom de client</label>
+	              <input
+	                id="archivedClientSearch"
+	                type="search"
+	                placeholder="Nom du client"
+	                data-archived-client-search
+	              />
+	            </div>
+	          </div>
+	          <div class="archived-clients-list" data-archived-clients-list>
+	            <% archivedClients.forEach((client) => { %>
+	            <article
+	              class="archived-client-item"
+	              data-archived-client-item
+	              data-client-name="<%= client.company_name.toLowerCase() %>"
+	            >
+	              <div class="archived-client-summary">
+	                <div>
+	                  <span class="archived-client-name"><%= client.company_name %></span>
+	                  <span class="archived-client-meta">
+	                    Archive le <%= client.archived_at_display || client.archived_at %> - <%= client.entry_count %> journee(s) - <%= client.total_hhmm %>
+	                  </span>
+	                </div>
+	                <div class="archived-client-actions">
+	                  <a
+	                    class="button-link"
+	                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+	                    data-ripple
+	                  >
+	                    Export CSV
+	                  </a>
+	                  <form action="/clients/<%= client.id %>/restore" method="post">
+	                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+	                    <button type="submit" class="button-link button-neutral" data-ripple>Restaurer</button>
+	                  </form>
+	                  <button
+	                    type="button"
+	                    class="button-link button-neutral"
+	                    data-archived-history-toggle
+	                    aria-expanded="false"
+	                    data-ripple
+	                  >
+	                    Voir historique
+	                  </button>
+	                  <form
+	                    action="/clients/<%= client.id %>/delete"
+	                    method="post"
+	                    onsubmit="return confirm('Supprimer définitivement ce client archivé ?');"
+	                  >
+	                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+	                    <button type="submit" class="danger archived-delete-button" data-ripple>
+	                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+	                        <path
+	                          d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"
+	                          fill="none"
+	                          stroke="currentColor"
+	                          stroke-width="1.8"
+	                          stroke-linecap="round"
+	                          stroke-linejoin="round"
+	                        />
+	                      </svg>
+	                      Supprimer
+	                    </button>
+	                  </form>
+	                </div>
+	              </div>
+	              <div class="archived-history" data-archived-history hidden>
+	                <div class="table-wrapper table-wrapper-history">
+	                  <table class="history-table">
+	                    <thead>
+	                      <tr>
+	                        <th>Date</th>
+	                        <th>Type</th>
+	                        <th>Arrivée</th>
+	                        <th>Départ</th>
+	                        <th>Pause</th>
+	                        <th>Heures</th>
+	                        <th>Commentaire</th>
+	                      </tr>
+	                    </thead>
+	                    <tbody>
+	                      <% client.entries.forEach((entry) => { %>
+	                      <tr>
+	                        <td><%= entry.work_date_display || entry.work_date %></td>
+	                        <td><%= entry.day_type_display %></td>
+	                        <td><%= entry.arrival_time_display || "-" %></td>
+	                        <td><%= entry.departure_time_display || "-" %></td>
+	                        <td><%= entry.lunch_break_minutes_display !== "" ? `${entry.lunch_break_minutes_display} min` : "-" %></td>
+	                        <td><%= entry.worked_hhmm %></td>
+	                        <td><%= entry.comment_text || "-" %></td>
+	                      </tr>
+	                      <% }); %>
+	                    </tbody>
+	                  </table>
+	                </div>
+	              </div>
+	            </article>
+	            <% }); %>
+	          </div>
+	          <p class="empty" data-archived-client-empty hidden>Aucun client archive ne correspond a cette recherche.</p>
+	        </div>
+	      </section>
+	      <% } else { %>
+	      <section class="card premium-surface mobile-history-empty-card app-surface app-card">
+	        <div class="entry-card-top">
+	          <div class="section-heading">
+	            <p class="section-eyebrow">Archives</p>
+	            <h2>Aucun client archivé</h2>
+	          </div>
+	        </div>
+	        <p class="state-empty">Les archives apparaîtront ici dès qu’un client sera archivé.</p>
+	      </section>
+	      <% } %>
+	            <div class="between-sections-spacer" aria-hidden="true"></div>
+	          </div>
 	          <div class="mobile-premium-view mobile-premium-view-stats" data-mobile-view="stats" data-mobile-title="Stats">
 	            <section class="card premium-surface mobile-stats-card">
               <div class="entry-card-top">
@@ -2006,7 +1995,7 @@
 	                </div>
 	                <button type="button" class="button-link button-neutral" data-open-command-palette data-ripple>⌘K</button>
 	              </div>
-	              <div class="settings-mobile-nav" aria-label="Navigation paramètres mobile">
+		              <div class="settings-mobile-nav" aria-label="Navigation paramètres mobile">
 	                <% _settingsSections.forEach((section, index) => { %>
 	                <button
 	                  type="button"
@@ -2019,8 +2008,11 @@
 	                  <span><%= section.label %></span>
 	                </button>
 	                <% }); %>
-	              </div>
-	              <div class="settings-mobile-sections">
+		              </div>
+		              <div class="settings-inline-actions">
+		                <button type="button" class="button-link button-neutral" data-settings-reset data-ripple>Réinitialiser les préférences</button>
+		              </div>
+		              <div class="settings-mobile-sections">
 	                <% _settingsSections.forEach((section) => { %>
 	                <article class="settings-mobile-section app-card-compact" data-settings-section="<%= section.key %>">
 	                  <span class="section-eyebrow"><%= section.icon %> <%= section.label %></span>
@@ -2031,29 +2023,44 @@
 	                    <div class="form-field"><label class="form-label">Nom</label><input class="form-input" type="text" placeholder="Nom complet" value="<%= authUser || '' %>" /></div>
 		                    <div class="form-field"><label class="form-label">Entreprise</label><input class="form-input" type="text" placeholder="Entreprise" value="<%= _userCompanyName || (selectedClient ? selectedClient.name : '') %>" /></div>
 	                  </div>
-	                  <% } else if (section.key === "work") { %>
-	                  <div class="settings-mobile-stack">
-	                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select"><option>35 h</option><option>39 h</option><option>Forfait</option><option>Personnalisé</option></select></div>
-	                    <div class="form-field"><label class="form-label">Objectif journalier</label><input class="form-input" type="text" placeholder="07:00" /></div>
-	                  </div>
-	                  <% } else if (section.key === "goals") { %>
-	                  <div class="settings-kpi-grid">
+		                  <% } else if (section.key === "work") { %>
+		                  <div class="settings-mobile-stack">
+		                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select"><option>35 h</option><option>39 h</option><option>Forfait</option><option>Personnalisé</option></select></div>
+		                    <div class="form-field"><label class="form-label" for="settingsDailyTargetMobile">Objectif journalier</label><input class="form-input" id="settingsDailyTargetMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div>
+		                    <div class="form-field"><label class="form-label" for="settingsDefaultBreakMobile">Pause par défaut</label><input class="form-input" id="settingsDefaultBreakMobile" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div>
+		                    <div class="form-field"><label class="form-label" for="settingsDefaultStartTimeMobile">Début habituel</label><input class="form-input" id="settingsDefaultStartTimeMobile" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div>
+		                    <div class="form-field"><label class="form-label" for="settingsDefaultEndTimeMobile">Fin habituelle</label><input class="form-input" id="settingsDefaultEndTimeMobile" type="time" step="60" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" /></div>
+		                    <div class="form-field"><label class="form-label" for="settingsWeekStartMobile">Premier jour</label><select class="form-select" id="settingsWeekStartMobile" data-setting-key="firstDayOfWeek"><option value="monday" <%= _userSettings.firstDayOfWeek === 'monday' ? 'selected' : '' %>>Lundi</option><option value="sunday" <%= _userSettings.firstDayOfWeek === 'sunday' ? 'selected' : '' %>>Dimanche</option></select></div>
+		                  </div>
+		                  <% } else if (section.key === "goals") { %>
+		                  <div class="settings-kpi-grid">
 	                    <% _settingsGoalCards.forEach((goalCard) => { %>
 	                    <article class="stat-card app-card-compact">
 	                      <span class="stat-label"><%= goalCard.label %></span>
 	                      <strong class="stat-value"><%= goalCard.value %></strong>
 	                    </article>
-	                    <% }); %>
-	                  </div>
-	                  <% } else if (section.key === "help") { %>
-	                  <div class="settings-mobile-stack">
-	                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
-	                    <div class="settings-help-grid" data-settings-help-grid>
-	                      <% _settingsHelpCategories.slice(0, 6).forEach((category) => { %>
-	                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>"><strong><%= category %></strong><span>Base prête.</span></article>
-	                      <% }); %>
-	                    </div>
-	                  </div>
+		                  <% }); %>
+		                  </div>
+		                  <% } else if (section.key === "appearance") { %>
+		                  <div class="settings-mobile-stack">
+		                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option></select></div>
+		                    <div class="form-field"><label class="form-label" for="settingsAccentMobile">Accent</label><select class="form-select" id="settingsAccentMobile" data-setting-key="accentColor"><option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option><option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option><option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option><option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option></select></div>
+		                  </div>
+		                  <% } else if (section.key === "notifications") { %>
+		                  <div class="settings-mobile-stack">
+		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
+		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.goalReached ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="goalReached" /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
+		                  </div>
+		                  <% } else if (section.key === "help") { %>
+		                  <div class="settings-mobile-stack">
+		                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
+		                    <div class="settings-help-grid" data-settings-help-grid>
+		                      <% _settingsHelpCategories.slice(0, 6).forEach((category) => { %>
+		                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>"><strong><%= category %></strong><span>Base prête.</span></article>
+		                      <% }); %>
+		                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer"><strong>Relancer l'onboarding</strong><span>Relancer l'assistant premium depuis le mobile.</span><button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer</button></article>
+		                    </div>
+		                  </div>
 	                  <% } else if (section.key === "about") { %>
 	                  <div class="settings-mobile-stack">
 	                    <article class="app-card-compact"><strong>Version 0.9</strong><span>Roadmap et changelog prêts.</span></article>
@@ -2112,147 +2119,7 @@
       </section>
       <% } %>
 
-	      <% if (archivedClients && archivedClients.length > 0) { %>
-      <div class="between-sections-spacer" aria-hidden="true"></div>
-      <section class="card premium-surface archived-clients-card" data-archived-clients-card>
-        <div class="entry-card-top">
-          <div class="section-heading">
-            <p class="section-eyebrow">Archives</p>
-            <h2>Clients archives</h2>
-          </div>
-          <button
-            type="button"
-            class="card-toggle"
-            data-archived-clients-toggle
-            data-ripple
-            aria-expanded="true"
-            aria-controls="archivedClientsPanel"
-            title="Replier ou ouvrir les archives"
-          >
-            <span class="card-toggle-icon" aria-hidden="true">&#9662;</span>
-          </button>
-        </div>
-        <div id="archivedClientsPanel" class="archived-clients-panel" data-archived-clients-panel>
-          <div class="archived-clients-toolbar">
-            <div class="field">
-              <label for="archivedClientSearch">Recherche par nom de client</label>
-              <input
-                id="archivedClientSearch"
-                type="search"
-                placeholder="Nom du client"
-                data-archived-client-search
-              />
-            </div>
-          </div>
-          <div class="archived-clients-list" data-archived-clients-list>
-            <% archivedClients.forEach((client) => { %>
-            <article
-              class="archived-client-item"
-              data-archived-client-item
-              data-client-name="<%= client.company_name.toLowerCase() %>"
-            >
-              <div class="archived-client-summary">
-                <div>
-                  <span class="archived-client-name"><%= client.company_name %></span>
-                  <span class="archived-client-meta">
-                    Archive le <%= client.archived_at_display || client.archived_at %> - <%= client.entry_count %> journee(s) - <%= client.total_hhmm %>
-                  </span>
-                </div>
-                
-                <div class="archived-client-actions">
-                  <a
-                    class="button-link"
-                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
-                    data-ripple
-                  >
-                    Export CSV
-                  </a>
-                  <form action="/clients/<%= client.id %>/restore" method="post">
-                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                    <button type="submit" data-ripple>Modifier</button>
-                  </form>
-                  <button
-                    type="button"
-                    class="secondary"
-                    data-archived-history-toggle
-                    data-ripple
-                    aria-expanded="false"
-                  >
-                    Voir historique
-                  </button>
-                  <form
-                    action="/clients/<%= client.id %>/delete"
-                    method="post"
-                    onsubmit="return confirm('Voulez-vous supprimer definitivement ce client ?');"
-                  >
-                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-                    <button
-                      type="submit"
-                      class="danger archived-delete-button"
-                      data-ripple
-                      aria-label="Supprimer definitivement ce client"
-                      title="Supprimer definitivement"
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path
-                          d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.9"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </form>
-                </div>
-              </div>
-              <div class="archived-history" data-archived-history hidden>
-                <div class="table-wrapper table-wrapper-history">
-                  <table class="history-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Arrivee</th>
-                        <th>Depart</th>
-                        <th>Pause (min)</th>
-                        <th>Heures</th>
-                        <th>Heures sup</th>
-                        <th>Commentaire</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% if (client.entries.length === 0) { %>
-                      <tr>
-                        <td colspan="8" class="empty">Aucune journee enregistree pour ce client.</td>
-                      </tr>
-                      <% } %>
-                      <% client.entries.forEach((entry) => { %>
-                      <tr>
-                        <td class="date-cell" data-label="Date"><%= entry.work_date_display %></td>
-                        <td data-label="Type"><%= entry.day_type_display %></td>
-                        <td data-label="Arrivee"><%= entry.arrival_time_display %></td>
-                        <td data-label="Depart"><%= entry.departure_time_display %></td>
-                        <td data-label="Pause (min)"><%= entry.lunch_break_minutes_display %></td>
-                        <td data-label="Heures"><%= entry.worked_hhmm %></td>
-                        <td data-label="Heures sup"><%= entry.overtime_hhmm %></td>
-                        <td class="comment-cell" data-label="Commentaire"><%= entry.comment_text || "" %></td>
-                      </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </article>
-            <% }); %>
-            <p class="empty" data-archived-client-empty hidden>Aucun client archive ne correspond a cette recherche.</p>
-          </div>
-        </div>
-	      </section>
-	      <% } %>
-
-	      <div class="command-palette" data-command-palette hidden>
+		      <div class="command-palette" data-command-palette hidden>
 	        <button type="button" class="command-palette-backdrop" data-close-command-palette aria-label="Fermer la Command Palette"></button>
 	        <section class="command-palette-dialog card premium-surface app-surface app-card" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
 	          <div class="command-palette-head">
@@ -2410,9 +2277,9 @@
         <p>Aucun client sélectionné.</p>
         <% } %>
       </section>
-    </div>
+	    </div>
 
-    <div class="client-modal" data-confirm-replace-modal <%= _showReplaceConfirmation ? "" : "hidden" %>>
+	    <div class="client-modal" data-confirm-replace-modal <%= _showReplaceConfirmation ? "" : "hidden" %>>
       <div class="client-modal-backdrop" data-close-confirm-replace-modal></div>
       <section class="card premium-surface client-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmReplaceTitle">
         <div class="client-modal-header">
@@ -2429,11 +2296,231 @@
           <button type="button" class="button-link button-neutral" data-close-confirm-replace-modal data-ripple>Non</button>
           <button type="button" class="danger" data-confirm-replace-submit data-ripple>Valider la modification</button>
         </div>
-      </section>
-    </div>
+	      </section>
+	    </div>
 
-	    <script src="/theme.js"></script>
-	    <script>
+	    <div class="client-modal" data-day-details-modal hidden>
+	      <div class="client-modal-backdrop" data-close-day-details-modal></div>
+	      <section class="card premium-surface client-modal-dialog day-details-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="dayDetailsTitle">
+	        <div class="client-modal-header">
+	          <div class="section-heading">
+	            <p class="section-eyebrow">Période de paie</p>
+	            <h2 id="dayDetailsTitle">Détail de la journée</h2>
+	          </div>
+	          <button type="button" class="client-modal-close secondary" data-close-day-details-modal aria-label="Fermer">×</button>
+	        </div>
+	        <div class="day-details-shell" data-day-details-content></div>
+	      </section>
+	    </div>
+
+	    <div class="onboarding-overlay" data-onboarding hidden>
+	      <div class="onboarding-shell card premium-surface app-surface app-card">
+	        <div class="onboarding-topbar">
+	          <div>
+	            <span class="section-eyebrow">TimePilot Welcome</span>
+	            <strong data-onboarding-progress-label>Étape 1 sur 6</strong>
+	          </div>
+	          <div class="onboarding-topbar-actions">
+	            <button type="button" class="button-link button-neutral" data-onboarding-skip>Passer</button>
+	          </div>
+	        </div>
+	        <div class="onboarding-progress" aria-hidden="true">
+	          <span class="onboarding-progress-fill" data-onboarding-progress-fill></span>
+	        </div>
+	        <div class="onboarding-steps">
+	          <section class="onboarding-step" data-onboarding-step="1">
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Bienvenue</span>
+	              <h2>Bienvenue dans TimePilot</h2>
+	              <p>Deux minutes suffisent pour personnaliser votre espace, préparer votre rythme de travail et découvrir le cockpit premium.</p>
+	            </div>
+	            <div class="onboarding-hero-grid">
+	              <article class="app-card-compact"><strong>Assistant guidé</strong><span>6 étapes courtes avec sauvegarde automatique.</span></article>
+	              <article class="app-card-compact"><strong>Reprise instantanée</strong><span>Vous reprenez exactement là où vous vous êtes arrêté.</span></article>
+	              <article class="app-card-compact"><strong>Application immédiate</strong><span>Thème, accent et réglages visibles en direct.</span></article>
+	            </div>
+	          </section>
+	          <section class="onboarding-step" data-onboarding-step="2" hidden>
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Profil</span>
+	              <h2>Votre identité de travail</h2>
+	              <p>Ces informations restent purement visuelles et personnelles.</p>
+	            </div>
+	            <div class="onboarding-grid">
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingProfileName">Nom</label>
+	                <input class="form-input" id="onboardingProfileName" type="text" data-onboarding-field="profileName" placeholder="Ex: Alice Martin" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingCompanyName">Entreprise</label>
+	                <input class="form-input" id="onboardingCompanyName" type="text" data-onboarding-field="companyName" placeholder="Ex: TimePilot Studio" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingProfilePhoto">Photo (facultatif)</label>
+	                <input class="form-input" id="onboardingProfilePhoto" type="file" accept="image/*" data-onboarding-upload="profilePhoto" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingCompanyLogo">Logo (facultatif)</label>
+	                <input class="form-input" id="onboardingCompanyLogo" type="file" accept="image/*" data-onboarding-upload="companyLogo" />
+	              </div>
+	            </div>
+	            <div class="onboarding-media-grid">
+	              <div class="onboarding-media-card">
+	                <span>Photo</span>
+	                <div class="onboarding-media-preview" data-onboarding-preview="profilePhoto">Aperçu</div>
+	              </div>
+	              <div class="onboarding-media-card">
+	                <span>Logo</span>
+	                <div class="onboarding-media-preview" data-onboarding-preview="companyLogo">Aperçu</div>
+	              </div>
+	            </div>
+	          </section>
+	          <section class="onboarding-step" data-onboarding-step="3" hidden>
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Configuration</span>
+	              <h2>Votre cadre de travail</h2>
+	              <p>Ces réglages alimentent votre expérience sans toucher au moteur métier.</p>
+	            </div>
+	            <div class="onboarding-grid">
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingContractType">Contrat</label>
+	                <select class="form-select" id="onboardingContractType" data-onboarding-field="contractType">
+	                  <option value="35h">35 h</option>
+	                  <option value="39h">39 h</option>
+	                  <option value="freelance">Freelance</option>
+	                  <option value="custom">Personnalisé</option>
+	                </select>
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingFirstDay">Premier jour semaine</label>
+	                <select class="form-select" id="onboardingFirstDay" data-onboarding-field="firstDayOfWeek">
+	                  <option value="monday">Lundi</option>
+	                  <option value="sunday">Dimanche</option>
+	                </select>
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingDailyGoal">Objectif journalier</label>
+	                <input class="form-input" id="onboardingDailyGoal" type="time" step="60" data-onboarding-field="dailyGoal" />
+	              </div>
+	            </div>
+	          </section>
+	          <section class="onboarding-step" data-onboarding-step="4" hidden>
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Horaires</span>
+	              <h2>Votre journée type</h2>
+	              <p>Préremplissage instantané pour chaque nouvelle journée.</p>
+	            </div>
+	            <div class="onboarding-grid">
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingStartTime">Début</label>
+	                <input class="form-input" id="onboardingStartTime" type="time" step="60" data-onboarding-field="defaultStartTime" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingEndTime">Fin</label>
+	                <input class="form-input" id="onboardingEndTime" type="time" step="60" data-onboarding-field="defaultEndTime" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingDefaultPause">Pause</label>
+	                <input class="form-input" id="onboardingDefaultPause" type="number" min="0" data-onboarding-field="defaultPause" />
+	              </div>
+	            </div>
+	            <div class="onboarding-preview-card">
+	              <span class="section-eyebrow">Prévisualisation</span>
+	              <strong data-onboarding-live-preview>09:00 → 17:00 avec 60 min de pause</strong>
+	              <span>Cette configuration sera proposée automatiquement lors d'une nouvelle saisie.</span>
+	            </div>
+	          </section>
+	          <section class="onboarding-step" data-onboarding-step="5" hidden>
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Apparence</span>
+	              <h2>Votre signature visuelle</h2>
+	              <p>Les changements sont appliqués immédiatement sur l'application.</p>
+	            </div>
+	            <div class="onboarding-grid">
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingAccentColor">Accent</label>
+	                <select class="form-select" id="onboardingAccentColor" data-onboarding-field="accentColor">
+	                  <option value="amber">Ambre premium</option>
+	                  <option value="steel">Bleu acier</option>
+	                  <option value="sage">Sauge</option>
+	                  <option value="coral">Corail</option>
+	                </select>
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingTheme">Mode</label>
+	                <select class="form-select" id="onboardingTheme" data-onboarding-field="theme">
+	                  <option value="light">Clair</option>
+	                  <option value="dark">Sombre</option>
+	                </select>
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingAnimations">Animations</label>
+	                <select class="form-select" id="onboardingAnimations" data-onboarding-field="animations">
+	                  <option value="subtle">Subtiles</option>
+	                  <option value="reduced">Réduites</option>
+	                  <option value="off">Désactivées</option>
+	                </select>
+	              </div>
+	            </div>
+	          </section>
+	          <section class="onboarding-step" data-onboarding-step="6" hidden>
+	            <div class="onboarding-step-copy">
+	              <span class="section-eyebrow">Félicitations</span>
+	              <h2>Votre cockpit est prêt</h2>
+	              <p>Vos préférences sont enregistrées. Vous pouvez démarrer directement ou explorer le tableau de bord.</p>
+	            </div>
+	            <div class="onboarding-hero-grid">
+	              <article class="app-card-compact"><strong>Préremplissage actif</strong><span>Les nouvelles journées héritent de vos horaires et de votre pause.</span></article>
+	              <article class="app-card-compact"><strong>Cockpit synchronisé</strong><span>L'objectif journalier pilote déjà les cartes et progressions.</span></article>
+	              <article class="app-card-compact"><strong>Expérience persistante</strong><span>Vous ne reverrez plus cet onboarding sauf relance volontaire.</span></article>
+	            </div>
+	          </section>
+	        </div>
+	        <div class="onboarding-actions">
+	          <button type="button" class="button-link button-neutral" data-onboarding-prev hidden>Retour</button>
+	          <div class="onboarding-actions-main">
+	            <button type="button" class="button-link button-neutral" data-onboarding-secondary>Passer</button>
+	            <button type="button" data-onboarding-next>Commencer</button>
+	            <button type="button" data-onboarding-finish hidden>Terminer</button>
+	            <button type="button" data-onboarding-action="entry" hidden>Créer ma première journée</button>
+	            <button type="button" class="secondary" data-onboarding-action="cockpit" hidden>Découvrir le cockpit</button>
+	          </div>
+	        </div>
+	      </div>
+	    </div>
+
+	    <script id="hours-settings-bootstrap" type="application/json"><%- JSON.stringify({
+	      csrfToken: _csrfToken,
+	      settings: _userSettings,
+	      settingsDefaults: settingsDefaults || {},
+	      selectedMonth,
+	      payPeriodStartDate: _payPeriodStartDate,
+		      payPeriodEndDate: _payPeriodEndDate,
+		      selectedDate: formData && formData.date ? formData.date : "",
+		      authUser,
+		      selectedClientId: _selectedClientId,
+		      fallbackCompanyName: _userCompanyName || (selectedClient && selectedClient.company_name ? selectedClient.company_name : ""),
+		      isEditing: _isEditing,
+		      entries: entries.map((entry) => ({
+		        work_date: entry.work_date,
+		        work_date_display: entry.work_date_display,
+		        worked_minutes: entry.worked_minutes,
+		        worked_hhmm: entry.worked_hhmm,
+		        day_type: entry.day_type,
+		        day_type_display: entry.day_type_display,
+		        is_worked_day: entry.is_worked_day,
+		        under_target: entry.under_target,
+		        arrival_time_display: entry.arrival_time_display,
+		        departure_time_display: entry.departure_time_display,
+		        lunch_break_minutes_display: entry.lunch_break_minutes_display,
+		        comment_text: entry.comment_text || "",
+		      })),
+		    }) %></script>
+		    <script src="/theme.js"></script>
+		    <script src="/settings-store.js"></script>
+		    <script src="/onboarding.js"></script>
+		    <script src="/workspace-tabs.js"></script>
+		    <script>
 	      (() => {
 	        const csrfToken = <%- JSON.stringify(_csrfToken) %>;
 	        if (!csrfToken) {
