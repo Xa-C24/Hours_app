@@ -13,13 +13,13 @@ Sinon, elle garde SQLite pour le local.
 ## Fonctionnalites
 
 - Creation de compte et connexion via mot de passe.
-- Saisie d'une journee de travail avec:
+- Saisie d'une journée de travail avec:
   date, heure d'arrivee, heure de depart, pause dejeuner et commentaire.
 - Calcul automatique des heures travaillees.
 - Calcul des ecarts par rapport a une cible journaliere de `7h00`.
 - Affichage des totaux hebdomadaires et du total de la periode de paie.
 - Saisie d'un montant de salaire par periode de paie.
-- Modification et suppression d'une journee existante.
+- Modification et suppression d'une journée existante.
 - Export CSV de la periode selectionnee.
 - Plusieurs themes visuels persistants en `localStorage`.
 - Repli/deroulement de la zone de saisie et des semaines dans le tableau.
@@ -131,7 +131,7 @@ Contient:
 
 ## Regles de gestion
 
-- Une journee est identifiee par sa date.
+- Une journée est identifiee par sa date.
 - Le depart doit etre strictement apres l'arrivee.
 - La pause dejeuner doit etre un entier positif ou nul.
 - Le commentaire est limite a `1000` caracteres.

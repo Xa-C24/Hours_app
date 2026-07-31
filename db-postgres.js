@@ -72,9 +72,15 @@ async function initializeDatabase() {
             phone TEXT NOT NULL DEFAULT '',
             address TEXT NOT NULL DEFAULT '',
             notes TEXT NOT NULL DEFAULT '',
+            company_logo TEXT NOT NULL DEFAULT '',
             archived_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
+        `);
+
+        await client.query(`
+          ALTER TABLE clients
+          ADD COLUMN IF NOT EXISTS company_logo TEXT NOT NULL DEFAULT ''
         `);
 
         await client.query(`
@@ -185,6 +191,10 @@ function normalizeClientPayload(client) {
     phone: typeof client.phone === "string" ? client.phone.trim() : "",
     address: typeof client.address === "string" ? client.address.trim() : "",
     notes: typeof client.notes === "string" ? client.notes.trim() : "",
+    company_logo:
+      typeof client.company_logo === "string" && client.company_logo.trim().startsWith("data:image/")
+        ? client.company_logo.trim()
+        : "",
   };
 }
 
@@ -196,7 +206,7 @@ async function getAllClients(username) {
   await initializeDatabase();
   const result = await pool.query(
     `
-      SELECT id, company_name, contact_name, email, phone, address, notes, archived_at, created_at
+      SELECT id, company_name, contact_name, email, phone, address, notes, company_logo, archived_at, created_at
       FROM clients
       WHERE username = $1
         AND archived_at IS NULL
@@ -211,7 +221,7 @@ async function getArchivedClients(username) {
   await initializeDatabase();
   const result = await pool.query(
     `
-      SELECT id, company_name, contact_name, email, phone, address, notes, archived_at, created_at
+      SELECT id, company_name, contact_name, email, phone, address, notes, company_logo, archived_at, created_at
       FROM clients
       WHERE username = $1
         AND archived_at IS NOT NULL
@@ -226,7 +236,7 @@ async function getClientById(username, id) {
   await initializeDatabase();
   const result = await pool.query(
     `
-      SELECT id, company_name, contact_name, email, phone, address, notes, archived_at, created_at
+      SELECT id, company_name, contact_name, email, phone, address, notes, company_logo, archived_at, created_at
       FROM clients
       WHERE username = $1
         AND id = $2
@@ -248,9 +258,10 @@ async function createClient(username, client) {
         email,
         phone,
         address,
-        notes
+        notes,
+        company_logo
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id
     `,
     [
@@ -261,6 +272,7 @@ async function createClient(username, client) {
       payload.phone,
       payload.address,
       payload.notes,
+      payload.company_logo,
     ]
   );
   return getClientById(username, Number(result.rows[0].id));
@@ -278,7 +290,8 @@ async function updateClient(username, clientId, client) {
         email = $5,
         phone = $6,
         address = $7,
-        notes = $8
+        notes = $8,
+        company_logo = $9
       WHERE username = $1
         AND id = $2
     `,
@@ -291,6 +304,7 @@ async function updateClient(username, clientId, client) {
       payload.phone,
       payload.address,
       payload.notes,
+      payload.company_logo,
     ]
   );
   return getClientById(username, clientId);

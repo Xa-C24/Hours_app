@@ -3,6 +3,11 @@ const crypto = require("crypto");
 const express = require("express");
 const db = require("./db");
 const {
+  buildPeriodWorkbook,
+  buildHistoryWorkbook,
+  buildExportFilename,
+} = require("./excel-export");
+const {
   DEFAULT_SETTINGS,
   normalizeSettings,
   normalizeSettingsPatch,
@@ -21,6 +26,7 @@ const MIN_PASSWORD_LENGTH = 10;
 const RECOVERY_CODE_REGEX = /^\d{6}$/;
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_CLIENT_FIELD_LENGTH = 500;
+const MAX_CLIENT_LOGO_LENGTH = 2_000_000;
 const CSV_SEPARATOR = ";";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_RATE_LIMITS = {
@@ -88,8 +94,8 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set("trust proxy", 1);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: "6mb" }));
+app.use(express.urlencoded({ extended: false, limit: "6mb" }));
 app.use(
   "/vendor/emoji-picker-element",
   express.static(path.join(__dirname, "node_modules", "emoji-picker-element"))
@@ -1191,6 +1197,7 @@ async function renderIndex(res, options = {}) {
       phone: "",
       address: "",
       notes: "",
+      company_logo: "",
     },
     showClientModal: Boolean(options.showClientModal),
     showClientInfoModal: Boolean(options.showClientInfoModal),
@@ -1662,6 +1669,7 @@ app.post("/clients", async (req, res) => {
     phone: typeof req.body.phone === "string" ? req.body.phone.trim() : "",
     address: typeof req.body.address === "string" ? req.body.address.trim() : "",
     notes: typeof req.body.notes === "string" ? req.body.notes.trim() : "",
+    company_logo: typeof req.body.company_logo === "string" ? req.body.company_logo.trim() : "",
   };
 
   if (!clientFormData.company_name) {
@@ -1675,13 +1683,13 @@ app.post("/clients", async (req, res) => {
   }
 
   const hasOversizedField = Object.values(clientFormData).some(
-    (value) => value.length > MAX_CLIENT_FIELD_LENGTH
+    (value, index) => (index === 6 ? value.length > MAX_CLIENT_LOGO_LENGTH : value.length > MAX_CLIENT_FIELD_LENGTH)
   );
   if (hasOversizedField) {
     return renderIndex(res, {
       username: req.authUser,
       month,
-      clientError: `Les champs client ne doivent pas depasser ${MAX_CLIENT_FIELD_LENGTH} caracteres.`,
+      clientError: `Les champs client sont trop volumineux.`,
       clientFormData,
       showClientModal: true,
     });
@@ -1704,6 +1712,7 @@ app.post("/clients/:clientId/update", async (req, res) => {
     phone: typeof req.body.phone === "string" ? req.body.phone.trim() : "",
     address: typeof req.body.address === "string" ? req.body.address.trim() : "",
     notes: typeof req.body.notes === "string" ? req.body.notes.trim() : "",
+    company_logo: typeof req.body.company_logo === "string" ? req.body.company_logo.trim() : "",
   };
 
   if (!existingClient) {
@@ -1721,14 +1730,14 @@ app.post("/clients/:clientId/update", async (req, res) => {
   }
 
   const hasOversizedField = Object.values(clientFormData).some(
-    (value) => value.length > MAX_CLIENT_FIELD_LENGTH
+    (value, index) => (index === 6 ? value.length > MAX_CLIENT_LOGO_LENGTH : value.length > MAX_CLIENT_FIELD_LENGTH)
   );
   if (hasOversizedField) {
     return renderIndex(res, {
       username: req.authUser,
       month,
       clientId: existingClient.id,
-      clientError: `Les champs client ne doivent pas depasser ${MAX_CLIENT_FIELD_LENGTH} caracteres.`,
+      clientError: `Les champs client sont trop volumineux.`,
       showClientInfoModal: true,
     });
   }
@@ -1796,27 +1805,46 @@ app.post("/clients/:clientId/delete", async (req, res) => {
   return res.redirect(`/?month=${encodeURIComponent(month)}`);
 });
 
-app.get("/export.csv", async (req, res) => {
+app.get("/export.xlsx", async (req, res) => {
   const month = normalizeMonth(req.query.month);
   const exportMode = req.query.mode === "history" ? "history" : "period";
   const client = await getExportClient(req.authUser, req.query.clientId);
   if (!client) {
     return res.status(400).send("Aucun client selectionne.");
   }
-  const lines =
+  const workbook =
     exportMode === "history"
-      ? buildHistoryExportLines(
+      ? await buildHistoryWorkbook({
           client,
-          (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry)
-        )
-      : buildPeriodExportLines(await getMonthData(req.authUser, client.id, month));
-
-  res.setHeader("Content-Type", "text/csv; charset=utf-16le");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="hours-${client.company_name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() || "client"}-${exportMode === "history" ? "historique" : month}.csv"`
+          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry),
+        })
+      : await buildPeriodWorkbook({
+          client,
+          monthData: await getMonthData(req.authUser, client.id, month),
+        });
+  const filename = buildExportFilename(
+    client.company_name,
+    exportMode === "history" ? "historique" : month,
+    "xlsx"
   );
-  res.send(encodeCsvForExcel(lines));
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  res.send(Buffer.from(buffer));
+});
+
+app.get("/export.csv", async (req, res) => {
+  const search = new URLSearchParams();
+  Object.entries(req.query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      search.set(key, String(value));
+    }
+  });
+  return res.redirect(`/export.xlsx?${search.toString()}`);
 });
 
 app.post("/pay-period-salary", async (req, res) => {

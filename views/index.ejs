@@ -656,12 +656,12 @@
 
 	      <section class="settings-workspace card premium-surface app-surface app-card" data-settings-workspace hidden>
 	        <div class="settings-shell">
-	          <aside class="settings-sidebar">
-	            <div class="settings-sidebar-head">
-	              <span class="section-eyebrow">⚙️ Paramètres</span>
-	              <h2>Centre des paramètres</h2>
-	              <p>Un workspace personnel pour organiser profil, travail, sécurité, exports et support sans toucher au métier.</p>
-	            </div>
+		          <aside class="settings-sidebar">
+		            <div class="settings-sidebar-head">
+		              <span class="section-eyebrow">⚙️ Paramètres</span>
+		              <h2>Centre des paramètres</h2>
+		              <p>Réglages essentiels du profil, du rythme de travail et des exports.</p>
+		            </div>
 	            <nav class="settings-nav" aria-label="Navigation paramètres">
 	              <% _settingsSections.forEach((section, index) => { %>
 	              <button
@@ -680,67 +680,69 @@
 	              <% }); %>
 	            </nav>
 	          </aside>
-	          <div class="settings-content">
-	            <header class="settings-content-head">
-	              <div>
-	                <span class="section-eyebrow">Personal Workspace</span>
-	                <h2>Préférences, posture de travail et centre d'aide</h2>
-	              </div>
+		          <div class="settings-content">
+		            <header class="settings-content-head">
+		              <div>
+		                <span class="section-eyebrow">Personal Workspace</span>
+		                <h2>Réglages du workspace</h2>
+		              </div>
 	              <div class="settings-head-actions">
 	                <button type="button" class="button-link button-neutral" data-open-command-palette data-ripple>⌘K Command Palette</button>
 	                <button type="button" class="button-link button-neutral" data-close-settings-workspace data-ripple>Fermer</button>
 	              </div>
 	            </header>
 
-	            <section class="settings-panel" data-settings-section="profile">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">👤 Profil</span>
-	                  <h3>Identité du workspace</h3>
-	                </div>
-	                <span class="badge-muted">Hook prêt</span>
-	              </div>
-	              <div class="settings-profile-hero app-card-compact">
-	                <div class="settings-avatar-stack">
-	                  <div class="settings-avatar-art" aria-hidden="true"><%= authUser ? authUser.slice(0, 1).toUpperCase() : "H" %></div>
-	                  <button type="button" class="button-link button-neutral">Changer la photo</button>
-	                </div>
-	                <div class="settings-hero-copy">
-	                  <strong><%= authUser || "Votre espace" %></strong>
-	                  <span>Préparez votre photo, votre signature visuelle et les métadonnées visibles dans l'application.</span>
-	                </div>
-	              </div>
-	              <div class="settings-grid settings-grid-profile">
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfileName">Nom</label>
-	                  <input class="form-input" id="settingsProfileName" type="text" placeholder="Nom complet" value="<%= authUser || '' %>" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfileCompany">Entreprise</label>
-		                  <input class="form-input" id="settingsProfileCompany" type="text" placeholder="Nom de société" value="<%= _userCompanyName || (selectedClient ? selectedClient.name : '') %>" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfileRole">Fonction</label>
-		                  <input class="form-input" id="settingsProfileRole" type="text" placeholder="Ex: Consultant, Chef de projet" value="<%= _userJobTitle %>" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfileEmail">Adresse mail</label>
-		                  <input class="form-input" id="settingsProfileEmail" type="email" placeholder="nom@entreprise.fr" value="<%= _userEmail %>" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfilePhoto">Photo</label>
-	                  <input class="form-input" id="settingsProfilePhoto" type="text" placeholder="URL ou média à connecter" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsProfileAvatar">Avatar</label>
-	                  <select class="form-select" id="settingsProfileAvatar">
-	                    <option>Monogramme premium</option>
-	                    <option>Avatar illustration</option>
-	                    <option>Logo société</option>
-	                  </select>
-	                </div>
-	              </div>
-	            </section>
+		            <section class="settings-panel" data-settings-section="profile">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">👤 Profil</span>
+		                  <h3>Identité du workspace</h3>
+		                </div>
+		                <span class="badge-muted">Synchronisé</span>
+		              </div>
+		              <div class="settings-profile-hero app-card-compact">
+		                <div class="settings-avatar-stack">
+		                  <div class="settings-avatar-art" aria-hidden="true" data-settings-avatar-art><%= authUser ? authUser.slice(0, 1).toUpperCase() : "H" %></div>
+		                  <button type="button" class="button-link button-neutral" data-settings-photo-trigger data-ripple>Changer la photo</button>
+		                  <input id="settingsProfilePhotoUpload" type="file" accept="image/*" hidden data-settings-upload="profilePhoto" />
+		                </div>
+		                <div class="settings-hero-copy">
+		                  <strong data-settings-profile-name><%= _userSettings.profileName || authUser || "Votre espace" %></strong>
+		                  <span data-settings-profile-summary>Préparez votre photo, votre signature visuelle et les métadonnées visibles dans l'application.</span>
+		                  <small class="settings-helper-text" data-settings-photo-status><%= _userSettings.profilePhoto ? "Photo enregistrée" : "Aucune photo importée" %></small>
+		                </div>
+		              </div>
+		              <div class="settings-grid settings-grid-profile">
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfileName">Nom</label>
+		                  <input class="form-input" id="settingsProfileName" type="text" placeholder="Nom complet" value="<%= _userSettings.profileName || authUser || '' %>" data-setting-key="profileName" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfileCompany">Entreprise</label>
+			                  <input class="form-input" id="settingsProfileCompany" type="text" placeholder="Nom de société" value="<%= _userSettings.companyName || _userCompanyName || (selectedClient ? selectedClient.name : '') %>" data-setting-key="companyName" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfileRole">Fonction</label>
+			                  <input class="form-input" id="settingsProfileRole" type="text" placeholder="Ex: Consultant, Chef de projet" value="<%= _userSettings.profileRole || _userJobTitle %>" data-setting-key="profileRole" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfileEmail">Adresse mail</label>
+			                  <input class="form-input" id="settingsProfileEmail" type="email" placeholder="nom@entreprise.fr" value="<%= _userSettings.profileEmail || _userEmail %>" data-setting-key="profileEmail" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfilePhoto">Photo</label>
+		                  <input class="form-input" id="settingsProfilePhoto" type="text" value="<%= _userSettings.profilePhoto ? 'Photo importée' : 'Aucune photo importée' %>" readonly data-settings-photo-field />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsProfileAvatar">Avatar</label>
+		                  <select class="form-select" id="settingsProfileAvatar" data-setting-key="avatarStyle">
+		                    <option value="monogram" <%= _userSettings.avatarStyle === 'monogram' ? 'selected' : '' %>>Monogramme premium</option>
+		                    <option value="illustration" <%= _userSettings.avatarStyle === 'illustration' ? 'selected' : '' %>>Avatar illustration</option>
+		                    <option value="logo" <%= _userSettings.avatarStyle === 'logo' ? 'selected' : '' %>>Logo société</option>
+		                  </select>
+		                </div>
+		              </div>
+		            </section>
 
 		            <section class="settings-panel" data-settings-section="work">
 		              <div class="settings-panel-head">
@@ -755,14 +757,14 @@
 		              </div>
 		              <div class="settings-grid settings-grid-work">
 		                <div class="form-field">
-	                  <label class="form-label" for="settingsContract">Contrat</label>
-	                  <select class="form-select" id="settingsContract">
-	                    <option>35 h</option>
-	                    <option>39 h</option>
-	                    <option>Forfait</option>
-	                    <option>Personnalisé</option>
-	                  </select>
-		                </div>
+		                  <label class="form-label" for="settingsContract">Contrat</label>
+		                  <select class="form-select" id="settingsContract" data-setting-key="contractType">
+		                    <option value="35h" <%= _userSettings.contractType === '35h' ? 'selected' : '' %>>35 h</option>
+		                    <option value="39h" <%= _userSettings.contractType === '39h' ? 'selected' : '' %>>39 h</option>
+		                    <option value="freelance" <%= _userSettings.contractType === 'freelance' ? 'selected' : '' %>>Forfait</option>
+		                    <option value="custom" <%= _userSettings.contractType === 'custom' ? 'selected' : '' %>>Personnalisé</option>
+		                  </select>
+			                </div>
 		                <div class="form-field">
 		                  <label class="form-label" for="settingsDailyTarget">Objectif journalier</label>
 		                  <input class="form-input" id="settingsDailyTarget" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" />
@@ -789,21 +791,22 @@
 		              </div>
 	            </section>
 
-	            <section class="settings-panel" data-settings-section="goals">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">🎯 Objectifs</span>
-	                  <h3>Cartes de pilotage</h3>
-	                </div>
-	              </div>
-	              <div class="settings-kpi-grid">
-	                <% _settingsGoalCards.forEach((goalCard) => { %>
-	                <article class="stat-card app-card-compact">
-	                  <span class="stat-label"><%= goalCard.label %></span>
-	                  <strong class="stat-value"><%= goalCard.value %></strong>
-	                  <span class="stat-delta"><%= goalCard.meta %></span>
-	                </article>
-	                <% }); %>
+		            <section class="settings-panel" data-settings-section="goals">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">🎯 Objectifs</span>
+		                  <h3>Cartes de pilotage</h3>
+		                </div>
+		              </div>
+		              <p class="settings-panel-copy">Lecture rapide des repères utilisés dans le cockpit et les écrans de suivi.</p>
+		              <div class="settings-kpi-grid settings-kpi-grid-simple">
+		                <% _settingsGoalCards.forEach((goalCard) => { %>
+		                <article class="settings-simple-card">
+		                  <span class="stat-label"><%= goalCard.label %></span>
+		                  <strong class="stat-value"><%= goalCard.value %></strong>
+		                  <span class="stat-delta"><%= goalCard.meta %></span>
+		                </article>
+		                <% }); %>
 	              </div>
 	            </section>
 
@@ -851,15 +854,15 @@
 		                    <option value="true" <%= _userSettings.compactMode ? 'selected' : '' %>>Compact</option>
 		                  </select>
 		                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsFontSize">Taille police</label>
-	                  <select class="form-select" id="settingsFontSize">
-	                    <option>Confort</option>
-	                    <option>Compacte</option>
-	                    <option>Large</option>
-	                  </select>
-	                </div>
-	              </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsFontSize">Taille police</label>
+		                  <select class="form-select" id="settingsFontSize" data-setting-key="fontSize">
+		                    <option value="comfort" <%= _userSettings.fontSize === 'comfort' ? 'selected' : '' %>>Confort</option>
+		                    <option value="compact" <%= _userSettings.fontSize === 'compact' ? 'selected' : '' %>>Compacte</option>
+		                    <option value="large" <%= _userSettings.fontSize === 'large' ? 'selected' : '' %>>Large</option>
+		                  </select>
+		                </div>
+		              </div>
 	            </section>
 
 	            <section class="settings-panel" data-settings-section="notifications">
@@ -877,60 +880,55 @@
 		              </div>
 	            </section>
 
-	            <section class="settings-panel" data-settings-section="export">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">📄 Export</span>
-	                  <h3>Sorties et branding</h3>
-	                </div>
-	              </div>
-	              <div class="settings-kpi-grid">
-	                <article class="app-card-compact"><strong>CSV</strong><span>Export brut compatible compta.</span></article>
-	                <article class="app-card-compact"><strong>PDF</strong><span>Mise en page premium à préparer.</span></article>
-	                <article class="app-card-compact"><strong>Excel</strong><span>Feuille structurée avec onglets.</span></article>
-	                <article class="app-card-compact"><strong>Logo & signature</strong><span>Hooks branding pour livrables clients.</span></article>
-	              </div>
-	              <div class="settings-grid">
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsFilenamePattern">Nom de fichiers</label>
-	                  <input class="form-input" id="settingsFilenamePattern" type="text" placeholder="hours_{client}_{month}" />
-	                </div>
-	                <div class="form-field">
-	                  <label class="form-label" for="settingsExportSignature">Signature</label>
-	                  <input class="form-input" id="settingsExportSignature" type="text" placeholder="Nom, fonction ou mention légale" />
-	                </div>
-	              </div>
-	            </section>
+		            <section class="settings-panel" data-settings-section="export">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">📄 Export</span>
+		                  <h3>Sorties et branding</h3>
+		                </div>
+		              </div>
+			              <div class="settings-note">
+			                <strong>Exports disponibles</strong>
+			                <span>Le format Excel premium utilise les mêmes calculs métier que le suivi journalier. Les préférences ci-dessous pilotent surtout le nommage et la signature.</span>
+			              </div>
+			              <div class="settings-grid">
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsFilenamePattern">Nom de fichiers</label>
+		                  <input class="form-input" id="settingsFilenamePattern" type="text" placeholder="hours_{client}_{month}" value="<%= _userSettings.exportFilenamePattern || 'hours_{client}_{month}' %>" data-setting-key="exportFilenamePattern" />
+		                </div>
+		                <div class="form-field">
+		                  <label class="form-label" for="settingsExportSignature">Signature</label>
+		                  <input class="form-input" id="settingsExportSignature" type="text" placeholder="Nom, fonction ou mention légale" value="<%= _userSettings.exportSignature || '' %>" data-setting-key="exportSignature" />
+		                </div>
+		              </div>
+		            </section>
 
-	            <section class="settings-panel" data-settings-section="security">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">🔐 Sécurité</span>
-	                  <h3>Accès et protection</h3>
-	                </div>
-	              </div>
-	              <div class="settings-kpi-grid">
-	                <article class="app-card-compact">
-	                  <strong>Changer mot de passe</strong>
-	                  <span>Préparer le chemin vers une révision sécurisée du mot de passe.</span>
-	                  <button type="button" class="button-link button-neutral">Préparer le flux</button>
-	                </article>
-	                <article class="app-card-compact">
-	                  <strong>Sessions actives</strong>
-	                  <span>Visualiser navigateur, localisation et dernière activité.</span>
-	                  <button type="button" class="button-link button-neutral">Voir les sessions</button>
-	                </article>
-	                <article class="app-card-compact">
-	                  <strong>Historique connexion</strong>
-	                  <span class="state-empty">Placeholder prêt pour journal d'accès.</span>
-	                </article>
-	                <article class="app-card-compact">
-	                  <strong>2FA</strong>
-	                  <span>Interface prête pour TOTP ou lien magique.</span>
-	                  <button type="button" class="button-link button-neutral">Activer plus tard</button>
-	                </article>
-	              </div>
-	            </section>
+		            <section class="settings-panel" data-settings-section="security">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">🔐 Sécurité</span>
+		                  <h3>Accès et protection</h3>
+		                </div>
+		              </div>
+			              <div class="settings-info-list">
+			                <article class="settings-info-item">
+			                  <strong>Compte actif</strong>
+			                  <span data-settings-security-user><%= _userSettings.profileName || authUser || "Utilisateur" %></span>
+			                </article>
+			                <article class="settings-info-item">
+			                  <strong>Adresse mail</strong>
+			                  <span data-settings-security-email><%= _userSettings.profileEmail || _userEmail || "Non renseignée" %></span>
+			                </article>
+			                <article class="settings-info-item">
+			                  <strong>Mode d'authentification</strong>
+			                  <span>Session locale active sur ce navigateur.</span>
+			                </article>
+			                <article class="settings-info-item">
+			                  <strong>Actions sensibles</strong>
+			                  <span>Mot de passe et 2FA demandent un backend d’authentification dédié.</span>
+			                </article>
+			              </div>
+		            </section>
 
 	            <section class="settings-panel" data-settings-section="help">
 	              <div class="settings-panel-head">
@@ -943,39 +941,49 @@
 	                <label class="form-label" for="settingsHelpSearch">Recherche</label>
 	                <input class="form-input" id="settingsHelpSearch" type="search" placeholder="Rechercher un guide, une FAQ ou un raccourci..." data-settings-help-search />
 	              </div>
-		              <div class="settings-help-grid" data-settings-help-grid>
-		                <% _settingsHelpCategories.forEach((category) => { %>
-		                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>">
-		                  <strong><%= category %></strong>
-		                  <span>Structure premium prête pour articles, pas-à-pas et liens support.</span>
-		                </article>
-		                <% }); %>
-		                <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer">
-		                  <strong>Relancer l'onboarding</strong>
-		                  <span>Rejouer l'expérience premium de bienvenue à tout moment.</span>
-		                  <button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer l'onboarding</button>
-		                </article>
+			              <div class="settings-help-grid settings-help-grid-simple" data-settings-help-grid>
+			                <% _settingsHelpCategories.forEach((category) => { %>
+				                <article class="settings-simple-card settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>">
+			                  <strong><%= category %></strong>
+			                  <span>Structure premium prête pour articles, pas-à-pas et liens support.</span>
+			                </article>
+			                <% }); %>
+				                <article class="settings-simple-card settings-help-card" data-settings-help-item data-search-text="bug incident erreur anomalie support">
+			                  <strong>Signaler un bug</strong>
+			                  <span>Décrivez la date, l'écran, l'action et le résultat obtenu pour accélérer le diagnostic.</span>
+			                </article>
+				                <article class="settings-simple-card settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer">
+			                  <strong>Relancer l'onboarding</strong>
+			                  <span>Rejouer l'expérience premium de bienvenue à tout moment.</span>
+			                  <button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer l'onboarding</button>
+			                </article>
 		              </div>
 		            </section>
 
-	            <section class="settings-panel" data-settings-section="about">
-	              <div class="settings-panel-head">
-	                <div>
-	                  <span class="section-eyebrow">❤️ À propos</span>
-	                  <h3>Version, feuille de route et support</h3>
-	                </div>
-	              </div>
-	              <div class="settings-kpi-grid">
-	                <article class="app-card-compact"><strong>Version</strong><span>App_Hours 0.9</span></article>
-	                <article class="app-card-compact"><strong>Licence</strong><span>Placeholder prêt pour mentions légales.</span></article>
-	                <article class="app-card-compact"><strong>Roadmap</strong><span>Vue structurée des prochaines briques premium.</span></article>
-	                <article class="app-card-compact"><strong>Changelog</strong><span>Espace dédié aux évolutions produit.</span></article>
-	              </div>
-	              <div class="settings-inline-actions">
-	                <button type="button" class="button-link button-neutral">Signaler un bug</button>
-	                <button type="button" class="button-link button-neutral">Voir la roadmap</button>
-	              </div>
-	            </section>
+		            <section class="settings-panel" data-settings-section="about">
+		              <div class="settings-panel-head">
+		                <div>
+		                  <span class="section-eyebrow">❤️ À propos</span>
+		                  <h3>Version, feuille de route et support</h3>
+		                </div>
+		              </div>
+			              <div class="settings-info-list">
+			                <article class="settings-info-item"><strong>Version</strong><span>App_Hours 0.9</span></article>
+			                <article class="settings-info-item"><strong>Licence</strong><span>Usage interne, non diffusé publiquement.</span></article>
+			                <article class="settings-info-item"><strong>Roadmap</strong><span>Priorités locales des prochaines briques premium.</span></article>
+			                <article class="settings-info-item"><strong>Changelog</strong><span>Historique local des évolutions d’interface et de saisie.</span></article>
+			              </div>
+			              <div class="settings-inline-actions">
+		                <button type="button" class="button-link button-neutral" data-settings-action="help-bug" data-ripple>Signaler un bug</button>
+		                <button type="button" class="button-link button-neutral" data-settings-action="toggle-roadmap" data-ripple>Voir la roadmap</button>
+		              </div>
+		              <article class="app-card-compact settings-roadmap-card" data-settings-roadmap hidden>
+		                <strong>Roadmap locale</strong>
+		                <span>1. Fiabiliser paramètres et préférences.</span>
+		                <span>2. Étendre les exports PDF et Excel.</span>
+		                <span>3. Brancher une vraie couche sécurité pour mot de passe, sessions et 2FA.</span>
+		              </article>
+		            </section>
 	          </div>
 	        </div>
 	      </section>
@@ -1050,8 +1058,9 @@
               year: "numeric",
             })
           : "";
-        const _heroMessage = authUser ? `Bonjour ${authUser}` : "Bonjour";
-        const _progressRingValue = Math.max(0, Math.min(100, _todayProgress));
+	        const _heroProfileName = _userSettings.profileName || authUser || "";
+	        const _heroMessage = _heroProfileName ? `Bonjour ${_heroProfileName}` : "Bonjour";
+	        const _progressRingValue = Math.max(0, Math.min(100, _todayProgress));
         const _insightLines = [
           _todayWorkedMinutes >= _todayTargetMinutes ? "Objectif du jour atteint." : `Encore ${_todayRemainingHHMM} pour aujourd'hui.`,
           _weekTrendLabel,
@@ -1109,16 +1118,25 @@
 	        <article class="cockpit-hero card premium-surface app-surface app-card">
 	          <div class="cockpit-hero-copy">
 	            <span class="cockpit-kicker">Cockpit</span>
-	            <h2><%= _heroMessage %></h2>
+	            <h2 data-settings-cockpit-profile-name><%= _heroMessage %></h2>
 	            <p class="cockpit-hero-date"><%= _todayDateLabel || "Aujourd'hui" %></p>
-	            <p class="cockpit-hero-subtitle"><%= selectedClient.company_name %> · <%= _payPeriodLabel || selectedMonth %></p>
+	            <p class="cockpit-hero-subtitle" data-settings-cockpit-company><%= (_userSettings.companyName || selectedClient.company_name) %> · <%= _payPeriodLabel || selectedMonth %></p>
 	            <div class="cockpit-insight-inline">
-		              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
-		              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
+			              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
+			              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
+	            </div>
+	          </div>
+	          <div class="cockpit-hero-profile">
+	            <div class="cockpit-profile-media<%= _userSettings.profilePhoto ? ' has-image' : '' %>" data-cockpit-profile-media>
+	              <% if (_userSettings.profilePhoto) { %>
+	              <img src="<%= _userSettings.profilePhoto %>" alt="Photo de profil" />
+	              <% } else { %>
+	              <span><%= (_heroProfileName || selectedClient.company_name || "H").slice(0, 1).toUpperCase() %></span>
+	              <% } %>
 	            </div>
 	          </div>
 	          <div class="cockpit-hero-progress">
-			            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
+				            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
 			              <div class="cockpit-progress-ring-core">
 			                <span class="cockpit-progress-label progress-label">Temps travaillé</span>
 		                <strong data-settings-cockpit="todayWorked"><%= _todayWorkedHHMM %></strong>
@@ -1142,166 +1160,74 @@
 	          </div>
 	        </article>
 
-	        <article class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel">
-	          <div class="cockpit-panel-head">
-	            <span class="cockpit-kicker">Quick Actions</span>
-	            <h3>Accès immédiat</h3>
-	          </div>
-	          <div class="cockpit-action-grid">
-	            <button type="button" class="cockpit-action-card" data-dashboard-action="entry" data-ripple>
-	              <span class="cockpit-action-icon" aria-hidden="true">✎</span>
-	              <strong>Nouvelle journée</strong>
-	              <span>Ouvrir la saisie active</span>
-	            </button>
-	            <button type="button" class="cockpit-action-card" data-dashboard-action="calendar" data-ripple>
-	              <span class="cockpit-action-icon" aria-hidden="true">▦</span>
-	              <strong>Calendrier</strong>
-	              <span>Basculer sur la vue mensuelle</span>
-	            </button>
-	            <a
-	              class="cockpit-action-card cockpit-action-link"
-	              href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-	              data-ripple
-	            >
-	              <span class="cockpit-action-icon" aria-hidden="true">⇩</span>
-	              <strong>Exporter</strong>
-	              <span>Télécharger la période active</span>
-	            </a>
-		            <button type="button" class="cockpit-action-card" data-dashboard-action="history" data-ripple>
-		              <span class="cockpit-action-icon" aria-hidden="true">🗂</span>
-		              <strong>Archives</strong>
-		              <span>Ouvrir les clients archivés</span>
+		        <article class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel">
+		          <div class="cockpit-panel-head">
+		            <span class="cockpit-kicker">Démarrage</span>
+		            <h3>Actions utiles</h3>
+		          </div>
+		          <div class="cockpit-action-grid">
+		            <button type="button" class="cockpit-action-card" data-dashboard-action="entry" data-ripple>
+		              <span class="cockpit-action-icon" aria-hidden="true">✎</span>
+		              <strong>Nouvelle journée</strong>
+		              <span>Ouvrir la saisie du jour</span>
 		            </button>
-	          </div>
-	        </article>
+		            <button type="button" class="cockpit-action-card" data-dashboard-action="calendar" data-ripple>
+		              <span class="cockpit-action-icon" aria-hidden="true">▦</span>
+		              <strong>Calendrier</strong>
+		              <span>Voir la période en cours</span>
+		            </button>
+			            <button type="button" class="cockpit-action-card" data-dashboard-action="history" data-ripple>
+			              <span class="cockpit-action-icon" aria-hidden="true">🗂</span>
+			              <strong>Archives</strong>
+			              <span>Retrouver l'historique</span>
+			            </button>
+		          </div>
+		        </article>
 
 	        <article class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel">
 	          <div class="cockpit-panel-head">
 	            <span class="cockpit-kicker">Activité</span>
 	            <h3>Semaine en cours</h3>
 	          </div>
-	          <div class="cockpit-week-strip">
-	            <% _weekPreviewDays.forEach((day) => { %>
-	            <div class="cockpit-week-day <%= day.stateClass %><%= day.isToday ? ' is-today' : '' %>">
-	              <span class="cockpit-week-dayname"><%= day.dayShort %></span>
-	              <strong class="cockpit-week-daynumber"><%= day.dayNumber %></strong>
-	              <span class="cockpit-week-dayhours"><%= day.duration || "--:--" %></span>
-	              <span class="cockpit-week-daylabel"><%= day.label %></span>
-	            </div>
-	            <% }); %>
-	          </div>
-		          <div class="cockpit-week-summary">
-		            <div class="cockpit-stat-pill">
+		          <div class="cockpit-week-strip">
+		            <% _weekPreviewDays.forEach((day) => { %>
+		            <div class="cockpit-week-day <%= day.stateClass %><%= day.isToday ? ' is-today' : '' %>">
+		              <span class="cockpit-week-dayname"><%= day.dayShort %></span>
+		              <strong class="cockpit-week-daynumber"><%= day.dayNumber %></strong>
+		              <span class="cockpit-week-dayhours"><%= day.duration || "--:--" %></span>
+		              <% if (day.label && day.label !== "Aucune saisie") { %>
+		              <span class="cockpit-week-daylabel"><%= day.label %></span>
+		              <% } %>
+		            </div>
+		            <% }); %>
+		          </div>
+			          <div class="cockpit-week-summary">
+			            <div class="cockpit-stat-pill">
 		              <span>Semaine</span>
 		              <strong data-settings-cockpit="weekTotal"><%= _weekTotalHHMM %></strong>
 		            </div>
-		            <div class="cockpit-stat-pill">
-		              <span>Écart</span>
-		              <strong data-settings-cockpit="weekBalance"><%= _weekTrendLabel %></strong>
-		            </div>
-		          </div>
-	        </article>
-
-	        <article class="cockpit-panel cockpit-salary card premium-surface app-surface app-panel">
-	          <div class="cockpit-panel-head">
-	            <span class="cockpit-kicker">Salaire</span>
-	            <h3>Lecture financière</h3>
-	          </div>
-	          <div class="cockpit-salary-grid">
-	            <div class="cockpit-salary-main">
-	              <span>Salaire estimé</span>
-	              <strong><%= salaryAmountDisplay %></strong>
-	            </div>
-	            <div class="cockpit-salary-side">
-	              <div>
-	                <span>Taux horaire</span>
-	                <strong><%= hourlyRateDisplay || "Non disponible" %></strong>
-	              </div>
-	              <div>
-	                <span>Heures du mois</span>
-	                <strong><%= totalHHMM %></strong>
-	              </div>
-	            </div>
-	          </div>
-	        </article>
-
-	        <article class="cockpit-panel cockpit-objective card premium-surface app-surface app-panel">
-	          <div class="cockpit-panel-head">
-	            <span class="cockpit-kicker">Objectif</span>
-	            <h3>Progression mensuelle</h3>
-	          </div>
-	          <div class="cockpit-objective-progress">
-		            <div class="cockpit-objective-bar progress-bar" aria-hidden="true">
-	              <span class="cockpit-objective-fill" data-cockpit-month-progress="<%= _monthProgress %>"></span>
-	            </div>
-	            <div class="cockpit-objective-meta">
-	              <div>
-	                <span>Objectif mensuel</span>
-		                <strong data-settings-cockpit="monthTarget"><%= _monthTargetHHMM %></strong>
-		              </div>
-		              <div>
-		                <span>Progression</span>
-		                <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
-		              </div>
-		              <div>
-		                <span>Restant</span>
-		                <strong data-settings-cockpit="monthRemaining"><%= _monthRemainingHHMM %></strong>
-		              </div>
-		            </div>
-	          </div>
-	        </article>
-
-	        <article class="cockpit-panel cockpit-insights card premium-surface app-surface app-panel">
-	          <div class="cockpit-panel-head">
-	            <span class="cockpit-kicker">Insights</span>
-	            <h3>Situation immédiate</h3>
-	          </div>
-	          <div class="cockpit-insights-list">
-	            <% _insightLines.forEach((line, index) => { %>
-	            <div class="cockpit-insight-item <%= index === 0 ? 'is-primary' : '' %>">
-	              <span class="cockpit-insight-index">0<%= index + 1 %></span>
-	              <p><%= line %></p>
-	            </div>
-	            <% }); %>
-	          </div>
-	          <div class="cockpit-context-grid">
-	            <div class="cockpit-context-card">
-	              <span>Moyenne / jour</span>
-	              <strong><%= _monthAverageHHMM %></strong>
-	            </div>
-	            <div class="cockpit-context-card">
-	              <span>Jours travaillés</span>
-	              <strong><%= _workedDayCount %></strong>
-	            </div>
-	            <div class="cockpit-context-card">
-	              <span>Clients actifs</span>
-	              <strong><%= _activeClientsCount %></strong>
-	            </div>
-	          </div>
+			            <div class="cockpit-stat-pill">
+			              <span>Écart</span>
+			              <strong data-settings-cockpit="weekBalance"><%= _weekTrendLabel %></strong>
+			            </div>
+			            <div class="cockpit-stat-pill">
+			              <span>Mois</span>
+			              <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
+			            </div>
+			          </div>
 		        </article>
-		      </section>
-	              <section class="workspace-tabs-panel desktop-workspace-tabs card premium-surface app-surface app-card" data-workspace-tabs>
-	                <div class="workspace-tabs-header">
-	                  <div>
-	                    <span class="section-eyebrow">Navigation</span>
-	                    <h3>Accès rapides</h3>
-	                  </div>
-	                  <span class="badge-info">Une seule section active</span>
-	                </div>
-	                <div class="workspace-tabs-nav" aria-label="Sous-onglets de travail">
-	                  <button type="button" class="workspace-tab-button" data-workspace-tab data-workspace-target="entry" aria-pressed="false">1. Saisir une journée</button>
-	                  <button type="button" class="workspace-tab-button is-active" data-workspace-tab data-workspace-target="calendar" aria-pressed="true">2. Période de paie</button>
-	                  <button type="button" class="workspace-tab-button" data-workspace-tab data-workspace-target="history" aria-pressed="false">3. Archives</button>
-	                </div>
-	              </section>
+	
+		      
+			      </section>
+	              
 	            <div class="between-sections-spacer" aria-hidden="true"></div>
 	          </div>
-	          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie" data-workspace-panel="entry">
+	          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie" data-workspace-panel="entry" hidden>
 	      <section class="card entry-card premium-surface app-surface app-card" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
             <p class="section-eyebrow">Saisie</p>
-            <h2><%= _isEditing ? "Modifier une journee" : "Saisir une journée" %></h2>
+            <h2><%= _isEditing ? "Modifier une journée" : "Saisir une journée" %></h2>
           </div>
           <button
             type="button"
@@ -1339,12 +1265,27 @@
 	                    <label class="form-label" for="date">Date selectionnee</label>
 	                    <input class="form-input" id="date" name="date" type="date" required value="<%= formData.date %>" />
                   </div>
-                  <div class="entry-daybar-meta">
-                    <div class="entry-daybar-client">
-                      <span class="entry-daybar-caption">Client actif</span>
-                      <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
-                    </div>
-                    <div class="entry-daybar-state">
+	                  <div class="entry-daybar-meta">
+	                    <div class="entry-daybar-client">
+		                      <span class="entry-daybar-caption">Client actif</span>
+		                      <div class="entry-daybar-client-card">
+		                        <div class="entry-daybar-client-copy">
+		                          <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
+		                          <% if (selectedClient && (selectedClient.phone || selectedClient.email)) { %>
+		                          <span class="entry-daybar-client-detail"><%= selectedClient.phone || "Téléphone non renseigné" %></span>
+		                          <span class="entry-daybar-client-detail"><%= selectedClient.email || "Email non renseigné" %></span>
+		                          <% } %>
+		                        </div>
+		                        <div class="entry-daybar-client-logo<%= selectedClient && selectedClient.company_logo ? ' has-image' : '' %>">
+		                          <% if (selectedClient && selectedClient.company_logo) { %>
+		                          <img src="<%= selectedClient.company_logo %>" alt="Logo client" />
+		                          <% } else { %>
+		                          <span><%= selectedClient ? selectedClient.company_name.slice(0, 1).toUpperCase() : "?" %></span>
+		                          <% } %>
+		                        </div>
+		                      </div>
+		                    </div>
+	                    <div class="entry-daybar-state">
                       <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
                       <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
                     </div>
@@ -1353,7 +1294,7 @@
 
                 <div class="entry-main-layout">
 	                  <div class="field form-field entry-day-type-field">
-	                    <label class="form-label" for="dayType">Type de journee</label>
+	                    <label class="form-label" for="dayType">Type de journée</label>
 	                    <select class="form-select" id="dayType" name="dayType" required data-day-type-select>
                       <% dayTypeOptions.forEach((option) => { %>
                       <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
@@ -1367,9 +1308,9 @@
                     <div class="entry-hours-panel-head">
                       <div>
                         <span class="entry-hours-kicker">Horaire</span>
-                        <h3>Journee de travail</h3>
+                        <h3>Journée de travail</h3>
                       </div>
-                      <span class="entry-hours-note">Arrivee, depart, pause</span>
+                      <span class="entry-hours-note">Arrivée, départ, pause</span>
                     </div>
 
                     <div class="entry-hours-grid">
@@ -1427,21 +1368,21 @@
                   </section>
 
 	                  <div class="field form-field field-comment entry-comment-field">
-                    <div class="entry-comment-header">
-	                      <label class="form-label" for="commentText">Commentaire</label>
-                      <div class="comment-toolbar">
-                        <details class="comment-emoji-picker">
-                          <summary class="comment-emoji-summary">
-                            <span>🙂</span>
-                            <span class="comment-emoji-caret" aria-hidden="true">▾</span>
-                          </summary>
-                          <div class="comment-emoji-popover">
-                            <emoji-picker class="comment-emoji-component" locale="fr"></emoji-picker>
-                          </div>
-                        </details>
-                      </div>
-                    </div>
-	                    <textarea
+	                    <div class="entry-comment-header">
+	                      <div class="comment-toolbar">
+	                        <details class="comment-emoji-picker">
+	                          <summary class="comment-emoji-summary">
+	                            <span>🙂</span>
+	                            <span class="comment-emoji-caret" aria-hidden="true">▾</span>
+	                          </summary>
+	                          <div class="comment-emoji-popover">
+	                            <emoji-picker class="comment-emoji-component" locale="fr"></emoji-picker>
+	                          </div>
+	                        </details>
+	                      </div>
+		                      <label class="form-label" for="commentText">Commentaire</label>
+	                    </div>
+		                    <textarea
 	                      class="form-textarea"
                       id="commentText"
                       name="commentText"
@@ -1510,12 +1451,81 @@
         const _nextMonth = _shiftMonth(_normalizedSelectedMonth, 1);
         const _calendarDateToIso = (dateObject) =>
           `${dateObject.getFullYear()}-${String(dateObject.getMonth() + 1).padStart(2, "0")}-${String(dateObject.getDate()).padStart(2, "0")}`;
-        const _formatCalendarDuration = (hhmmValue) => {
-          if (typeof hhmmValue !== "string" || !/^\d{2}:\d{2}$/.test(hhmmValue)) {
+        const _formatCalendarTimeCompact = (timeValue) => {
+          if (typeof timeValue !== "string" || !/^\d{2}:\d{2}$/.test(timeValue)) {
             return "";
           }
-          const [hoursValue, minutesValue] = hhmmValue.split(":");
-          return `${Number(hoursValue)} h ${minutesValue}`;
+          const [hoursValue, minutesValue] = timeValue.split(":");
+          return `${Number(hoursValue)}h${minutesValue}`;
+        };
+        const _escapeCalendarHtml = (value) =>
+          String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        const _formatOvertimeLabel = (minutesValue) => {
+          const _safeMinutes = Math.max(0, Number(minutesValue) || 0);
+          if (!_safeMinutes) {
+            return "";
+          }
+          const _hours = Math.floor(_safeMinutes / 60);
+          const _minutes = _safeMinutes % 60;
+          return _hours > 0 ? `${_hours}h${String(_minutes).padStart(2, "0")}` : `${_minutes}mn`;
+        };
+        const _formatTargetMinutesLabel = (minutesValue) => {
+          const _safeMinutes = Math.max(0, Number(minutesValue) || 0);
+          const _hours = Math.floor(_safeMinutes / 60);
+          const _minutes = _safeMinutes % 60;
+          return `${String(_hours).padStart(2, "0")}:${String(_minutes).padStart(2, "0")}`;
+        };
+        const _formatCalendarWorkSlot = (entryValue) => {
+          if (!entryValue || !entryValue.is_worked_day) {
+            return { text: "", html: "" };
+          }
+          const _startLabel = _formatCalendarTimeCompact(entryValue.arrival_time_display);
+          const _endLabel = _formatCalendarTimeCompact(entryValue.departure_time_display);
+          const _pauseValue = Number(entryValue.lunch_break_minutes_display);
+          const _overtimeValue = Number(entryValue.overtime_minutes || 0);
+          const _pauseText = Number.isFinite(_pauseValue) ? ` pause ${_pauseValue}mn` : "";
+          const _overtimeText = _overtimeValue > 0 ? ` +${_overtimeValue} min sup` : "";
+          const _pauseHtml = Number.isFinite(_pauseValue)
+            ? `<span class="calendar-break-line"><span class="calendar-break-badge" aria-hidden="true">⏸</span><span class="calendar-break-value">${_pauseValue}mn</span></span>`
+            : "";
+          const _overtimeHtml = _overtimeValue > 0
+            ? `<span class="calendar-overtime-inline">+${_escapeCalendarHtml(String(_overtimeValue))} min sup</span>`
+            : "";
+          if (!_startLabel || !_endLabel) {
+            const _fallback = entryValue.worked_hhmm || "";
+            return {
+              text: `${_fallback}${_overtimeText}`,
+              html: `${_escapeCalendarHtml(_fallback)}${_overtimeHtml}`,
+            };
+          }
+          return {
+            text: `${_startLabel}-${_endLabel}${_pauseText}${_overtimeText}`,
+            html: `<span class="calendar-work-slot">${_escapeCalendarHtml(_startLabel)}-${_escapeCalendarHtml(_endLabel)}</span>${_pauseHtml}${_overtimeHtml}`,
+          };
+        };
+        const _buildCalendarTooltipText = (calendarDayValue) => {
+          const _lines = [calendarDayValue.dateLabel];
+          if (calendarDayValue.entry && calendarDayValue.entry.is_worked_day) {
+            _lines.push(`${calendarDayValue.entry.arrival_time_display} -> ${calendarDayValue.entry.departure_time_display}`);
+            _lines.push(`Pause ${calendarDayValue.entry.lunch_break_minutes_display} min`);
+            if (Number(calendarDayValue.entry.overtime_minutes || 0) > 0) {
+              _lines.push(`Heures sup +${Number(calendarDayValue.entry.overtime_minutes || 0)} min`);
+            }
+          } else {
+            _lines.push(calendarDayValue.stateLabel);
+          }
+          if (selectedClient && selectedClient.company_name) {
+            _lines.push(selectedClient.company_name);
+          }
+          if (calendarDayValue.entry && calendarDayValue.entry.comment_text) {
+            _lines.push(calendarDayValue.entry.comment_text);
+          }
+          return _lines.filter(Boolean).join("&#10;");
         };
         const _coerceDate = (value, fallbackDate) => {
           const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value);
@@ -1563,12 +1573,14 @@
             let _stateLabel = "Aucune saisie";
             let _metaLabel = "";
             if (_entry) {
-              if (_entry.is_worked_day) {
-                _stateTone = _entry.under_target ? "partial" : "complete";
-                _stateEmoji = _entry.under_target ? "🟡" : "🟢";
-                _stateLabel = _entry.under_target ? "Journée partielle" : "Journée complète";
-                _metaLabel = _entry.day_type_display;
-              } else if (_dayType === "sick_leave") {
+	              if (_entry.is_worked_day) {
+	                _stateTone = _entry.under_target ? "partial" : "complete";
+	                _stateEmoji = _entry.under_target ? "🟡" : "🟢";
+	                _stateLabel = _entry.under_target ? "Journée partielle" : "Journée complète";
+	                _metaLabel = Number(_entry.overtime_minutes || 0) > 0
+	                  ? `${_formatTargetMinutesLabel(_entry.target_minutes || 0)} + ${_formatOvertimeLabel(_entry.overtime_minutes)} sup`
+	                  : (_entry.worked_hhmm || _entry.day_type_display);
+	              } else if (_dayType === "sick_leave") {
                 _stateTone = "sick";
                 _stateEmoji = "🟣";
                 _stateLabel = "Maladie";
@@ -1593,6 +1605,7 @@
               _stateEmoji = "🔴";
               _stateLabel = "Journée oubliée";
             }
+            const _durationLabel = _formatCalendarWorkSlot(_entry);
             _weekDays.push({
               isoDate: _isoDate,
               dayNumber: _currentDate.getDate(),
@@ -1604,7 +1617,8 @@
               isToday: _isToday,
               isSelected: _isSelected,
               dayType: _dayType,
-              durationLabel: _entry && _entry.is_worked_day ? _formatCalendarDuration(_entry.worked_hhmm) : "",
+              durationLabel: _durationLabel.text,
+              durationLabelHtml: _durationLabel.html,
               stateTone: _stateTone,
               stateEmoji: _stateEmoji,
               stateLabel: _stateLabel,
@@ -1634,7 +1648,7 @@
                   <button type="submit" data-ripple>Afficher</button>
                   <a
                     class="button-link"
-                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                    href="/export.xlsx?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
                     data-ripple
                   >
                     Export CSV
@@ -1763,6 +1777,7 @@
                     data-day-type="<%= calendarDay.dayType || (calendarDay.isWeekend ? 'weekend' : 'empty') %>"
                     data-state-tone="<%= calendarDay.stateTone %>"
                     aria-pressed="<%= calendarDay.isSelected ? 'true' : 'false' %>"
+                    data-hover-tooltip="<%- _buildCalendarTooltipText(calendarDay) %>"
                     aria-label="<%= `${calendarDay.dateLabel} - ${calendarDay.stateLabel}${calendarDay.durationLabel ? ` - ${calendarDay.durationLabel}` : ''}` %>"
                   >
                     <div class="calendar-day-card-head">
@@ -1770,7 +1785,7 @@
                       <span class="calendar-day-number"><%= calendarDay.dayNumber %></span>
                     </div>
                     <div class="calendar-day-card-body">
-                      <strong class="calendar-day-duration"><%= calendarDay.durationLabel || " " %></strong>
+                      <strong class="calendar-day-duration"><%- calendarDay.durationLabelHtml || " " %></strong>
                       <span class="calendar-day-state">
                         <span aria-hidden="true"><%= calendarDay.stateEmoji %></span>
                         <span><%= calendarDay.metaLabel || calendarDay.stateLabel %></span>
@@ -1778,17 +1793,20 @@
                     </div>
                     <div class="calendar-day-preview" role="tooltip">
                       <strong><%= calendarDay.dateLabel %></strong>
-                      <% if (calendarDay.entry && calendarDay.entry.is_worked_day) { %>
-                      <span><%= calendarDay.entry.arrival_time_display %> → <%= calendarDay.entry.departure_time_display %></span>
-                      <span>Pause <%= calendarDay.entry.lunch_break_minutes_display %> min</span>
-                      <% } else { %>
+	                      <% if (calendarDay.entry && calendarDay.entry.is_worked_day) { %>
+	                      <span><%= calendarDay.entry.arrival_time_display %> → <%= calendarDay.entry.departure_time_display %></span>
+	                      <span>Pause <%= calendarDay.entry.lunch_break_minutes_display %> min</span>
+	                      <% if (Number(calendarDay.entry.overtime_minutes || 0) > 0) { %>
+	                      <span class="calendar-overtime-chip">+<%= Number(calendarDay.entry.overtime_minutes || 0) %> min sup</span>
+	                      <% } %>
+	                      <% } else { %>
                       <span><%= calendarDay.stateLabel %></span>
                       <% } %>
                       <% if (selectedClient && selectedClient.company_name) { %>
                       <span><%= selectedClient.company_name %></span>
                       <% } %>
                       <% if (calendarDay.entry && calendarDay.entry.comment_text) { %>
-                      <span><%= calendarDay.entry.comment_text %></span>
+                      <span class="calendar-day-preview-comment"><%= calendarDay.entry.comment_text %></span>
                       <% } %>
                     </div>
                   </button>
@@ -1800,15 +1818,13 @@
             </div>
             <p class="calendar-empty-filter" data-calendar-empty hidden>Aucune journée ne correspond à ce filtre.</p>
 
-	            <div class="calendar-history-shortcut">
-	              <span>Sélectionnez une date pour ouvrir son détail premium ou créer une journée.</span>
-	            </div>
+	            
           </div>
         </div>
       </section>
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
-	          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Archives" data-workspace-panel="history">
+		          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Archives" data-workspace-panel="history" hidden>
 	      <% if (archivedClients && archivedClients.length > 0) { %>
 	      <section class="card premium-surface archived-clients-card app-surface app-card" data-archived-clients-card>
 	        <div class="entry-card-top">
@@ -1851,13 +1867,13 @@
 	                <div>
 	                  <span class="archived-client-name"><%= client.company_name %></span>
 	                  <span class="archived-client-meta">
-	                    Archive le <%= client.archived_at_display || client.archived_at %> - <%= client.entry_count %> journee(s) - <%= client.total_hhmm %>
+	                    Archive le <%= client.archived_at_display || client.archived_at %> - <%= client.entry_count %>journée(s) - <%= client.total_hhmm %>
 	                  </span>
 	                </div>
 	                <div class="archived-client-actions">
 	                  <a
 	                    class="button-link"
-	                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+	                    href="/export.xlsx?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
 	                    data-ripple
 	                  >
 	                    Export CSV
@@ -2019,13 +2035,13 @@
 	                  <h3><%= section.label %></h3>
 	                  <p><%= section.description %></p>
 	                  <% if (section.key === "profile") { %>
-	                  <div class="settings-mobile-stack">
-	                    <div class="form-field"><label class="form-label">Nom</label><input class="form-input" type="text" placeholder="Nom complet" value="<%= authUser || '' %>" /></div>
-		                    <div class="form-field"><label class="form-label">Entreprise</label><input class="form-input" type="text" placeholder="Entreprise" value="<%= _userCompanyName || (selectedClient ? selectedClient.name : '') %>" /></div>
-	                  </div>
-		                  <% } else if (section.key === "work") { %>
 		                  <div class="settings-mobile-stack">
-		                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select"><option>35 h</option><option>39 h</option><option>Forfait</option><option>Personnalisé</option></select></div>
+		                    <div class="form-field"><label class="form-label">Nom</label><input class="form-input" type="text" placeholder="Nom complet" value="<%= _userSettings.profileName || authUser || '' %>" data-setting-key="profileName" /></div>
+			                    <div class="form-field"><label class="form-label">Entreprise</label><input class="form-input" type="text" placeholder="Entreprise" value="<%= _userSettings.companyName || _userCompanyName || (selectedClient ? selectedClient.name : '') %>" data-setting-key="companyName" /></div>
+		                  </div>
+			                  <% } else if (section.key === "work") { %>
+			                  <div class="settings-mobile-stack">
+			                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select" data-setting-key="contractType"><option value="35h" <%= _userSettings.contractType === '35h' ? 'selected' : '' %>>35 h</option><option value="39h" <%= _userSettings.contractType === '39h' ? 'selected' : '' %>>39 h</option><option value="freelance" <%= _userSettings.contractType === 'freelance' ? 'selected' : '' %>>Forfait</option><option value="custom" <%= _userSettings.contractType === 'custom' ? 'selected' : '' %>>Personnalisé</option></select></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDailyTargetMobile">Objectif journalier</label><input class="form-input" id="settingsDailyTargetMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDefaultBreakMobile">Pause par défaut</label><input class="form-input" id="settingsDefaultBreakMobile" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDefaultStartTimeMobile">Début habituel</label><input class="form-input" id="settingsDefaultStartTimeMobile" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div>
@@ -2051,26 +2067,37 @@
 		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
 		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.goalReached ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="goalReached" /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
 		                  </div>
-		                  <% } else if (section.key === "help") { %>
+			                  <% } else if (section.key === "help") { %>
+			                  <div class="settings-mobile-stack">
+			                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
+			                    <div class="settings-help-grid" data-settings-help-grid>
+			                      <% _settingsHelpCategories.slice(0, 6).forEach((category) => { %>
+			                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>"><strong><%= category %></strong><span>Base prête.</span></article>
+			                      <% }); %>
+			                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="bug incident erreur anomalie support"><strong>Signaler un bug</strong><span>Indiquez la date, la vue et le résultat attendu.</span></article>
+			                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer"><strong>Relancer l'onboarding</strong><span>Relancer l'assistant premium depuis le mobile.</span><button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer</button></article>
+			                    </div>
+			                  </div>
+		                  <% } else if (section.key === "export") { %>
 		                  <div class="settings-mobile-stack">
-		                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
-		                    <div class="settings-help-grid" data-settings-help-grid>
-		                      <% _settingsHelpCategories.slice(0, 6).forEach((category) => { %>
-		                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="<%= category.toLowerCase() %>"><strong><%= category %></strong><span>Base prête.</span></article>
-		                      <% }); %>
-		                      <article class="app-card-compact settings-help-card" data-settings-help-item data-search-text="onboarding bienvenue assistant relancer"><strong>Relancer l'onboarding</strong><span>Relancer l'assistant premium depuis le mobile.</span><button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer</button></article>
-		                    </div>
+		                    <article class="app-card-compact"><strong>CSV</strong><span>Export brut compatible compta.</span></article>
+		                    <article class="app-card-compact"><strong>Nom de fichier</strong><span><%= _userSettings.exportFilenamePattern || 'hours_{client}_{month}' %></span></article>
 		                  </div>
-	                  <% } else if (section.key === "about") { %>
-	                  <div class="settings-mobile-stack">
-	                    <article class="app-card-compact"><strong>Version 0.9</strong><span>Roadmap et changelog prêts.</span></article>
-	                    <button type="button" class="button-link button-neutral">Signaler un bug</button>
-	                  </div>
-	                  <% } else { %>
-	                  <div class="settings-mobile-stack">
-	                    <article class="app-card-compact"><strong>Hook UI prêt</strong><span>Section préparée pour activation progressive.</span></article>
-	                  </div>
-	                  <% } %>
+		                  <% } else if (section.key === "security") { %>
+		                  <div class="settings-mobile-stack">
+		                    <article class="app-card-compact"><strong>Compte actif</strong><span><%= _userSettings.profileName || authUser || 'Utilisateur' %></span></article>
+		                    <article class="app-card-compact"><strong>Authentification</strong><span>Session locale active sur ce navigateur.</span></article>
+		                  </div>
+		                  <% } else if (section.key === "about") { %>
+		                  <div class="settings-mobile-stack">
+		                    <article class="app-card-compact"><strong>Version 0.9</strong><span>Roadmap et changelog prêts.</span></article>
+		                    <button type="button" class="button-link button-neutral" data-settings-action="help-bug" data-ripple>Signaler un bug</button>
+		                  </div>
+		                  <% } else { %>
+		                  <div class="settings-mobile-stack">
+		                    <article class="app-card-compact"><strong>Section active</strong><span>Contenu disponible sur la version bureau.</span></article>
+		                  </div>
+		                  <% } %>
 	                </article>
 	                <% }); %>
 	              </div>
@@ -2175,9 +2202,10 @@
           </div>
           <button type="button" class="client-modal-close secondary" data-close-client-modal aria-label="Fermer">×</button>
         </div>
-        <form action="/clients" method="post" class="login-form">
-          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-          <div class="client-modal-grid">
+	        <form action="/clients" method="post" class="login-form">
+	          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+	          <input type="hidden" name="company_logo" value="<%= _clientFormData.company_logo || '' %>" data-client-logo-value />
+	          <div class="client-modal-grid">
             <div class="field">
               <label for="clientCompanyName">Entreprise</label>
               <input id="clientCompanyName" name="company_name" type="text" required value="<%= _clientFormData.company_name || '' %>" />
@@ -2198,10 +2226,27 @@
               <label for="clientAddress">Adresse</label>
               <textarea id="clientAddress" name="address" rows="2"><%= _clientFormData.address || '' %></textarea>
             </div>
-            <div class="field field-full">
-              <label for="clientNotes">Notes</label>
-              <textarea id="clientNotes" name="notes" rows="4"><%= _clientFormData.notes || '' %></textarea>
-            </div>
+	            <div class="field field-full">
+	              <label>Logo</label>
+	              <div class="client-logo-editor" data-client-logo-field>
+	                <div class="client-logo-preview<%= _clientFormData.company_logo ? ' has-image' : '' %>" data-client-logo-preview>
+	                  <% if (_clientFormData.company_logo) { %>
+	                  <img src="<%= _clientFormData.company_logo %>" alt="Logo société" />
+	                  <% } else { %>
+	                  <span><%= (_clientFormData.company_name || "S").slice(0, 1).toUpperCase() %></span>
+	                  <% } %>
+	                </div>
+	                <div class="client-logo-actions">
+	                  <input type="file" accept="image/*" hidden data-client-logo-upload />
+	                  <button type="button" class="button-link button-neutral" data-client-logo-trigger data-ripple>Importer un logo</button>
+	                  <button type="button" class="button-link button-neutral" data-client-logo-clear <%= _clientFormData.company_logo ? '' : 'hidden' %> data-ripple>Supprimer</button>
+	                </div>
+	              </div>
+	            </div>
+	            <div class="field field-full">
+	              <label for="clientNotes">Notes</label>
+	              <textarea id="clientNotes" name="notes" rows="4"><%= _clientFormData.notes || '' %></textarea>
+	            </div>
           </div>
           <div class="form-actions">
             <button type="submit" data-ripple>Créer le client</button>
@@ -2222,9 +2267,10 @@
           <button type="button" class="client-modal-close secondary" data-close-client-info-modal aria-label="Fermer">×</button>
         </div>
         <% if (selectedClient) { %>
-        <form action="/clients/<%= selectedClient.id %>/update" method="post" class="login-form">
-          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
-          <div class="client-modal-grid">
+	        <form action="/clients/<%= selectedClient.id %>/update" method="post" class="login-form">
+	          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
+	          <input type="hidden" name="company_logo" value="<%= selectedClient.company_logo || '' %>" data-client-logo-value />
+	          <div class="client-modal-grid">
             <div class="field">
               <label for="clientInfoCompanyName">Entreprise</label>
               <input id="clientInfoCompanyName" name="company_name" type="text" required value="<%= selectedClient.company_name || '' %>" />
@@ -2245,10 +2291,27 @@
               <label for="clientInfoAddress">Adresse</label>
               <textarea id="clientInfoAddress" name="address" rows="2"><%= selectedClient.address || '' %></textarea>
             </div>
-            <div class="field field-full">
-              <label for="clientInfoNotes">Notes</label>
-              <textarea id="clientInfoNotes" name="notes" rows="4"><%= selectedClient.notes || '' %></textarea>
-            </div>
+	            <div class="field field-full">
+	              <label>Logo</label>
+	              <div class="client-logo-editor" data-client-logo-field>
+	                <div class="client-logo-preview<%= selectedClient.company_logo ? ' has-image' : '' %>" data-client-logo-preview>
+	                  <% if (selectedClient.company_logo) { %>
+	                  <img src="<%= selectedClient.company_logo %>" alt="Logo société" />
+	                  <% } else { %>
+	                  <span><%= (selectedClient.company_name || "S").slice(0, 1).toUpperCase() %></span>
+	                  <% } %>
+	                </div>
+	                <div class="client-logo-actions">
+	                  <input type="file" accept="image/*" hidden data-client-logo-upload />
+	                  <button type="button" class="button-link button-neutral" data-client-logo-trigger data-ripple>Importer un logo</button>
+	                  <button type="button" class="button-link button-neutral" data-client-logo-clear <%= selectedClient.company_logo ? '' : 'hidden' %> data-ripple>Supprimer</button>
+	                </div>
+	              </div>
+	            </div>
+	            <div class="field field-full">
+	              <label for="clientInfoNotes">Notes</label>
+	              <textarea id="clientInfoNotes" name="notes" rows="4"><%= selectedClient.notes || '' %></textarea>
+	            </div>
           </div>
           <div class="form-actions">
             <button type="submit" data-ripple>Enregistrer</button>
@@ -2517,12 +2580,14 @@
 		      })),
 		    }) %></script>
 		    <script src="/theme.js"></script>
-		    <script src="/settings-store.js"></script>
-		    <script src="/onboarding.js"></script>
-		    <script src="/workspace-tabs.js"></script>
-		    <script>
+	      <script src="/settings-store.js"></script>
+	      <script src="/onboarding.js"></script>
+	      <script src="/workspace-tabs.js"></script>
+	      <script>
 	      (() => {
-	        const csrfToken = <%- JSON.stringify(_csrfToken) %>;
+	        const bootstrapNode = document.getElementById("hours-settings-bootstrap");
+	        const bootstrapData = bootstrapNode ? JSON.parse(bootstrapNode.textContent || "{}") : {};
+	        const csrfToken = typeof bootstrapData.csrfToken === "string" ? bootstrapData.csrfToken : "";
 	        if (!csrfToken) {
 	          return;
 	        }
@@ -2537,17 +2602,26 @@
 	          csrfInput.value = csrfToken;
 	        });
 	      })();
-      (() => {
-        const commentField = document.querySelector("[data-comment-target]");
-        const emojiPicker = document.querySelector(".comment-emoji-component");
-        const emojiPickerDetails = document.querySelector(".comment-emoji-picker");
+	      (() => {
+	        const commentField = document.querySelector("[data-comment-target]");
+	        const emojiPicker = document.querySelector(".comment-emoji-component");
+	        const emojiPickerDetails = document.querySelector(".comment-emoji-picker");
 
-        if (!commentField || !emojiPicker || !emojiPickerDetails) {
-          return;
-        }
+	        if (!commentField || !emojiPicker || !emojiPickerDetails) {
+	          return;
+	        }
 
-        const insertEmoji = (emoji) => {
-          const start = commentField.selectionStart ?? commentField.value.length;
+	        const syncEmojiPickerPlacement = () => {
+	          const pickerRect = emojiPickerDetails.getBoundingClientRect();
+	          const estimatedPopoverHeight = 420;
+	          const viewportPadding = 24;
+	          const spaceBelow = window.innerHeight - pickerRect.bottom - viewportPadding;
+	          const shouldOpenUp = spaceBelow < estimatedPopoverHeight && pickerRect.top > estimatedPopoverHeight * 0.55;
+	          emojiPickerDetails.classList.toggle("comment-emoji-picker-up", shouldOpenUp);
+	        };
+
+	        const insertEmoji = (emoji) => {
+	          const start = commentField.selectionStart ?? commentField.value.length;
           const end = commentField.selectionEnd ?? commentField.value.length;
           const prefix = start > 0 && !/\s$/.test(commentField.value.slice(0, start)) ? " " : "";
           const suffix = end < commentField.value.length && !/^\s/.test(commentField.value.slice(end)) ? " " : "";
@@ -2557,17 +2631,29 @@
           commentField.focus();
         };
 
-        emojiPicker.addEventListener("emoji-click", (event) => {
-          const emoji = event.detail && typeof event.detail.unicode === "string"
-            ? event.detail.unicode
-            : "";
+	        emojiPicker.addEventListener("emoji-click", (event) => {
+	          const emoji = event.detail && typeof event.detail.unicode === "string"
+	            ? event.detail.unicode
+	            : "";
           if (!emoji) {
             return;
           }
-          insertEmoji(emoji);
-          emojiPickerDetails.open = false;
-        });
-      })();
+	          insertEmoji(emoji);
+	          emojiPickerDetails.open = false;
+	        });
+
+	        emojiPickerDetails.addEventListener("toggle", () => {
+	          if (emojiPickerDetails.open) {
+	            syncEmojiPickerPlacement();
+	          }
+	        });
+
+	        window.addEventListener("resize", () => {
+	          if (emojiPickerDetails.open) {
+	            syncEmojiPickerPlacement();
+	          }
+	        });
+	      })();
 
       (() => {
         const dayTypeSelect = document.querySelector("[data-day-type-select]");
@@ -2593,8 +2679,8 @@
 	      (() => {
 	        const entryForm = document.querySelector("[data-entry-form]");
 	        const clientIdInput = entryForm ? entryForm.querySelector('input[name="clientId"]') : null;
-	        const originalWorkDateInput = entryForm ? entryForm.querySelector('input[name="originalWorkDate"]') : null;
-	        const dateInput = entryForm ? entryForm.querySelector("#date") : null;
+		        const originalWorkDateInput = entryForm ? entryForm.querySelector('input[name="originalWorkDate"]') : null;
+		        const dateInput = entryForm ? entryForm.querySelector("#date") : null;
 	        const dayTypeSelect = entryForm ? entryForm.querySelector("#dayType") : null;
 	        const arrivalInput = entryForm ? entryForm.querySelector("#arrivalTime") : null;
 	        const departureInput = entryForm ? entryForm.querySelector("#departureTime") : null;
@@ -2627,9 +2713,21 @@
 	        }
 
           const SAVE_FLASH_STORAGE_KEY = "hours_entry_save_flash";
-          const SUMMARY_TARGET_MINUTES = 7 * 60;
-          const workedDayTypes = new Set(["office", "remote"]);
-          const defaultFormValues = {
+	          const SUMMARY_TARGET_MINUTES = 7 * 60;
+	          const workedDayTypes = new Set(["office", "remote"]);
+	          const bootstrapNode = document.getElementById("hours-settings-bootstrap");
+	          const bootstrapEntries =
+	            bootstrapNode
+	              ? (() => {
+	                  try {
+	                    const parsed = JSON.parse(bootstrapNode.textContent || "{}");
+	                    return Array.isArray(parsed.entries) ? parsed.entries : [];
+	                  } catch (error) {
+	                    return [];
+	                  }
+	                })()
+	              : [];
+	          const defaultFormValues = {
             workDate: "",
             isExisting: false,
             dayType: entryForm.dataset.defaultDayType || "office",
@@ -2638,7 +2736,7 @@
             lunchBreakMinutes: entryForm.dataset.defaultLunchBreakMinutes || "",
             commentText: entryForm.dataset.defaultCommentText || "",
           };
-          const entryCache = new Map();
+	          const entryCache = new Map();
 	          const state = {
 	            selectedDate: dateInput.value || "",
 	            currentEntry: null,
@@ -2726,18 +2824,18 @@
               };
             }
 
-            if (state.currentEntry && state.currentEntry.isExisting) {
-              return {
-                className: "is-success",
-                text: "🟢 Journée enregistrée",
-              };
-            }
+	            if (state.currentEntry && state.currentEntry.isExisting) {
+	              return {
+	                className: "is-success",
+	                text: "Journée enregistrée",
+	              };
+	            }
 
-            return {
-              className: "is-empty",
-              text: "⚪ Nouvelle journée",
-            };
-          };
+	            return {
+	              className: "is-empty",
+	              text: "Nouvelle journée",
+	            };
+	          };
 
           const renderBadge = () => {
             const badge = getBadgeConfig();
@@ -2761,7 +2859,7 @@
 
             if (!isWorkedDay) {
               summaryValue.textContent = "00:00";
-              summaryFeedback.textContent = "Journee sans objectif horaire";
+              summaryFeedback.textContent = "Journée sans objectif horaire";
               return;
             }
 
@@ -2841,14 +2939,32 @@
 
           const getRequestKey = (clientId, selectedDate) => `${clientId}:${selectedDate}`;
 
-          const persistEntryInCache = (entry) => {
+	          const persistEntryInCache = (entry) => {
             const clientId = clientIdInput.value;
             if (!clientId || !entry || !entry.workDate) {
               return;
             }
 
-            entryCache.set(getRequestKey(clientId, entry.workDate), cloneEntry(entry));
-          };
+	            entryCache.set(getRequestKey(clientId, entry.workDate), cloneEntry(entry));
+	          };
+
+	          bootstrapEntries.forEach((entry) => {
+	            if (!entry || !entry.work_date) {
+	              return;
+	            }
+	            persistEntryInCache({
+	              workDate: entry.work_date,
+	              isExisting: true,
+	              dayType: entry.day_type || defaultFormValues.dayType,
+	              arrivalTime: entry.is_worked_day ? entry.arrival_time_display || defaultFormValues.arrivalTime : "00:00",
+	              departureTime: entry.is_worked_day ? entry.departure_time_display || defaultFormValues.departureTime : "00:00",
+	              lunchBreakMinutes:
+	                entry.is_worked_day && entry.lunch_break_minutes_display !== ""
+	                  ? String(entry.lunch_break_minutes_display)
+	                  : "0",
+	              commentText: entry.comment_text || "",
+	            });
+	          });
 
 	          const readEntryFromForm = () => ({
 	            workDate: dateInput.value || "",
@@ -2926,7 +3042,7 @@
 	            const controller = new AbortController();
 	            activeController = controller;
               state.isLoading = true;
-              state.statusText = "Chargement de la journee selectionnee...";
+              state.statusText = "Chargement de la journée selectionnee...";
               state.statusVariant = "is-loading";
               renderStatus();
               renderBadge();
@@ -3004,7 +3120,7 @@
 	            }
 
             state.isSaving = true;
-            state.statusText = "Enregistrement de la journee...";
+            state.statusText = "Enregistrement de la journée...";
             state.statusVariant = "is-loading";
             renderStatus();
             renderBadge();
@@ -3035,7 +3151,7 @@
 	          state.currentEntry = readEntryFromForm();
 
 	          if (originalWorkDateInput.value && dateInput.value) {
-	            persistEntryInCache({
+		            persistEntryInCache({
               workDate: originalWorkDateInput.value,
               isExisting: true,
               dayType: dayTypeSelect.value,
@@ -3044,7 +3160,7 @@
               lunchBreakMinutes: lunchInput.value,
               commentText: commentInput.value,
 	            });
-	            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
+		            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
 	          }
 
             try {
@@ -3073,6 +3189,16 @@
 		          renderEntry();
 	            renderSummary();
 	            markUnsavedIfNeeded();
+	            window.requestAnimationFrame(() => {
+	              const initialClientId = clientIdInput.value;
+	              const initialDate = dateInput.value;
+	              if (!initialClientId || !initialDate) {
+	                return;
+	              }
+	              entryCache.delete(getRequestKey(initialClientId, initialDate));
+	              state.lastResolvedKey = "";
+	              watchSelectedDate();
+	            });
 		      })();
 
 	      (() => {
@@ -3164,7 +3290,8 @@
 	        const actionButtons = Array.from(document.querySelectorAll("[data-dashboard-action]"));
 	        const dateInput = document.getElementById("date");
 	        const monthInput = document.getElementById("month");
-	        const historyCard = document.querySelector("[data-history-premium-card]");
+	        const historyCard = document.querySelector("[data-archived-clients-card], [data-workspace-panel='history'] .mobile-history-empty-card");
+	        const historySearchInput = document.querySelector("[data-archived-client-search]");
 	        const mobileNavButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
 	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
 
@@ -3214,7 +3341,7 @@
 	              return;
 	            }
 	            if (action === "history") {
-	              focusDesktopTarget(historyCard);
+	              focusDesktopTarget(historySearchInput || historyCard);
 	            }
 	          });
 	        });
@@ -3701,8 +3828,8 @@
         }
       })();
 
-      (() => {
-        const modal = document.querySelector("[data-client-info-modal]");
+	      (() => {
+	        const modal = document.querySelector("[data-client-info-modal]");
         const openButtons = [...document.querySelectorAll("[data-open-client-info-modal]")];
         const closeButtons = [...document.querySelectorAll("[data-close-client-info-modal]")];
 
@@ -3730,15 +3857,105 @@
           button.addEventListener("click", closeModal);
         });
 
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape" && !modal.hidden) {
-            closeModal();
-          }
-        });
-      })();
+	        document.addEventListener("keydown", (event) => {
+	          if (event.key === "Escape" && !modal.hidden) {
+	            closeModal();
+	          }
+	        });
+	      })();
 
-      (() => {
-        const modal = document.querySelector("[data-confirm-replace-modal]");
+	      (() => {
+	        function readImageAsDataUrl(file) {
+	          return new Promise((resolve, reject) => {
+	            const reader = new FileReader();
+	            reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+	            reader.onerror = () => reject(reader.error || new Error("read_failed"));
+	            reader.readAsDataURL(file);
+	          });
+	        }
+
+	        function syncClientLogoField(field) {
+	          const form = field.closest("form");
+	          const hiddenInput = form ? form.querySelector("[data-client-logo-value]") : null;
+	          const preview = field.querySelector("[data-client-logo-preview]");
+	          const clearButton = field.querySelector("[data-client-logo-clear]");
+	          const companyInput = form ? form.querySelector('input[name="company_name"]') : null;
+	          if (!(hiddenInput instanceof HTMLInputElement) || !(preview instanceof HTMLElement)) {
+	            return;
+	          }
+	          const value = hiddenInput.value || "";
+	          const fallback = companyInput instanceof HTMLInputElement && companyInput.value.trim()
+	            ? companyInput.value.trim().slice(0, 1).toUpperCase()
+	            : "S";
+	          if (value) {
+	            preview.classList.add("has-image");
+	            preview.innerHTML = `<img src="${value}" alt="Logo société">`;
+	            if (clearButton instanceof HTMLElement) {
+	              clearButton.hidden = false;
+	            }
+	            return;
+	          }
+	          preview.classList.remove("has-image");
+	          preview.innerHTML = `<span>${fallback}</span>`;
+	          if (clearButton instanceof HTMLElement) {
+	            clearButton.hidden = true;
+	          }
+	        }
+
+	        document.querySelectorAll("[data-client-logo-field]").forEach((field) => {
+	          const trigger = field.querySelector("[data-client-logo-trigger]");
+	          const upload = field.querySelector("[data-client-logo-upload]");
+	          const form = field.closest("form");
+	          const hiddenInput = form ? form.querySelector("[data-client-logo-value]") : null;
+	          const clearButton = field.querySelector("[data-client-logo-clear]");
+	          const companyInput = form ? form.querySelector('input[name="company_name"]') : null;
+
+	          syncClientLogoField(field);
+
+	          if (trigger instanceof HTMLElement && upload instanceof HTMLInputElement) {
+	            trigger.addEventListener("click", () => {
+	              upload.click();
+	            });
+	            upload.addEventListener("change", async () => {
+	              const file = upload.files && upload.files[0] ? upload.files[0] : null;
+	              if (!file || !(hiddenInput instanceof HTMLInputElement)) {
+	                return;
+	              }
+	              if (file.size > 1_500_000) {
+	                window.alert("Image trop lourde. Choisissez un fichier inférieur à 1,5 MB.");
+	                upload.value = "";
+	                return;
+	              }
+	              try {
+	                hiddenInput.value = await readImageAsDataUrl(file);
+	                syncClientLogoField(field);
+	              } catch (error) {
+	                console.error(error);
+	              } finally {
+	                upload.value = "";
+	              }
+	            });
+	          }
+
+	          if (clearButton instanceof HTMLElement && hiddenInput instanceof HTMLInputElement) {
+	            clearButton.addEventListener("click", () => {
+	              hiddenInput.value = "";
+	              syncClientLogoField(field);
+	            });
+	          }
+
+	          if (companyInput instanceof HTMLInputElement) {
+	            companyInput.addEventListener("input", () => {
+	              if (hiddenInput instanceof HTMLInputElement && !hiddenInput.value) {
+	                syncClientLogoField(field);
+	              }
+	            });
+	          }
+	        });
+	      })();
+
+	      (() => {
+	        const modal = document.querySelector("[data-confirm-replace-modal]");
         const closeButtons = [...document.querySelectorAll("[data-close-confirm-replace-modal]")];
         const confirmButton = document.querySelector("[data-confirm-replace-submit]");
         const entryForm = document.querySelector("[data-entry-form]");

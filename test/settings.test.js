@@ -19,6 +19,12 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
     firstDayOfWeek: "sunday",
     compactMode: "true",
     animations: "reduced",
+    fontSize: "large",
+    profileRole: "  Consultante senior  ",
+    profileEmail: "  ALICE@EXEMPLE.FR  ",
+    avatarStyle: "illustration",
+    exportFilenamePattern: "  hours_{month}  ",
+    exportSignature: "  Alice Martin  ",
     notifications: {
       missingEntry: 0,
       goalReached: "yes",
@@ -33,8 +39,14 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
   assert.equal(result.defaultEndTime, DEFAULT_SETTINGS.defaultEndTime);
   assert.equal(result.firstDayOfWeek, "sunday");
   assert.equal(result.contractType, "35h");
+  assert.equal(result.profileRole, "Consultante senior");
+  assert.equal(result.profileEmail, "alice@exemple.fr");
+  assert.equal(result.avatarStyle, "illustration");
   assert.equal(result.compactMode, true);
   assert.equal(result.animations, "reduced");
+  assert.equal(result.fontSize, "large");
+  assert.equal(result.exportFilenamePattern, "hours_{month}");
+  assert.equal(result.exportSignature, "Alice Martin");
   assert.deepEqual(result.notifications, {
     missingEntry: false,
     goalReached: true,
@@ -72,7 +84,13 @@ test("normalizeSettingsPatch sanitizes onboarding and profile fields", () => {
   const result = normalizeSettingsPatch({
     profileName: "  Alice Martin  ",
     companyName: "  TimePilot  ",
+    profileRole: "  Chef de projet  ",
+    profileEmail: "  PM@TIMEPILOT.FR  ",
     contractType: "39h",
+    avatarStyle: "logo",
+    fontSize: "compact",
+    exportFilenamePattern: "  exports_{client}  ",
+    exportSignature: "  PM signature  ",
     onboarding: {
       status: "in_progress",
       currentStep: 4,
@@ -83,7 +101,13 @@ test("normalizeSettingsPatch sanitizes onboarding and profile fields", () => {
   assert.deepEqual(result, {
     profileName: "Alice Martin",
     companyName: "TimePilot",
+    profileRole: "Chef de projet",
+    profileEmail: "pm@timepilot.fr",
     contractType: "39h",
+    avatarStyle: "logo",
+    fontSize: "compact",
+    exportFilenamePattern: "exports_{client}",
+    exportSignature: "PM signature",
     onboarding: {
       status: "in_progress",
       currentStep: 4,

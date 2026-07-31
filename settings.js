@@ -9,11 +9,17 @@ const SETTING_KEYS = [
   "contractType",
   "profileName",
   "companyName",
+  "profileRole",
+  "profileEmail",
   "profilePhoto",
   "companyLogo",
+  "avatarStyle",
   "compactMode",
   "animations",
+  "fontSize",
   "notifications",
+  "exportFilenamePattern",
+  "exportSignature",
   "onboarding",
 ];
 
@@ -28,16 +34,22 @@ const DEFAULT_SETTINGS = {
   contractType: "35h",
   profileName: "",
   companyName: "",
+  profileRole: "",
+  profileEmail: "",
   profilePhoto: "",
   companyLogo: "",
+  avatarStyle: "monogram",
   compactMode: false,
   animations: "subtle",
+  fontSize: "comfort",
   notifications: {
     missingEntry: true,
     goalReached: true,
     weeklySummary: false,
     productNews: false,
   },
+  exportFilenamePattern: "hours_{client}_{month}",
+  exportSignature: "",
   onboarding: {
     status: "not_started",
     currentStep: 1,
@@ -61,6 +73,8 @@ const ACCENT_COLORS = ["amber", "steel", "sage", "coral"];
 const FIRST_DAY_OF_WEEK_VALUES = ["monday", "sunday"];
 const ANIMATION_VALUES = ["subtle", "reduced", "off"];
 const CONTRACT_TYPE_VALUES = ["35h", "39h", "freelance", "custom"];
+const AVATAR_STYLE_VALUES = ["monogram", "illustration", "logo"];
+const FONT_SIZE_VALUES = ["comfort", "compact", "large"];
 const ONBOARDING_STATUS_VALUES = ["not_started", "in_progress", "completed", "skipped"];
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -138,6 +152,13 @@ function normalizeText(value, fallback = "", maxLength = 160) {
   return value.trim().slice(0, maxLength);
 }
 
+function normalizeEmail(value, fallback = "") {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  return value.trim().slice(0, 160).toLowerCase();
+}
+
 function normalizeImageData(value) {
   if (typeof value !== "string") {
     return "";
@@ -182,16 +203,28 @@ function normalizeSettingValue(key, value) {
       return normalizeText(value, DEFAULT_SETTINGS.profileName, 120);
     case "companyName":
       return normalizeText(value, DEFAULT_SETTINGS.companyName, 160);
+    case "profileRole":
+      return normalizeText(value, DEFAULT_SETTINGS.profileRole, 120);
+    case "profileEmail":
+      return normalizeEmail(value, DEFAULT_SETTINGS.profileEmail);
     case "profilePhoto":
       return normalizeImageData(value);
     case "companyLogo":
       return normalizeImageData(value);
+    case "avatarStyle":
+      return normalizeChoice(value, AVATAR_STYLE_VALUES, DEFAULT_SETTINGS.avatarStyle);
     case "compactMode":
       return normalizeBoolean(value, DEFAULT_SETTINGS.compactMode);
     case "animations":
       return normalizeChoice(value, ANIMATION_VALUES, DEFAULT_SETTINGS.animations);
+    case "fontSize":
+      return normalizeChoice(value, FONT_SIZE_VALUES, DEFAULT_SETTINGS.fontSize);
     case "notifications":
       return normalizeNotifications(value);
+    case "exportFilenamePattern":
+      return normalizeText(value, DEFAULT_SETTINGS.exportFilenamePattern, 120);
+    case "exportSignature":
+      return normalizeText(value, DEFAULT_SETTINGS.exportSignature, 160);
     case "onboarding":
       return normalizeOnboarding(value);
     default:
@@ -240,6 +273,8 @@ module.exports = {
   FIRST_DAY_OF_WEEK_VALUES,
   ANIMATION_VALUES,
   CONTRACT_TYPE_VALUES,
+  AVATAR_STYLE_VALUES,
+  FONT_SIZE_VALUES,
   normalizeSettings,
   normalizeSettingsPatch,
   mergeSettings,

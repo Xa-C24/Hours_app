@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS clients (
   phone TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
   notes TEXT NOT NULL DEFAULT '',
+  company_logo TEXT NOT NULL DEFAULT '',
   archived_at TEXT,
   created_at TEXT NOT NULL
 );
@@ -160,9 +161,13 @@ function ensureClientsTable(database) {
   database.exec(clientsSchemaSql);
   const columns = getTableColumns(database, "clients");
   const hasArchivedAtColumn = columns.some((column) => column.name === "archived_at");
+  const hasCompanyLogoColumn = columns.some((column) => column.name === "company_logo");
 
   if (!hasArchivedAtColumn) {
     database.prepare("ALTER TABLE clients ADD COLUMN archived_at TEXT").run();
+  }
+  if (!hasCompanyLogoColumn) {
+    database.prepare("ALTER TABLE clients ADD COLUMN company_logo TEXT NOT NULL DEFAULT ''").run();
   }
 }
 
@@ -194,10 +199,12 @@ function getOrCreateDefaultClientId(database) {
           phone,
           address,
           notes,
+          company_logo,
           created_at
         )
         VALUES (
           'Client principal',
+          '',
           '',
           '',
           '',
@@ -550,6 +557,7 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        company_logo,
         archived_at,
         created_at
       FROM clients
@@ -565,6 +573,7 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        company_logo,
         archived_at,
         created_at
       FROM clients
@@ -580,6 +589,7 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        company_logo,
         archived_at,
         created_at
       FROM clients
@@ -593,6 +603,7 @@ function getUserStore(username) {
         phone,
         address,
         notes,
+        company_logo,
         created_at
       )
       VALUES (
@@ -602,6 +613,7 @@ function getUserStore(username) {
         @phone,
         @address,
         @notes,
+        @company_logo,
         datetime('now')
       )
     `),
@@ -613,7 +625,8 @@ function getUserStore(username) {
         email = @email,
         phone = @phone,
         address = @address,
-        notes = @notes
+        notes = @notes,
+        company_logo = @company_logo
       WHERE id = @id
     `),
     deleteClientStmt: userDb.prepare(`
@@ -777,6 +790,10 @@ function normalizeClientPayload(client) {
     phone: typeof client.phone === "string" ? client.phone.trim() : "",
     address: typeof client.address === "string" ? client.address.trim() : "",
     notes: typeof client.notes === "string" ? client.notes.trim() : "",
+    company_logo:
+      typeof client.company_logo === "string" && client.company_logo.trim().startsWith("data:image/")
+        ? client.company_logo.trim()
+        : "",
   };
 }
 
