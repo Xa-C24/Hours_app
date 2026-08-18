@@ -1648,7 +1648,14 @@
                   <button type="submit" data-ripple>Afficher</button>
                   <a
                     class="button-link"
-                    href="/export.xlsx?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                    href="/export.pdf?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+                    data-ripple
+                  >
+                    Export PDF
+                  </a>
+                  <a
+                    class="button-link"
+                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
                     data-ripple
                   >
                     Export CSV
@@ -1873,7 +1880,14 @@
 	                <div class="archived-client-actions">
 	                  <a
 	                    class="button-link"
-	                    href="/export.xlsx?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+	                    href="/export.pdf?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+	                    data-ripple
+	                  >
+	                    Export PDF
+	                  </a>
+	                  <a
+	                    class="button-link"
+	                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
 	                    data-ripple
 	                  >
 	                    Export CSV

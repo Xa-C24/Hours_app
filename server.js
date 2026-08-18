@@ -8,6 +8,10 @@ const {
   buildExportFilename,
 } = require("./excel-export");
 const {
+  buildPeriodPdfBuffer,
+  buildHistoryPdfBuffer,
+} = require("./pdf-export");
+const {
   DEFAULT_SETTINGS,
   normalizeSettings,
   normalizeSettingsPatch,
@@ -892,10 +896,13 @@ async function getArchivedClientHistory(username) {
   }));
 }
 
-async function getExportClient(username, requestedClientId) {
+async function getExportClient(username, requestedClientId, options = {}) {
   const normalizedClientId = normalizeClientId(requestedClientId);
   if (normalizedClientId) {
     return await db.getClientById(username, normalizedClientId);
+  }
+  if (options.requireExplicitId) {
+    return null;
   }
   const { selectedClient } = await getClientSelection(username, requestedClientId);
   return selectedClient;
@@ -1808,19 +1815,24 @@ app.post("/clients/:clientId/delete", async (req, res) => {
 app.get("/export.xlsx", async (req, res) => {
   const month = normalizeMonth(req.query.month);
   const exportMode = req.query.mode === "history" ? "history" : "period";
-  const client = await getExportClient(req.authUser, req.query.clientId);
+  const client = await getExportClient(req.authUser, req.query.clientId, { requireExplicitId: true });
   if (!client) {
     return res.status(400).send("Aucun client selectionne.");
   }
+  const userSettings = await getUserSettings(req.authUser);
   const workbook =
     exportMode === "history"
       ? await buildHistoryWorkbook({
           client,
           entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry),
+          userSettings,
+          authUser: req.authUser,
         })
       : await buildPeriodWorkbook({
           client,
           monthData: await getMonthData(req.authUser, client.id, month),
+          userSettings,
+          authUser: req.authUser,
         });
   const filename = buildExportFilename(
     client.company_name,
@@ -1837,14 +1849,64 @@ app.get("/export.xlsx", async (req, res) => {
   res.send(Buffer.from(buffer));
 });
 
+app.get("/export.pdf", async (req, res) => {
+  const month = normalizeMonth(req.query.month);
+  const exportMode = req.query.mode === "history" ? "history" : "period";
+  const client = await getExportClient(req.authUser, req.query.clientId, { requireExplicitId: true });
+  if (!client) {
+    return res.status(400).send("Aucun client selectionne.");
+  }
+
+  const userSettings = await getUserSettings(req.authUser);
+  const buffer =
+    exportMode === "history"
+      ? await buildHistoryPdfBuffer({
+          client,
+          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry),
+          userSettings,
+          authUser: req.authUser,
+        })
+      : await buildPeriodPdfBuffer({
+          client,
+          monthData: await getMonthData(req.authUser, client.id, month),
+          userSettings,
+          authUser: req.authUser,
+        });
+  const filename = buildExportFilename(
+    client.company_name,
+    exportMode === "history" ? "historique" : month,
+    "pdf"
+  );
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.send(buffer);
+});
+
 app.get("/export.csv", async (req, res) => {
-  const search = new URLSearchParams();
-  Object.entries(req.query || {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      search.set(key, String(value));
-    }
-  });
-  return res.redirect(`/export.xlsx?${search.toString()}`);
+  const month = normalizeMonth(req.query.month);
+  const exportMode = req.query.mode === "history" ? "history" : "period";
+  const client = await getExportClient(req.authUser, req.query.clientId, { requireExplicitId: true });
+  if (!client) {
+    return res.status(400).send("Aucun client selectionne.");
+  }
+
+  const lines =
+    exportMode === "history"
+      ? buildHistoryExportLines(
+          client,
+          (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry)
+        )
+      : buildPeriodExportLines(await getMonthData(req.authUser, client.id, month));
+  const filename = buildExportFilename(
+    client.company_name,
+    exportMode === "history" ? "historique" : month,
+    "csv"
+  );
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-16le");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.send(encodeCsvForExcel(lines));
 });
 
 app.post("/pay-period-salary", async (req, res) => {

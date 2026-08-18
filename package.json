@@ -19,6 +19,7 @@
     "emoji-picker-element": "^1.29.1",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "pdfkit": "^0.19.1",
     "pg": "^8.20.0"
   }
 }

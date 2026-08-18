@@ -1,21 +1,29 @@
-const ExcelJS = require("exceljs");
+﻿const ExcelJS = require("exceljs");
+
+const fs = require("node:fs");
+const path = require("node:path");
 
 const APP_TITLE = "Hours App";
 const WORKSHEET_HEADER_ROW = 8;
 const DATA_START_ROW = WORKSHEET_HEADER_ROW + 1;
 const HISTORY_HEADER_ROW = 7;
 const HISTORY_DATA_START_ROW = HISTORY_HEADER_ROW + 1;
+const BRAND_BANNER_PATH = path.join(__dirname, "public", "bandeau_extract.png");
+const A4_LANDSCAPE_PAGE_HEIGHT_POINTS = 595.28;
+const EXCEL_PIXELS_TO_POINTS = 0.75;
+const FOOTER_BOTTOM_GAP_POINTS = 10;
+const FOOTER_MIN_SPACING_POINTS = 24;
 
 const PALETTE = {
   ink: "FF23313D",
-  text: "FF2A3642",
-  muted: "FF6B7785",
-  border: "FFD6DEE6",
-  panel: "FFF6F8FB",
-  panelAlt: "FFEFF3F8",
-  title: "FF203040",
-  accent: "FF3A6EA5",
-  accentSoft: "FFDCE7F4",
+  text: "FF1E2A36",
+  muted: "FF64748B",
+  border: "FFD4E0EC",
+  panel: "FFF4F8FC",
+  panelAlt: "FFEAF2FB",
+  title: "FF173A63",
+  accent: "FF3D78B4",
+  accentSoft: "FFE4EFFA",
   green: "FF2E8B57",
   greenSoft: "FFE3F4EA",
   amber: "FFC08A2D",
@@ -67,6 +75,21 @@ function formatDateShortFr(dateString) {
   });
 }
 
+function formatDateDayMonthYearMultilineFr(dateString) {
+  if (typeof dateString !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString || "";
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const parsedDate = new Date(year, month - 1, day);
+  const weekday = parsedDate.toLocaleDateString("fr-FR", { weekday: "long" });
+  const dateLabel = parsedDate.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  return `${weekday} ${day}\n${dateLabel}`;
+}
+
 function formatDateTimeDisplayFr(dateTimeString) {
   if (typeof dateTimeString !== "string" || !dateTimeString.trim()) {
     return "";
@@ -80,6 +103,13 @@ function formatDateTimeDisplayFr(dateTimeString) {
   return dateLabel || dateTimeString;
 }
 
+function formatExportedAtCompactFr(date) {
+  return `${date.toLocaleDateString("fr-FR")} ${date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
 function formatCurrencyFromCents(amountCents) {
   if (!Number.isInteger(amountCents)) {
     return "Non renseigné";
@@ -88,6 +118,123 @@ function formatCurrencyFromCents(amountCents) {
     style: "currency",
     currency: "EUR",
   }).format(amountCents / 100);
+}
+
+function buildProfileHeaderLine(userSettings, authUser, client) {
+  const profileName = normalizeText(userSettings && userSettings.profileName);
+  const companyName = normalizeText(userSettings && userSettings.companyName);
+  const fallbackUser = normalizeText(authUser);
+  const fallbackCompany = normalizeText(client && client.company_name);
+  const left = profileName || fallbackUser || "Utilisateur";
+  const right = companyName || fallbackCompany || "";
+  return right ? `${left} • ${right}` : left;
+}
+
+function buildMetaHeaderLine(client, periodLabel, exportedAt) {
+  return [
+    `Client ${client.company_name || "Non renseigné"}`,
+    periodLabel,
+    `Généré le ${formatExportedAtCompactFr(exportedAt)}`,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function getVisibleDayTypeSummary(dayTypeCounts) {
+  return [
+    ["Bureau", dayTypeCounts.office || 0],
+    ["Télétravail", dayTypeCounts.remote || 0],
+    ["Congé", dayTypeCounts.leave || 0],
+    ["RTT", dayTypeCounts.rtt || 0],
+    ["Maladie", dayTypeCounts.sick_leave || 0],
+    ["Récupération", dayTypeCounts.holiday || 0],
+  ].filter(([, count]) => Number(count) > 0);
+}
+
+function getBrandBannerPath() {
+  return fs.existsSync(BRAND_BANNER_PATH) ? BRAND_BANNER_PATH : null;
+}
+
+function readPngDimensions(filePath) {
+  if (!filePath || !/\.png$/i.test(filePath)) {
+    return null;
+  }
+  const fileBuffer = fs.readFileSync(filePath);
+  if (fileBuffer.length < 24 || fileBuffer.toString("ascii", 12, 16) !== "IHDR") {
+    return null;
+  }
+  return {
+    width: fileBuffer.readUInt32BE(16),
+    height: fileBuffer.readUInt32BE(20),
+  };
+}
+
+function getRowHeightPoints(worksheet, rowNumber) {
+  return Number(worksheet.getRow(rowNumber).height || worksheet.properties.defaultRowHeight || 15);
+}
+
+function getColumnWidthPixels(worksheet, columnNumber) {
+  const width = Number(worksheet.getColumn(columnNumber).width || 8.43);
+  return Math.floor(width * 7 + 5);
+}
+
+function getPrintableHeightPoints(worksheet) {
+  const topMargin = Number(worksheet.pageSetup?.margins?.top || 0) * 72;
+  const bottomMargin = Number(worksheet.pageSetup?.margins?.bottom || 0) * 72;
+  return A4_LANDSCAPE_PAGE_HEIGHT_POINTS - topMargin - bottomMargin;
+}
+
+function getSheetWidthPixels(worksheet, lastColumnCount) {
+  let total = 0;
+  for (let column = 1; column <= lastColumnCount; column += 1) {
+    total += getColumnWidthPixels(worksheet, column);
+  }
+  return total;
+}
+
+function getCumulativeTopPoints(worksheet, rowNumber) {
+  let total = 0;
+  for (let row = 1; row < rowNumber; row += 1) {
+    total += getRowHeightPoints(worksheet, row);
+  }
+  return total;
+}
+
+function ensureRowsForPointPosition(worksheet, targetBottomPoints) {
+  let cumulative = 0;
+  let rowNumber = 1;
+  while (cumulative < targetBottomPoints) {
+    cumulative += getRowHeightPoints(worksheet, rowNumber);
+    rowNumber += 1;
+  }
+}
+
+function convertPointsToRowFloat(worksheet, targetTopPoints) {
+  ensureRowsForPointPosition(worksheet, targetTopPoints + 1);
+  let cumulative = 0;
+  let rowNumber = 1;
+  while (true) {
+    const rowHeight = getRowHeightPoints(worksheet, rowNumber);
+    if (cumulative + rowHeight >= targetTopPoints) {
+      const offset = Math.max(0, targetTopPoints - cumulative);
+      return (rowNumber - 1) + Math.min(0.999, offset / rowHeight);
+    }
+    cumulative += rowHeight;
+    rowNumber += 1;
+  }
+}
+
+function convertPixelsToColumnFloat(worksheet, lastColumnCount, offsetPixels) {
+  let cumulative = 0;
+  for (let columnNumber = 1; columnNumber <= lastColumnCount; columnNumber += 1) {
+    const columnWidth = getColumnWidthPixels(worksheet, columnNumber);
+    if (cumulative + columnWidth >= offsetPixels) {
+      const remainder = Math.max(0, offsetPixels - cumulative);
+      return (columnNumber - 1) + Math.min(0.999, remainder / columnWidth);
+    }
+    cumulative += columnWidth;
+  }
+  return 0;
 }
 
 function getDayTypeLabel(dayType, fallback = "") {
@@ -149,81 +296,189 @@ function applyCellBorder(cell, color = PALETTE.border) {
   };
 }
 
-function styleLabelValueRow(worksheet, rowNumber, label, value, options = {}) {
-  const labelCell = worksheet.getCell(`A${rowNumber}`);
-  const valueCell = worksheet.getCell(`B${rowNumber}`);
-  labelCell.value = label;
-  valueCell.value = value;
-  worksheet.mergeCells(`B${rowNumber}:D${rowNumber}`);
-  labelCell.font = { bold: true, color: { argb: PALETTE.muted }, size: 10 };
-  valueCell.font = { bold: true, color: { argb: PALETTE.text }, size: options.large ? 12 : 10.5 };
-  labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
-  valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
-  labelCell.alignment = { vertical: "middle" };
-  valueCell.alignment = { vertical: "middle" };
-  applyCellBorder(labelCell);
-  applyCellBorder(valueCell);
-  if (options.valueIsCurrency) {
-    valueCell.alignment = { horizontal: "left", vertical: "middle" };
+function styleHeaderBand(worksheet, client, options = {}) {
+  const profileLine = options.profileLine || "Utilisateur";
+  const metaLine = options.metaLine || `Client ${client.company_name || "Non renseigné"}`;
+  worksheet.mergeCells("A1:I2");
+  worksheet.mergeCells("A3:I3");
+  worksheet.mergeCells("A4:I4");
+  worksheet.mergeCells("J1:J4");
+
+  ["A1", "A3", "A4", "J1"].forEach((address) => {
+    const cell = worksheet.getCell(address);
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
+  });
+
+  for (let row = 1; row <= 4; row += 1) {
+    for (let col = 1; col <= 10; col += 1) {
+      const cell = worksheet.getRow(row).getCell(col);
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
+      applyCellBorder(cell, PALETTE.border);
+    }
   }
+
+  for (let col = 1; col <= 10; col += 1) {
+    const topCell = worksheet.getRow(1).getCell(col);
+    topCell.border = {
+      ...topCell.border,
+      top: { style: "medium", color: { argb: PALETTE.accent } },
+    };
+  }
+
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = "RAPPORT D'HEURES";
+  titleCell.font = { name: "Segoe UI", size: 19, bold: true, color: { argb: PALETTE.title } };
+  titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+  const profileCell = worksheet.getCell("A3");
+  profileCell.value = profileLine;
+  profileCell.font = { name: "Segoe UI", size: 11.5, bold: true, color: { argb: PALETTE.text } };
+  profileCell.alignment = { vertical: "middle", horizontal: "left" };
+
+  const metaCell = worksheet.getCell("A4");
+  metaCell.value = metaLine;
+  metaCell.font = { name: "Segoe UI", size: 10, color: { argb: PALETTE.muted } };
+  metaCell.alignment = { vertical: "middle", horizontal: "left" };
+
+  worksheet.getRow(1).height = 28;
+  worksheet.getRow(2).height = 18;
+  worksheet.getRow(3).height = 20;
+  worksheet.getRow(4).height = 22;
+}
+
+function styleKpiStrip(worksheet, startRow, monthData) {
+  const kpis = [
+    { label: "HEURES TRAVAILLÉES", value: monthData.totalHHMM || "00:00" },
+    { label: "HEURES SUPPLÉMENTAIRES", value: monthData.totalOvertimeHHMM || "00:00" },
+    { label: "RÉCUPÉRÉES", value: monthData.totalRecoveredHHMM || "00:00" },
+    { label: "JOURNÉES TRAVAILLÉES", value: String(Number(monthData.workedDayCount || 0)) },
+  ];
+  const columnGroups = [
+    ["A", "B"],
+    ["C", "D"],
+    ["E", "F"],
+    ["G", "H"],
+  ];
+
+  columnGroups.forEach(([startColumn, endColumn], index) => {
+    worksheet.mergeCells(`${startColumn}${startRow}:${endColumn}${startRow}`);
+    worksheet.mergeCells(`${startColumn}${startRow + 1}:${endColumn}${startRow + 1}`);
+    const labelCell = worksheet.getCell(`${startColumn}${startRow}`);
+    const valueCell = worksheet.getCell(`${startColumn}${startRow + 1}`);
+    labelCell.value = kpis[index].label;
+    valueCell.value = kpis[index].value;
+    labelCell.font = { name: "Segoe UI", size: 9, bold: true, color: { argb: PALETTE.muted } };
+    valueCell.font = { name: "Segoe UI", size: 16, bold: true, color: { argb: PALETTE.title } };
+    labelCell.alignment = { vertical: "middle", horizontal: "left" };
+    valueCell.alignment = { vertical: "middle", horizontal: "left" };
+    for (const column of [startColumn, endColumn]) {
+      for (let row = startRow; row <= startRow + 1; row += 1) {
+        const cell = worksheet.getCell(`${column}${row}`);
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.white } };
+        applyCellBorder(cell, PALETTE.border);
+      }
+    }
+    if (index < columnGroups.length - 1) {
+      const dividerColumn = endColumn;
+      for (let row = startRow; row <= startRow + 1; row += 1) {
+        const cell = worksheet.getCell(`${dividerColumn}${row}`);
+        cell.border = {
+          ...cell.border,
+          right: { style: "thin", color: { argb: PALETTE.border } },
+        };
+      }
+    }
+  });
+
+  worksheet.mergeCells(`I${startRow}:J${startRow + 1}`);
+  const noteCell = worksheet.getCell(`I${startRow}`);
+  noteCell.value =
+    monthData.salaryAmountCents === null
+      ? ""
+      : `Salaire net\n${formatCurrencyFromCents(monthData.salaryAmountCents)}`;
+  noteCell.font = { name: "Segoe UI", size: 9.5, color: { argb: PALETTE.text }, bold: true };
+  noteCell.alignment = { vertical: "middle", horizontal: "right", wrapText: true };
+  noteCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.white } };
+  ["I", "J"].forEach((column) => {
+    for (let row = startRow; row <= startRow + 1; row += 1) {
+      applyCellBorder(worksheet.getCell(`${column}${row}`), PALETTE.border);
+    }
+  });
+
+  worksheet.getRow(startRow).height = 18;
+  worksheet.getRow(startRow + 1).height = 24;
+}
+
+function styleHistoryKpiStrip(worksheet, startRow, client, entries) {
+  const totalMinutes = entries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
+  const totalOvertimeMinutes = entries.reduce((sum, entry) => {
+    if (typeof entry.overtime_hhmm !== "string" || !/^\d{2}:\d{2}$/.test(entry.overtime_hhmm)) {
+      return sum;
+    }
+    const [hours, minutes] = entry.overtime_hhmm.split(":").map(Number);
+    return sum + hours * 60 + minutes;
+  }, 0);
+  const kpis = [
+    { label: "CLIENT", value: client.company_name || "Client" },
+    { label: "JOURNÉES", value: String(entries.length) },
+    { label: "HEURES", value: `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}` },
+    { label: "SUPPLÉMENTAIRES", value: `${String(Math.floor(totalOvertimeMinutes / 60)).padStart(2, "0")}:${String(totalOvertimeMinutes % 60).padStart(2, "0")}` },
+  ];
+  const columnGroups = [
+    ["A", "B"],
+    ["C", "D"],
+    ["E", "F"],
+    ["G", "H"],
+  ];
+  columnGroups.forEach(([startColumn, endColumn], index) => {
+    worksheet.mergeCells(`${startColumn}${startRow}:${endColumn}${startRow}`);
+    worksheet.mergeCells(`${startColumn}${startRow + 1}:${endColumn}${startRow + 1}`);
+    const labelCell = worksheet.getCell(`${startColumn}${startRow}`);
+    const valueCell = worksheet.getCell(`${startColumn}${startRow + 1}`);
+    labelCell.value = kpis[index].label;
+    valueCell.value = kpis[index].value;
+    labelCell.font = { name: "Segoe UI", size: 9, bold: true, color: { argb: PALETTE.muted } };
+    valueCell.font = {
+      name: "Segoe UI",
+      size: kpis[index].value.length > 18 ? 11 : 15,
+      bold: true,
+      color: { argb: PALETTE.title },
+    };
+    labelCell.alignment = { vertical: "middle", horizontal: "left" };
+    valueCell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+    for (const column of [startColumn, endColumn]) {
+      for (let row = startRow; row <= startRow + 1; row += 1) {
+        const cell = worksheet.getCell(`${column}${row}`);
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.white } };
+        applyCellBorder(cell, PALETTE.border);
+      }
+    }
+  });
+  worksheet.getRow(startRow).height = 18;
+  worksheet.getRow(startRow + 1).height = 24;
 }
 
 function styleDayTypeSummary(worksheet, startRow, dayTypeCounts) {
-  worksheet.mergeCells(`F${startRow}:G${startRow}`);
-  const titleCell = worksheet.getCell(`F${startRow}`);
-  titleCell.value = "Répartition des types de journée";
-  titleCell.font = { bold: true, size: 11, color: { argb: PALETTE.title } };
-  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.accentSoft } };
-  titleCell.alignment = { vertical: "middle" };
-  applyCellBorder(titleCell);
-  applyCellBorder(worksheet.getCell(`G${startRow}`));
-
-  const dayTypes = [
-    ["Bureau", dayTypeCounts.office || 0],
-    ["Télétravail", dayTypeCounts.remote || 0],
-    ["Congés", dayTypeCounts.leave || 0],
-    ["RTT", dayTypeCounts.rtt || 0],
-    ["Arrêt", dayTypeCounts.sick_leave || 0],
-    ["Férié", dayTypeCounts.holiday || 0],
-  ];
-
-  dayTypes.forEach(([label, count], index) => {
-    const rowNumber = startRow + 1 + index;
-    const labelCell = worksheet.getCell(`F${rowNumber}`);
-    const valueCell = worksheet.getCell(`G${rowNumber}`);
-    labelCell.value = label;
-    valueCell.value = count;
-    labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: index % 2 === 0 ? PALETTE.white : PALETTE.panel } };
-    valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: index % 2 === 0 ? PALETTE.white : PALETTE.panel } };
-    labelCell.font = { color: { argb: PALETTE.text }, size: 10.5 };
-    valueCell.font = { bold: true, color: { argb: PALETTE.text }, size: 10.5 };
-    valueCell.alignment = { horizontal: "center", vertical: "middle" };
-    applyCellBorder(labelCell);
-    applyCellBorder(valueCell);
-  });
-}
-
-function styleSummaryCard(worksheet, startRow, monthData) {
-  worksheet.mergeCells(`A${startRow}:D${startRow}`);
+  worksheet.mergeCells(`A${startRow}:B${startRow}`);
+  worksheet.mergeCells(`C${startRow}:J${startRow}`);
   const titleCell = worksheet.getCell(`A${startRow}`);
-  titleCell.value = "Synthèse de la période";
-  titleCell.font = { bold: true, size: 11, color: { argb: PALETTE.title } };
-  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.accentSoft } };
-  titleCell.alignment = { vertical: "middle" };
-  ["A", "B", "C", "D"].forEach((column) => applyCellBorder(worksheet.getCell(`${column}${startRow}`)));
-
-  styleLabelValueRow(worksheet, startRow + 1, "Période", monthData.payPeriodLabel || "");
-  styleLabelValueRow(worksheet, startRow + 2, "Jours travaillés", Number(monthData.workedDayCount || 0), { large: true });
-  styleLabelValueRow(worksheet, startRow + 3, "Total période", monthData.totalHHMM || "00:00", { large: true });
-  styleLabelValueRow(worksheet, startRow + 4, "Heures supplémentaires", monthData.totalOvertimeHHMM || "00:00", { large: true });
-  styleLabelValueRow(worksheet, startRow + 5, "Heures récupérées", monthData.totalRecoveredHHMM || "00:00", { large: true });
-  styleLabelValueRow(
-    worksheet,
-    startRow + 6,
-    "Salaire net",
-    monthData.salaryAmountCents === null ? "Non renseigné" : formatCurrencyFromCents(monthData.salaryAmountCents),
-    { large: true, valueIsCurrency: true }
-  );
+  const valueCell = worksheet.getCell(`C${startRow}`);
+  const visibleDayTypes = getVisibleDayTypeSummary(dayTypeCounts);
+  titleCell.value = "Répartition";
+  valueCell.value =
+    visibleDayTypes.length > 0
+      ? visibleDayTypes.map(([label, count]) => `${label} : ${count}`).join("   •   ")
+      : "Aucune journée enregistrée";
+  titleCell.font = { name: "Segoe UI", size: 10.5, bold: true, color: { argb: PALETTE.accent } };
+  valueCell.font = { name: "Segoe UI", size: 10, color: { argb: PALETTE.text } };
+  titleCell.alignment = { vertical: "middle", horizontal: "left" };
+  valueCell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+  for (let col = 1; col <= 10; col += 1) {
+    const cell = worksheet.getRow(startRow).getCell(col);
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.white } };
+    applyCellBorder(cell, PALETTE.border);
+  }
+  worksheet.getRow(startRow).height = 22;
 }
 
 function setWorkbookMetadata(workbook) {
@@ -251,46 +506,13 @@ function setupSheetLayout(worksheet, title) {
       header: 0.2,
       footer: 0.2,
     },
+    horizontalCentered: true,
   };
   worksheet.headerFooter = {
     firstHeader: `&L&"Segoe UI,Bold"&14${title}&R&G`,
     firstFooter: "&LHours App&RPage &P / &N",
     oddFooter: "&LHours App&RPage &P / &N",
   };
-}
-
-function styleHeaderBand(worksheet, client, subtitle, hasLogo) {
-  worksheet.mergeCells("A1:H2");
-  const titleCell = worksheet.getCell("A1");
-  titleCell.value = "RELEVÉ D’HEURES";
-  titleCell.font = { name: "Segoe UI", size: 20, bold: true, color: { argb: PALETTE.white } };
-  titleCell.alignment = { vertical: "middle", horizontal: "left" };
-  titleCell.fill = {
-    type: "gradient",
-    gradient: "angle",
-    degree: 0,
-    stops: [
-      { position: 0, color: { argb: PALETTE.title } },
-      { position: 1, color: { argb: PALETTE.accent } },
-    ],
-  };
-
-  worksheet.mergeCells("A3:H3");
-  const subtitleCell = worksheet.getCell("A3");
-  subtitleCell.value = subtitle;
-  subtitleCell.font = { name: "Segoe UI", size: 11, color: { argb: PALETTE.muted }, italic: true };
-  subtitleCell.alignment = { vertical: "middle", horizontal: "left" };
-
-  worksheet.mergeCells(hasLogo ? "J1:K2" : "I1:J2");
-  const clientCell = worksheet.getCell(hasLogo ? "J1" : "I1");
-  clientCell.value = client.company_name || "Client";
-  clientCell.font = { name: "Segoe UI", size: hasLogo ? 12 : 14, bold: true, color: { argb: PALETTE.title } };
-  clientCell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  clientCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
-  (hasLogo
-    ? ["J1", "K1", "J2", "K2"]
-    : ["I1", "J1", "I2", "J2"]
-  ).forEach((address) => applyCellBorder(worksheet.getCell(address)));
 }
 
 function maybeAddClientLogo(workbook, worksheet, client) {
@@ -305,10 +527,66 @@ function maybeAddClientLogo(workbook, worksheet, client) {
     extension,
   });
   worksheet.addImage(imageId, {
-    tl: { col: 8.2, row: 0.2 },
-    br: { col: 9.35, row: 2.35 },
+    tl: { col: 8.75, row: 0.35 },
+    br: { col: 9.85, row: 3.6 },
   });
   return true;
+}
+
+function addBrandBannerToWorksheet(workbook, worksheet, afterRow, lastColumnCount) {
+  const bannerPath = getBrandBannerPath();
+  const bannerSize = readPngDimensions(bannerPath);
+  if (!bannerPath || !bannerSize || !bannerSize.width || !bannerSize.height) {
+    return {
+      footerRow: afterRow,
+      footerRowFloat: afterRow - 1,
+      imageWidthPixels: 0,
+      imageHeightPixels: 0,
+      estimatedPageCount: 1,
+    };
+  }
+  const imageId = workbook.addImage({
+    filename: bannerPath,
+    extension: "png",
+  });
+  const sheetWidthPixels = getSheetWidthPixels(worksheet, lastColumnCount);
+  const width = Math.round(sheetWidthPixels * 0.92);
+  const height = Math.round((bannerSize.height / bannerSize.width) * width);
+  const printableHeightPoints = getPrintableHeightPoints(worksheet);
+  const bannerHeightPoints = height * EXCEL_PIXELS_TO_POINTS;
+  const minimumFooterTopPoints =
+    printableHeightPoints - bannerHeightPoints - FOOTER_BOTTOM_GAP_POINTS;
+  const contentBottomPoints = getCumulativeTopPoints(worksheet, afterRow + 1);
+  const desiredContentTopPoints = contentBottomPoints + FOOTER_MIN_SPACING_POINTS;
+  const footerTopPoints = Math.max(minimumFooterTopPoints, desiredContentTopPoints);
+  const zeroBasedPageIndex = Math.floor(footerTopPoints / printableHeightPoints);
+  const footerTopWithinPage = footerTopPoints - zeroBasedPageIndex * printableHeightPoints;
+  const finalFooterTopPoints =
+    footerTopWithinPage <= minimumFooterTopPoints
+      ? zeroBasedPageIndex * printableHeightPoints + minimumFooterTopPoints
+      : (zeroBasedPageIndex + 1) * printableHeightPoints + minimumFooterTopPoints;
+  const finalBottomPoints = finalFooterTopPoints + bannerHeightPoints + FOOTER_BOTTOM_GAP_POINTS;
+  ensureRowsForPointPosition(worksheet, finalBottomPoints);
+  const startRowFloat = convertPointsToRowFloat(worksheet, finalFooterTopPoints);
+  const startRow = Math.floor(startRowFloat) + 1;
+  const horizontalOffsetPixels = Math.max(0, Math.round((sheetWidthPixels - width) / 2));
+  const startCol = convertPixelsToColumnFloat(worksheet, lastColumnCount, horizontalOffsetPixels);
+  worksheet.addImage(imageId, {
+    tl: { col: startCol, row: startRowFloat },
+    ext: { width, height },
+  });
+  const approxRows = Math.ceil((bannerHeightPoints + FOOTER_BOTTOM_GAP_POINTS) / (worksheet.properties.defaultRowHeight || 22));
+  for (let row = startRow; row <= startRow + approxRows; row += 1) {
+    worksheet.getRow(row).height = 22;
+  }
+  return {
+    footerRow: startRow,
+    footerRowFloat: Number(startRowFloat.toFixed(3)),
+    imageWidthPixels: width,
+    imageHeightPixels: height,
+    estimatedPageCount: Math.max(1, Math.ceil(finalBottomPoints / printableHeightPoints)),
+    endRow: startRow + approxRows + 1,
+  };
 }
 
 function autofitWorksheetColumns(worksheet, columnsConfig) {
@@ -374,12 +652,12 @@ function applyStatusStyle(cell, status) {
     cell.font = { name: "Segoe UI", size: 10.5, bold: true, color: { argb: PALETTE.amber } };
     return;
   }
-  if (normalized.includes("récup") || normalized.includes("recup")) {
+  if (normalized.includes("rÃ©cup") || normalized.includes("recup")) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.blueSoft } };
     cell.font = { name: "Segoe UI", size: 10.5, bold: true, color: { argb: PALETTE.blue } };
     return;
   }
-  if (normalized.includes("arrêt") || normalized.includes("congé") || normalized.includes("ferié")) {
+  if (normalized.includes("arrÃªt") || normalized.includes("congÃ©") || normalized.includes("feriÃ©")) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.redSoft } };
     cell.font = { name: "Segoe UI", size: 10.5, bold: true, color: { argb: PALETTE.red } };
   }
@@ -387,16 +665,15 @@ function applyStatusStyle(cell, status) {
 
 function populatePeriodTable(worksheet, monthData) {
   const columns = [
-    { header: "Date", key: "date", width: 18, minWidth: 15, maxWidth: 22 },
-    { header: "Type", key: "type", width: 16, minWidth: 14, maxWidth: 18 },
+    { header: "Date", key: "date", width: 18, minWidth: 16, maxWidth: 21 },
+    { header: "Type", key: "type", width: 15, minWidth: 13, maxWidth: 17 },
     { header: "Arrivée", key: "arrival", width: 12, minWidth: 10, maxWidth: 12 },
     { header: "Départ", key: "departure", width: 12, minWidth: 10, maxWidth: 12 },
-    { header: "Pause (min)", key: "pause", width: 12, minWidth: 10, maxWidth: 14 },
-    { header: "Heures du jour", key: "worked", width: 14, minWidth: 12, maxWidth: 16 },
-    { header: "Heures sup", key: "overtime", width: 12, minWidth: 11, maxWidth: 14 },
-    { header: "Heures récup", key: "recovered", width: 14, minWidth: 12, maxWidth: 16 },
-    { header: "État", key: "status", width: 14, minWidth: 11, maxWidth: 16 },
-    { header: "Commentaire", key: "comment", width: 36, minWidth: 20, maxWidth: 48 },
+    { header: "Pause", key: "pause", width: 10, minWidth: 9, maxWidth: 11 },
+    { header: "Heures", key: "worked", width: 11, minWidth: 10, maxWidth: 12 },
+    { header: "Sup", key: "overtime", width: 9, minWidth: 8, maxWidth: 10 },
+    { header: "Statut", key: "status", width: 13, minWidth: 11, maxWidth: 15 },
+    { header: "Commentaire", key: "comment", width: 40, minWidth: 28, maxWidth: 56 },
   ];
 
   worksheet.columns = columns.map((column) => ({
@@ -424,7 +701,6 @@ function populatePeriodTable(worksheet, monthData) {
         "",
         hhmmToExcelDuration(entry.week_total_hhmm),
         hhmmToExcelDuration(entry.week_total_overtime_hhmm),
-        hhmmToExcelDuration(entry.week_total_recovered_hhmm),
         "",
         entry.week_summary_label || "",
       ];
@@ -432,32 +708,30 @@ function populatePeriodTable(worksheet, monthData) {
     } else {
       const statusLabel = getHistoryStatusLabel(entry);
       row.values = [
-        entry.work_date_display || entry.work_date,
+        formatDateDayMonthYearMultilineFr(entry.work_date),
         getDayTypeLabel(entry.day_type, entry.day_type_display),
         timeToExcelValue(entry.arrival_time_display),
         timeToExcelValue(entry.departure_time_display),
         entry.lunch_break_minutes_display === "" ? "" : Number(entry.lunch_break_minutes_display),
         hhmmToExcelDuration(entry.worked_hhmm),
         hhmmToExcelDuration(entry.overtime_hhmm),
-        Number(entry.recovered_minutes || 0) > 0 ? hhmmToExcelDuration(entry.recovered_hhmm) : "",
         statusLabel,
         normalizeText(entry.comment_text),
       ];
       applyRegularDataStyle(row, currentRowNumber);
-      applyStatusStyle(row.getCell(9), statusLabel);
+      applyStatusStyle(row.getCell(8), statusLabel);
     }
 
-    row.height = 22;
-    row.getCell(1).alignment = { vertical: "middle", horizontal: "left" };
+    row.height = 32;
+    row.getCell(1).alignment = { vertical: "top", horizontal: "left", wrapText: true };
     row.getCell(2).alignment = { vertical: "middle", horizontal: "left" };
     row.getCell(3).numFmt = "hh:mm";
     row.getCell(4).numFmt = "hh:mm";
     row.getCell(5).alignment = { vertical: "middle", horizontal: "center" };
     row.getCell(6).numFmt = "[h]:mm";
     row.getCell(7).numFmt = "[h]:mm";
-    row.getCell(8).numFmt = "[h]:mm";
-    row.getCell(9).alignment = { vertical: "middle", horizontal: "center" };
-    row.getCell(10).alignment = { vertical: "top", horizontal: "left", wrapText: true };
+    row.getCell(8).alignment = { vertical: "middle", horizontal: "center" };
+    row.getCell(9).alignment = { vertical: "top", horizontal: "left", wrapText: true };
     currentRowNumber += 1;
   }
 
@@ -467,14 +741,14 @@ function populatePeriodTable(worksheet, monthData) {
 
 function populateHistoryTable(worksheet, entries) {
   const columns = [
-    { header: "Date", width: 18, minWidth: 15, maxWidth: 22 },
-    { header: "Type", width: 16, minWidth: 14, maxWidth: 18 },
+    { header: "Date", width: 18, minWidth: 16, maxWidth: 21 },
+    { header: "Type", width: 15, minWidth: 13, maxWidth: 17 },
     { header: "Arrivée", width: 12, minWidth: 10, maxWidth: 12 },
     { header: "Départ", width: 12, minWidth: 10, maxWidth: 12 },
-    { header: "Pause (min)", width: 12, minWidth: 10, maxWidth: 14 },
-    { header: "Heures", width: 12, minWidth: 11, maxWidth: 14 },
-    { header: "Heures sup", width: 12, minWidth: 11, maxWidth: 14 },
-    { header: "Commentaire", width: 40, minWidth: 22, maxWidth: 52 },
+    { header: "Pause", width: 10, minWidth: 9, maxWidth: 11 },
+    { header: "Heures", width: 11, minWidth: 10, maxWidth: 12 },
+    { header: "Sup", width: 9, minWidth: 8, maxWidth: 10 },
+    { header: "Commentaire", width: 42, minWidth: 30, maxWidth: 58 },
   ];
   worksheet.columns = columns.map((column, index) => ({
     key: `col_${index + 1}`,
@@ -493,7 +767,7 @@ function populateHistoryTable(worksheet, entries) {
   entries.forEach((entry) => {
     const row = worksheet.getRow(rowNumber);
     row.values = [
-      entry.work_date_display || entry.work_date,
+      formatDateDayMonthYearMultilineFr(entry.work_date),
       getDayTypeLabel(entry.day_type, entry.day_type_display),
       timeToExcelValue(entry.arrival_time_display),
       timeToExcelValue(entry.departure_time_display),
@@ -503,7 +777,8 @@ function populateHistoryTable(worksheet, entries) {
       normalizeText(entry.comment_text),
     ];
     applyRegularDataStyle(row, rowNumber);
-    row.height = 22;
+    row.height = 32;
+    row.getCell(1).alignment = { vertical: "top", horizontal: "left", wrapText: true };
     row.getCell(3).numFmt = "hh:mm";
     row.getCell(4).numFmt = "hh:mm";
     row.getCell(6).numFmt = "[h]:mm";
@@ -516,7 +791,7 @@ function populateHistoryTable(worksheet, entries) {
   return rowNumber;
 }
 
-async function buildPeriodWorkbook({ client, monthData, exportedAt = new Date() }) {
+async function buildPeriodWorkbook({ client, monthData, userSettings = {}, authUser = "", exportedAt = new Date() }) {
   const workbook = new ExcelJS.Workbook();
   setWorkbookMetadata(workbook);
   const worksheet = workbook.addWorksheet(
@@ -527,24 +802,37 @@ async function buildPeriodWorkbook({ client, monthData, exportedAt = new Date() 
   styleHeaderBand(
     worksheet,
     client,
-    `Client ${client.company_name || "Non renseigné"} • Période du ${formatDateLongFr(monthData.payPeriodStartDate)} au ${formatDateLongFr(monthData.payPeriodEndDate)} • Généré le ${exportedAt.toLocaleDateString("fr-FR")} à ${exportedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
-    hasLogo
+    {
+      hasLogo,
+      profileLine: buildProfileHeaderLine(userSettings, authUser, client),
+      metaLine: buildMetaHeaderLine(
+        client,
+        `Du ${formatDateLongFr(monthData.payPeriodStartDate)} au ${formatDateLongFr(monthData.payPeriodEndDate)}`,
+        exportedAt
+      ),
+    }
   );
+  styleKpiStrip(worksheet, 5, monthData);
+  styleDayTypeSummary(worksheet, 7, monthData.dayTypeCounts || {});
 
   const endTableRow = populatePeriodTable(worksheet, monthData);
-  const summaryStartRow = endTableRow + 2;
-  styleSummaryCard(worksheet, summaryStartRow, monthData);
-  styleDayTypeSummary(worksheet, summaryStartRow, monthData.dayTypeCounts || {});
-
-  worksheet.getRow(1).height = 30;
-  worksheet.getRow(2).height = 26;
-  worksheet.getRow(3).height = 20;
+  const bannerPlacement = addBrandBannerToWorksheet(workbook, worksheet, endTableRow + 1, 10);
   worksheet.pageSetup.printTitlesRow = `${WORKSHEET_HEADER_ROW}:${WORKSHEET_HEADER_ROW}`;
+  worksheet.pageSetup.printArea = `A1:J${bannerPlacement.endRow}`;
+  worksheet._brandBannerMeta = {
+    lastDataRow: endTableRow - 1,
+    footerRow: bannerPlacement.footerRow,
+    footerRowFloat: bannerPlacement.footerRowFloat,
+    imageWidthPixels: bannerPlacement.imageWidthPixels,
+    imageHeightPixels: bannerPlacement.imageHeightPixels,
+    estimatedPageCount: bannerPlacement.estimatedPageCount,
+    printArea: worksheet.pageSetup.printArea,
+  };
 
   return workbook;
 }
 
-async function buildHistoryWorkbook({ client, entries, exportedAt = new Date() }) {
+async function buildHistoryWorkbook({ client, entries, userSettings = {}, authUser = "", exportedAt = new Date() }) {
   const workbook = new ExcelJS.Workbook();
   setWorkbookMetadata(workbook);
   const worksheet = workbook.addWorksheet(
@@ -553,73 +841,27 @@ async function buildHistoryWorkbook({ client, entries, exportedAt = new Date() }
   setupSheetLayout(worksheet, "Historique des heures");
 
   const hasLogo = maybeAddClientLogo(workbook, worksheet, client);
-  worksheet.mergeCells("A1:F2");
-  const titleCell = worksheet.getCell("A1");
-  titleCell.value = "HISTORIQUE DES HEURES";
-  titleCell.font = { name: "Segoe UI", size: 20, bold: true, color: { argb: PALETTE.white } };
-  titleCell.fill = {
-    type: "gradient",
-    gradient: "angle",
-    degree: 0,
-    stops: [
-      { position: 0, color: { argb: PALETTE.title } },
-      { position: 1, color: { argb: PALETTE.accent } },
-    ],
-  };
-  titleCell.alignment = { vertical: "middle", horizontal: "left" };
-
-  worksheet.mergeCells("A3:F3");
-  worksheet.getCell("A3").value = `Client ${client.company_name || "Non renseigné"} • Exporté le ${exportedAt.toLocaleDateString("fr-FR")} à ${exportedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  worksheet.getCell("A3").font = { name: "Segoe UI", size: 11, italic: true, color: { argb: PALETTE.muted } };
-
-  if (!hasLogo) {
-    worksheet.mergeCells("G1:H2");
-    const clientCell = worksheet.getCell("G1");
-    clientCell.value = client.company_name || "Client";
-    clientCell.font = { name: "Segoe UI", size: 13, bold: true, color: { argb: PALETTE.title } };
-    clientCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.panel } };
-    clientCell.alignment = { vertical: "middle", horizontal: "center" };
-    ["G1", "H1", "G2", "H2"].forEach((address) => applyCellBorder(worksheet.getCell(address)));
-  }
+  styleHeaderBand(worksheet, client, {
+    hasLogo,
+    profileLine: buildProfileHeaderLine(userSettings, authUser, client),
+    metaLine: buildMetaHeaderLine(client, "Historique complet", exportedAt),
+  });
+  worksheet.getCell("A1").value = "HISTORIQUE DES HEURES";
+  styleHistoryKpiStrip(worksheet, 5, client, entries);
 
   const endDataRow = populateHistoryTable(worksheet, entries);
-  const totalMinutes = entries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
-  const totalOvertimeMinutes = entries.reduce((sum, entry) => {
-    const extra = hhmmToExcelDuration(entry.overtime_hhmm);
-    return sum + (extra === null ? 0 : extra);
-  }, 0);
-
-  const summaryStartRow = endDataRow + 2;
-  worksheet.mergeCells(`A${summaryStartRow}:D${summaryStartRow}`);
-  const summaryTitleCell = worksheet.getCell(`A${summaryStartRow}`);
-  summaryTitleCell.value = "Résumé";
-  summaryTitleCell.font = { bold: true, size: 11, color: { argb: PALETTE.title } };
-  summaryTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.accentSoft } };
-  ["A", "B", "C", "D"].forEach((column) => applyCellBorder(worksheet.getCell(`${column}${summaryStartRow}`)));
-
-  styleLabelValueRow(worksheet, summaryStartRow + 1, "Client", client.company_name || "");
-  if (client.archived_at) {
-    styleLabelValueRow(worksheet, summaryStartRow + 2, "Archivé le", formatDateTimeDisplayFr(client.archived_at));
-  }
-  styleLabelValueRow(worksheet, summaryStartRow + 3, "Nombre de journées", entries.length, { large: true });
-  styleLabelValueRow(
-    worksheet,
-    summaryStartRow + 4,
-    "Total heures",
-    `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`,
-    { large: true }
-  );
-
-  const overtimeCell = worksheet.getCell(`B${summaryStartRow + 5}`);
-  styleLabelValueRow(
-    worksheet,
-    summaryStartRow + 5,
-    "Total heures sup",
-    totalOvertimeMinutes
-  );
-  overtimeCell.numFmt = "[h]:mm";
-
+  const bannerPlacement = addBrandBannerToWorksheet(workbook, worksheet, endDataRow + 1, 8);
   worksheet.pageSetup.printTitlesRow = `${HISTORY_HEADER_ROW}:${HISTORY_HEADER_ROW}`;
+  worksheet.pageSetup.printArea = `A1:H${bannerPlacement.endRow}`;
+  worksheet._brandBannerMeta = {
+    lastDataRow: endDataRow - 1,
+    footerRow: bannerPlacement.footerRow,
+    footerRowFloat: bannerPlacement.footerRowFloat,
+    imageWidthPixels: bannerPlacement.imageWidthPixels,
+    imageHeightPixels: bannerPlacement.imageHeightPixels,
+    estimatedPageCount: bannerPlacement.estimatedPageCount,
+    printArea: worksheet.pageSetup.printArea,
+  };
   return workbook;
 }
 
@@ -635,4 +877,7 @@ module.exports = {
   getDayTypeLabel,
   getHistoryStatusLabel,
   formatCurrencyFromCents,
+  getBrandBannerPath,
 };
+
+
