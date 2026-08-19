@@ -1,7 +1,7 @@
 {
   "name": "Hours App",
   "short_name": "Hours",
-  "description": "Suivi mensuel des heures de travail par client.",
+  "description": "Suivi mensuel des heures de travail par client et de ta mère.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
