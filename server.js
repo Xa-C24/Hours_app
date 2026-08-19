@@ -1,6 +1,14 @@
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
+
+const hasDatabaseUrl =
+  typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.trim() !== "";
+
+if (process.env.NODE_ENV === "production" && !hasDatabaseUrl) {
+  throw new Error("DATABASE_URL is required in production. PostgreSQL is the official production database.");
+}
+
 const db = require("./db");
 const {
   buildPeriodWorkbook,
@@ -120,8 +128,42 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/healthz", (req, res) => {
-  res.status(200).json({ ok: true });
+app.get("/healthz", async (req, res) => {
+  try {
+    const database = typeof db.healthCheck === "function"
+      ? await db.healthCheck()
+      : { ok: false, engine: "unknown" };
+    const isOk = Boolean(database && database.ok);
+    return res.status(isOk ? 200 : 503).json({
+      ok: isOk,
+      process: {
+        ok: true,
+        uptime_seconds: Math.floor(process.uptime()),
+      },
+      database: {
+        ok: isOk,
+        engine: database.engine || "unknown",
+      },
+      checked_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(503).json({
+      ok: false,
+      process: {
+        ok: true,
+        uptime_seconds: Math.floor(process.uptime()),
+      },
+      database: {
+        ok: false,
+        engine:
+          typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.trim()
+            ? "postgres"
+            : "sqlite",
+      },
+      error: "database_unavailable",
+      checked_at: new Date().toISOString(),
+    });
+  }
 });
 
 function parseCookies(cookieHeader) {
@@ -878,6 +920,37 @@ function formatHistoryEntry(entry) {
     lunch_break_minutes_display: isWorkedDayType(dayType) ? entry.lunch_break_minutes : "",
     worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
     overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
+  };
+}
+
+function serializeMonthDataForApi(month, clientId, monthData) {
+  return {
+    month: normalizeMonth(month),
+    clientId: normalizeClientId(clientId),
+    payPeriodLabel: monthData.payPeriodLabel,
+    payPeriodStartDate: monthData.payPeriodStartDate,
+    payPeriodEndDate: monthData.payPeriodEndDate,
+    workedDayCount: monthData.workedDayCount,
+    totalHHMM: monthData.totalHHMM,
+    totalOvertimeHHMM: monthData.totalOvertimeHHMM,
+    totalRecoveredHHMM: monthData.totalRecoveredHHMM,
+    dayTypeCounts: monthData.dayTypeCounts,
+    entries: monthData.entries.map((entry) => ({
+      work_date: entry.work_date,
+      work_date_display: entry.work_date_display,
+      worked_minutes: entry.worked_minutes,
+      worked_hhmm: entry.worked_hhmm,
+      day_type: entry.day_type,
+      day_type_display: entry.day_type_display,
+      is_worked_day: entry.is_worked_day,
+      under_target: entry.under_target,
+      arrival_time_display: entry.arrival_time_display,
+      departure_time_display: entry.departure_time_display,
+      lunch_break_minutes_display: entry.lunch_break_minutes_display,
+      comment_text: entry.comment_text || "",
+      overtime_minutes: entry.overtime_minutes,
+      target_minutes: entry.target_minutes,
+    })),
   };
 }
 
@@ -1641,6 +1714,23 @@ app.get("/api/entries/by-date", async (req, res) => {
   });
 });
 
+app.get("/api/entries/month", async (req, res) => {
+  const clientId = normalizeClientId(req.query.clientId);
+  const month = normalizeMonth(req.query.month);
+
+  if (!clientId || !month) {
+    return res.status(400).json({ error: "Parametres invalides." });
+  }
+
+  const client = await db.getClientById(req.authUser, clientId);
+  if (!client) {
+    return res.status(404).json({ error: "Client introuvable." });
+  }
+
+  const monthData = await getMonthData(req.authUser, client.id, month);
+  return res.json(serializeMonthDataForApi(month, client.id, monthData));
+});
+
 app.get("/api/settings", async (req, res) => {
   return res.json({ settings: await getUserSettings(req.authUser) });
 });
@@ -2133,6 +2223,14 @@ app.use((error, req, res, next) => {
   res.status(500).send("Erreur interne du serveur.");
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Hours app running on http://0.0.0.0:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Hours app running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+module.exports = {
+  app,
+  getMonthData,
+  serializeMonthDataForApi,
+};

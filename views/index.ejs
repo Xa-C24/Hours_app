@@ -2,15 +2,15 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1f2937" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Hours" />
-    <title>Suivi des heures</title>
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+    <title>Hours App</title>
+    <link rel="icon" type="image/svg+xml" href="/ApH32x32.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/ApH32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/ApH180x180.png" />
     <link rel="manifest" href="/manifest.json" />
     <script type="module" src="/vendor/emoji-picker-element/index.js"></script>
     <script>
@@ -30,6 +30,11 @@
           document.documentElement.setAttribute("data-theme", "light");
           document.documentElement.setAttribute("data-style", "premium");
         }
+
+        const isStandalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        document.documentElement.setAttribute("data-display-mode", isStandalone ? "standalone" : "browser");
       })();
     </script>
     <link rel="stylesheet" href="/style.css" />
@@ -496,12 +501,11 @@
 	      const _settingsWeeklyGoalHHMM = `${String(Math.floor((_settingsDailyGoalMinutes * 5) / 60)).padStart(2, "0")}:${String((_settingsDailyGoalMinutes * 5) % 60).padStart(2, "0")}`;
 	      const _settingsMonthlyGoalHours = Math.round((_settingsDailyGoalMinutes * 20) / 60);
 	      const _mobileNavItems = [
-	        { key: "dashboard", label: "Dashboard", icon: "◈" },
-	        { key: "entry", label: "Saisie", icon: "✎" },
-	        { key: "calendar", label: "Calendrier", icon: "▦" },
-	        { key: "history", label: "Archives", icon: "🗂" },
-	        { key: "stats", label: "Stats", icon: "◔" },
-	        { key: "settings", label: "Réglages", icon: "⚙" },
+	        { key: "dashboard", label: "Dashboard", navLabel: "Accueil", icon: "◈" },
+	        { key: "entry", label: "Saisie", navLabel: "Saisie", icon: "✎" },
+	        { key: "calendar", label: "Calendrier", navLabel: "Agenda", icon: "▦" },
+	        { key: "history", label: "Archives", navLabel: "Archives", icon: "🗂" },
+	        { key: "settings", label: "Réglages", navLabel: "Réglages", icon: "⚙" },
 	      ];
       const _settingsSections = [
         { key: "profile", icon: "👤", label: "Profil", description: "Informations personnelles et identité visuelle." },
@@ -611,16 +615,36 @@
               <option value="light-green">Celadon</option>
             </select>
           </div>
-          <div class="theme-picker">
-            <label for="styleSelectApp">Style</label>
-            <select id="styleSelectApp" data-style-selector>
-              <option value="premium">Premium</option>
-              <option value="robot">Robot</option>
-              <option value="retro">SEGA</option>
-            </select>
-          </div>
-	          <details class="user-menu">
-	            <summary class="user-menu-trigger" aria-label="Ouvrir le menu utilisateur">
+	          <div class="theme-picker">
+	            <label for="styleSelectApp">Style</label>
+	            <select id="styleSelectApp" data-style-selector>
+	              <option value="premium">Premium</option>
+	              <option value="robot">Robot</option>
+	              <option value="retro">SEGA</option>
+	            </select>
+	          </div>
+            <details
+              class="notifications-menu"
+              data-notifications-menu
+              data-notifications-user="<%= authUser || 'anonymous' %>"
+              data-notifications-client="<%= _selectedClientId || '' %>"
+            >
+              <summary class="notifications-trigger" aria-label="Ouvrir le centre de notifications">
+                <span class="notifications-bell" aria-hidden="true">🔔</span>
+                <span class="notifications-trigger-label">Notifications</span>
+                <span class="notifications-badge" data-notifications-badge hidden>0</span>
+              </summary>
+              <div class="notifications-panel app-card-compact" data-notifications-panel>
+                <div class="notifications-panel-head">
+                  <strong>Notifications</strong>
+                  <button type="button" class="button-link button-neutral" data-notifications-read-all hidden>Tout marquer comme lu</button>
+                </div>
+                <div class="notifications-list" data-notifications-list></div>
+                <p class="notifications-empty" data-notifications-empty hidden>Aucune notification pour le moment.</p>
+              </div>
+            </details>
+		          <details class="user-menu">
+		            <summary class="user-menu-trigger" aria-label="Ouvrir le menu utilisateur">
 	              <% if (authUser) { %>
 	              <span class="user-chip"><%= authUser %></span>
 	              <% } else { %>
@@ -1184,11 +1208,11 @@
 		          </div>
 		        </article>
 
-	        <article class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel">
-	          <div class="cockpit-panel-head">
-	            <span class="cockpit-kicker">Activité</span>
-	            <h3>Semaine en cours</h3>
-	          </div>
+		        <article class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel">
+		          <div class="cockpit-panel-head">
+		            <span class="cockpit-kicker">Activité</span>
+		            <h3>Semaine en cours</h3>
+		          </div>
 		          <div class="cockpit-week-strip">
 		            <% _weekPreviewDays.forEach((day) => { %>
 		            <div class="cockpit-week-day <%= day.stateClass %><%= day.isToday ? ' is-today' : '' %>">
@@ -1214,11 +1238,50 @@
 			              <span>Mois</span>
 			              <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
 			            </div>
-			          </div>
-		        </article>
-	
-		      
-			      </section>
+				          </div>
+			        </article>
+
+			        <section class="card premium-surface mobile-stats-card app-surface app-card" aria-label="Synthèse du mois">
+	              <div class="entry-card-top">
+	                <div class="section-heading">
+	                  <p class="section-eyebrow">Stats</p>
+	                  <h2>Lecture rapide du mois</h2>
+	                </div>
+	              </div>
+	              <div class="mobile-stats-grid">
+	                <article class="mobile-stat-tile">
+	                  <span class="mobile-stat-label">Total période</span>
+	                  <strong class="mobile-stat-value"><%= totalHHMM %></strong>
+	                  <span class="mobile-stat-meta">Vue active sur <%= _payPeriodLabel || selectedMonth %></span>
+	                </article>
+	                <article class="mobile-stat-tile">
+	                  <span class="mobile-stat-label">Moyenne / jour travaillé</span>
+	                  <strong class="mobile-stat-value"><%= _monthAverageHHMM %></strong>
+	                  <span class="mobile-stat-meta"><%= _workedDayCount %> jour<%= _workedDayCount > 1 ? "s" : "" %> productif<%= _workedDayCount > 1 ? "s" : "" %></span>
+	                </article>
+	                <article class="mobile-stat-tile">
+	                  <span class="mobile-stat-label">Heures sup</span>
+	                  <strong class="mobile-stat-value"><%= totalOvertimeHHMM %></strong>
+	                  <span class="mobile-stat-meta">Récupération cumulée <%= totalRecoveredHHMM %></span>
+	                </article>
+	                <article class="mobile-stat-tile">
+	                  <span class="mobile-stat-label">Salaire net</span>
+	                  <strong class="mobile-stat-value"><%= salaryAmountDisplay %></strong>
+	                  <span class="mobile-stat-meta"><%= hourlyRateDisplay || "Taux horaire indisponible" %></span>
+	                </article>
+	              </div>
+	              <div class="mobile-daytype-grid">
+	                <% dayTypeOptions.forEach((option) => { %>
+	                <article class="mobile-daytype-item">
+	                  <span class="mobile-daytype-name"><%= option.label %></span>
+	                  <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
+	                </article>
+	                <% }); %>
+	              </div>
+	            </section>
+		
+			      
+				      </section>
 	              
 	            <div class="between-sections-spacer" aria-hidden="true"></div>
 	          </div>
@@ -1286,10 +1349,11 @@
 		                      </div>
 		                    </div>
 	                    <div class="entry-daybar-state">
-                      <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
-                      <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
-                    </div>
-                  </div>
+	                      <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
+	                      <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
+	                      <p class="entry-draft-status" data-entry-draft-status hidden aria-live="polite"></p>
+	                    </div>
+	                  </div>
                 </div>
 
                 <div class="entry-main-layout">
@@ -1395,9 +1459,15 @@
                 </div>
 
 		            <div class="form-actions entry-form-actions">
-		            <button
-                    type="submit"
-                    data-ripple
+			            <button
+                    type="button"
+                    class="button-link button-neutral btn-ghost"
+                    data-entry-clear-draft
+                    hidden
+                  >Effacer le brouillon</button>
+			            <button
+	                    type="submit"
+	                    data-ripple
                     data-entry-submit-button
                     data-default-label="<%= _isEditing ? "Mettre a jour" : "Enregistrer" %>"
                     data-saving-label="Enregistrement..."
@@ -1646,18 +1716,20 @@
                 <div class="month-form-controls">
                   <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
                   <button type="submit" data-ripple>Afficher</button>
-                  <a
-                    class="button-link"
-                    href="/export.pdf?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-                    data-ripple
-                  >
+	                  <a
+	                    class="button-link"
+	                    href="/export.pdf?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+	                    data-toast-info="Export PDF pret"
+	                    data-ripple
+	                  >
                     Export PDF
                   </a>
-                  <a
-                    class="button-link"
-                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-                    data-ripple
-                  >
+	                  <a
+	                    class="button-link"
+	                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
+	                    data-toast-info="Export CSV pret"
+	                    data-ripple
+	                  >
                     Export CSV
                   </a>
                 </div>
@@ -1703,8 +1775,8 @@
             <% }); %>
           </div>
 
-          <div class="calendar-panel">
-            <div class="calendar-topbar">
+	          <div class="calendar-panel">
+	            <div class="calendar-topbar">
               <div class="calendar-nav" aria-label="Navigation mensuelle">
                 <a
                   class="calendar-nav-button"
@@ -1748,17 +1820,41 @@
               </div>
             </div>
 
-            <div class="calendar-legend" aria-label="Légende des états">
-              <% _calendarLegend.forEach((legendItem) => { %>
-              <div class="calendar-legend-item is-<%= legendItem.tone %>">
-                <span class="calendar-legend-emoji" aria-hidden="true"><%= legendItem.emoji %></span>
-                <span><%= legendItem.label %></span>
-              </div>
-              <% }); %>
-            </div>
+	            <div class="calendar-legend" aria-label="Légende des états">
+	              <% _calendarLegend.forEach((legendItem) => { %>
+	              <div class="calendar-legend-item is-<%= legendItem.tone %>">
+	                <span class="calendar-legend-emoji" aria-hidden="true"><%= legendItem.emoji %></span>
+	                <span><%= legendItem.label %></span>
+	              </div>
+	              <% }); %>
+	            </div>
 
-            <div class="calendar-board-scroll">
-              <div class="calendar-board" data-calendar-board>
+	            <section class="mobile-calendar-shell" data-mobile-calendar hidden aria-label="Calendrier mobile">
+	              <div class="mobile-calendar-toolbar">
+	                <div class="mobile-calendar-nav" aria-label="Navigation mensuelle mobile">
+	                  <button type="button" class="mobile-calendar-nav-button" data-mobile-calendar-nav="prev" aria-label="Mois précédent">
+	                    ‹
+	                  </button>
+	                  <div class="mobile-calendar-nav-copy">
+	                    <strong data-mobile-calendar-label><%= _calendarMonthLabel %></strong>
+	                    <span data-mobile-calendar-period><%= _payPeriodLabel || "Période active" %></span>
+	                  </div>
+	                  <button type="button" class="mobile-calendar-nav-button" data-mobile-calendar-nav="next" aria-label="Mois suivant">
+	                    ›
+	                  </button>
+	                </div>
+	                <button type="button" class="button-link button-neutral mobile-calendar-today-button" data-mobile-calendar-today>
+	                  Aujourd'hui
+	                </button>
+	              </div>
+		              <div class="mobile-calendar-weekdays" data-mobile-calendar-weekdays aria-hidden="true"></div>
+		              <div class="mobile-calendar-feedback" data-mobile-calendar-feedback hidden></div>
+		              <div class="mobile-calendar-grid" data-mobile-calendar-grid></div>
+		              <section class="mobile-calendar-details app-card-compact" data-mobile-calendar-details aria-live="polite"></section>
+		            </section>
+
+	            <div class="calendar-board-scroll">
+	              <div class="calendar-board" data-calendar-board>
                 <div class="calendar-weekdays" aria-hidden="true">
                   <span>Lun</span>
                   <span>Mar</span>
@@ -1878,21 +1974,23 @@
 	                  </span>
 	                </div>
 	                <div class="archived-client-actions">
-	                  <a
-	                    class="button-link"
-	                    href="/export.pdf?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
-	                    data-ripple
-	                  >
+		                  <a
+		                    class="button-link"
+		                    href="/export.pdf?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+		                    data-toast-info="Export PDF pret"
+		                    data-ripple
+		                  >
 	                    Export PDF
 	                  </a>
-	                  <a
-	                    class="button-link"
-	                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
-	                    data-ripple
-	                  >
+		                  <a
+		                    class="button-link"
+		                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
+		                    data-toast-info="Export CSV pret"
+		                    data-ripple
+		                  >
 	                    Export CSV
 	                  </a>
-	                  <form action="/clients/<%= client.id %>/restore" method="post">
+		                  <form action="/clients/<%= client.id %>/restore" method="post" data-toast-success="Client restaure">
 	                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
 	                    <button type="submit" class="button-link button-neutral" data-ripple>Restaurer</button>
 	                  </form>
@@ -1976,47 +2074,7 @@
 	      <% } %>
 	            <div class="between-sections-spacer" aria-hidden="true"></div>
 	          </div>
-	          <div class="mobile-premium-view mobile-premium-view-stats" data-mobile-view="stats" data-mobile-title="Stats">
-	            <section class="card premium-surface mobile-stats-card">
-              <div class="entry-card-top">
-                <div class="section-heading">
-                  <p class="section-eyebrow">Stats</p>
-                  <h2>Lecture rapide du mois</h2>
-                </div>
-              </div>
-              <div class="mobile-stats-grid">
-                <article class="mobile-stat-tile">
-                  <span class="mobile-stat-label">Total période</span>
-                  <strong class="mobile-stat-value"><%= totalHHMM %></strong>
-                  <span class="mobile-stat-meta">Vue active sur <%= _payPeriodLabel || selectedMonth %></span>
-                </article>
-                <article class="mobile-stat-tile">
-                  <span class="mobile-stat-label">Moyenne / jour travaillé</span>
-                  <strong class="mobile-stat-value"><%= _monthAverageHHMM %></strong>
-                  <span class="mobile-stat-meta"><%= _workedDayCount %> jour<%= _workedDayCount > 1 ? "s" : "" %> productif<%= _workedDayCount > 1 ? "s" : "" %></span>
-                </article>
-                <article class="mobile-stat-tile">
-                  <span class="mobile-stat-label">Heures sup</span>
-                  <strong class="mobile-stat-value"><%= totalOvertimeHHMM %></strong>
-                  <span class="mobile-stat-meta">Récupération cumulée <%= totalRecoveredHHMM %></span>
-                </article>
-                <article class="mobile-stat-tile">
-                  <span class="mobile-stat-label">Salaire net</span>
-                  <strong class="mobile-stat-value"><%= salaryAmountDisplay %></strong>
-                  <span class="mobile-stat-meta"><%= hourlyRateDisplay || "Taux horaire indisponible" %></span>
-                </article>
-              </div>
-              <div class="mobile-daytype-grid">
-                <% dayTypeOptions.forEach((option) => { %>
-                <article class="mobile-daytype-item">
-                  <span class="mobile-daytype-name"><%= option.label %></span>
-                  <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
-                </article>
-                <% }); %>
-	              </div>
-	            </section>
-	          </div>
-	          <div class="mobile-premium-view mobile-premium-view-settings" data-mobile-view="settings" data-mobile-title="Réglages">
+		          <div class="mobile-premium-view mobile-premium-view-settings" data-mobile-view="settings" data-mobile-title="Réglages">
 	            <section class="card premium-surface app-surface app-card settings-mobile-card">
 	              <div class="settings-mobile-head">
 	                <div>
@@ -2134,18 +2192,19 @@
         </div>
         <nav class="mobile-premium-nav" data-mobile-nav aria-label="Navigation mobile">
           <% _mobileNavItems.forEach((item, index) => { %>
-          <button
-            type="button"
-            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
-            data-mobile-nav-button
-            data-target-view="<%= item.key %>"
-            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-          >
-            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
-            <span class="mobile-premium-nav-label"><%= item.label %></span>
-          </button>
-          <% }); %>
-        </nav>
+	          <button
+	            type="button"
+	            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
+	            data-mobile-nav-button
+	            data-target-view="<%= item.key %>"
+	            aria-label="<%= item.label %>"
+	            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+	          >
+	            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
+	            <span class="mobile-premium-nav-label"><%= item.navLabel || item.label %></span>
+	          </button>
+	          <% }); %>
+	        </nav>
       </div>
       <% } else { %>
       <section class="card premium-surface client-empty-card">
@@ -2333,11 +2392,12 @@
           </div>
         </form>
         <div class="form-actions">
-          <form
-            action="/clients/<%= selectedClient.id %>/archive"
-            method="post"
-            onsubmit="return confirm('Archiver ce client ? Il ne sera plus affiche dans la liste active.');"
-          >
+	          <form
+	            action="/clients/<%= selectedClient.id %>/archive"
+	            method="post"
+	            data-toast-success="Client archive"
+	            onsubmit="return confirm('Archiver ce client ? Il ne sera plus affiche dans la liste active.');"
+	          >
             <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
             <button type="submit" class="secondary" data-ripple>Archiver ce client</button>
           </form>
@@ -2566,16 +2626,17 @@
 	      </div>
 	    </div>
 
-	    <script id="hours-settings-bootstrap" type="application/json"><%- JSON.stringify({
-	      csrfToken: _csrfToken,
-	      settings: _userSettings,
-	      settingsDefaults: settingsDefaults || {},
-	      selectedMonth,
-	      payPeriodStartDate: _payPeriodStartDate,
-		      payPeriodEndDate: _payPeriodEndDate,
-		      selectedDate: formData && formData.date ? formData.date : "",
-		      authUser,
-		      selectedClientId: _selectedClientId,
+		    <script id="hours-settings-bootstrap" type="application/json"><%- JSON.stringify({
+		      csrfToken: _csrfToken,
+		      settings: _userSettings,
+		      settingsDefaults: settingsDefaults || {},
+		      selectedMonth,
+		      payPeriodLabel,
+		      payPeriodStartDate: _payPeriodStartDate,
+			      payPeriodEndDate: _payPeriodEndDate,
+			      selectedDate: formData && formData.date ? formData.date : "",
+			      authUser,
+			      selectedClientId: _selectedClientId,
 		      fallbackCompanyName: _userCompanyName || (selectedClient && selectedClient.company_name ? selectedClient.company_name : ""),
 		      isEditing: _isEditing,
 		      entries: entries.map((entry) => ({
@@ -2588,23 +2649,82 @@
 		        is_worked_day: entry.is_worked_day,
 		        under_target: entry.under_target,
 		        arrival_time_display: entry.arrival_time_display,
-		        departure_time_display: entry.departure_time_display,
-		        lunch_break_minutes_display: entry.lunch_break_minutes_display,
-		        comment_text: entry.comment_text || "",
-		      })),
-		    }) %></script>
-		    <script src="/theme.js"></script>
-	      <script src="/settings-store.js"></script>
-	      <script src="/onboarding.js"></script>
-	      <script src="/workspace-tabs.js"></script>
-	      <script>
-	      (() => {
-	        const bootstrapNode = document.getElementById("hours-settings-bootstrap");
-	        const bootstrapData = bootstrapNode ? JSON.parse(bootstrapNode.textContent || "{}") : {};
-	        const csrfToken = typeof bootstrapData.csrfToken === "string" ? bootstrapData.csrfToken : "";
-	        if (!csrfToken) {
-	          return;
-	        }
+			        departure_time_display: entry.departure_time_display,
+			        lunch_break_minutes_display: entry.lunch_break_minutes_display,
+			        comment_text: entry.comment_text || "",
+			      })),
+			      initialMonthData: {
+			        month: selectedMonth,
+			        clientId: _selectedClientId,
+			        payPeriodLabel,
+			        payPeriodStartDate: _payPeriodStartDate,
+			        payPeriodEndDate: _payPeriodEndDate,
+			        entries: entries.map((entry) => ({
+			          work_date: entry.work_date,
+			          work_date_display: entry.work_date_display,
+			          worked_minutes: entry.worked_minutes,
+			          worked_hhmm: entry.worked_hhmm,
+			          day_type: entry.day_type,
+			          day_type_display: entry.day_type_display,
+			          is_worked_day: entry.is_worked_day,
+			          under_target: entry.under_target,
+			          arrival_time_display: entry.arrival_time_display,
+			          departure_time_display: entry.departure_time_display,
+			          lunch_break_minutes_display: entry.lunch_break_minutes_display,
+			          comment_text: entry.comment_text || "",
+			        })),
+			      },
+			    }) %></script>
+		      <script src="/theme.js"></script>
+		      <script src="/toast-center.js"></script>
+		      <script src="/entry-draft-store.js"></script>
+		      <script src="/notification-center.js"></script>
+		      <script src="/settings-store.js"></script>
+		      <script src="/onboarding.js"></script>
+		      <script src="/workspace-tabs.js"></script>
+		      <script>
+		      (() => {
+		        const bootstrapNode = document.getElementById("hours-settings-bootstrap");
+		        const bootstrapData = bootstrapNode ? JSON.parse(bootstrapNode.textContent || "{}") : {};
+		        const csrfToken = typeof bootstrapData.csrfToken === "string" ? bootstrapData.csrfToken : "";
+		        const emitToast = (detail) => {
+		          if (typeof window.showToast === "function") {
+		            window.showToast(detail);
+		          }
+		        };
+		        const storeToastFlash = (detail) => {
+		          if (typeof window.storeToastFlash === "function") {
+		            window.storeToastFlash(detail);
+		          }
+		        };
+		        if (!csrfToken) {
+		          return;
+		        }
+
+		        document.addEventListener("click", (event) => {
+		          const toastLink = event.target instanceof HTMLElement ? event.target.closest("[data-toast-info]") : null;
+		          if (!(toastLink instanceof HTMLAnchorElement)) {
+		            return;
+		          }
+		          emitToast({
+		            type: "info",
+		            message: toastLink.dataset.toastInfo || "Export pret",
+		          });
+		        });
+
+		        document.addEventListener("submit", (event) => {
+		          const toastForm = event.target instanceof HTMLFormElement ? event.target : null;
+		          if (!toastForm) {
+		            return;
+		          }
+		          const successMessage = toastForm.dataset.toastSuccess || "";
+		          if (successMessage) {
+		            storeToastFlash({
+		              type: "success",
+		              message: successMessage,
+		            });
+		          }
+		        });
 	        document.querySelectorAll('form[method="post"]').forEach((form) => {
 	          let csrfInput = form.querySelector('input[name="_csrf"]');
 	          if (!csrfInput) {
@@ -2701,10 +2821,12 @@
 	        const lunchInput = entryForm ? entryForm.querySelector("#lunchBreakMinutes") : null;
 	        const commentInput = entryForm ? entryForm.querySelector("#commentText") : null;
 	        const statusMessage = entryForm ? entryForm.querySelector("[data-entry-load-status]") : null;
+          const draftStatus = entryForm ? entryForm.querySelector("[data-entry-draft-status]") : null;
           const stateBadge = entryForm ? entryForm.querySelector("[data-entry-state-badge]") : null;
           const summaryValue = entryForm ? entryForm.querySelector("[data-entry-summary-value]") : null;
           const summaryFeedback = entryForm ? entryForm.querySelector("[data-entry-summary-feedback]") : null;
           const submitButton = entryForm ? entryForm.querySelector("[data-entry-submit-button]") : null;
+          const clearDraftButton = entryForm ? entryForm.querySelector("[data-entry-clear-draft]") : null;
 	        let activeController = null;
 
 	        if (
@@ -2718,18 +2840,38 @@
 	          !lunchInput ||
 	          !commentInput ||
 	          !statusMessage ||
+            !draftStatus ||
             !stateBadge ||
-            !summaryValue ||
-            !summaryFeedback ||
-            !submitButton
+	            !summaryValue ||
+	            !summaryFeedback ||
+	            !submitButton ||
+            !clearDraftButton
 	        ) {
 	          return;
 	        }
 
           const SAVE_FLASH_STORAGE_KEY = "hours_entry_save_flash";
-	          const SUMMARY_TARGET_MINUTES = 7 * 60;
-	          const workedDayTypes = new Set(["office", "remote"]);
-	          const bootstrapNode = document.getElementById("hours-settings-bootstrap");
+          const DRAFT_SAVE_DEBOUNCE_MS = 280;
+		          const SUMMARY_TARGET_MINUTES = 7 * 60;
+		          const workedDayTypes = new Set(["office", "remote"]);
+          const draftStoreApi = window.hoursEntryDraftStore || null;
+          const draftStore =
+            draftStoreApi && typeof draftStoreApi.createEntryDraftStore === "function"
+              ? draftStoreApi.createEntryDraftStore(window.localStorage)
+              : null;
+          const createDraftStorageKey =
+            draftStoreApi && typeof draftStoreApi.createDraftStorageKey === "function"
+              ? draftStoreApi.createDraftStorageKey
+              : (clientId, workDate) => `hours:draft:${String(clientId || "").trim()}:${String(workDate || "").trim()}`;
+          const isMeaningfulDraft =
+            draftStoreApi && typeof draftStoreApi.isMeaningfulDraft === "function"
+              ? draftStoreApi.isMeaningfulDraft
+              : (payload, baseline) => JSON.stringify(payload || {}) !== JSON.stringify(baseline || {});
+          const shouldRestoreDraft =
+            draftStoreApi && typeof draftStoreApi.shouldRestoreDraft === "function"
+              ? draftStoreApi.shouldRestoreDraft
+              : ({ serverEntry, draftEntry }) => !serverEntry && Boolean(draftEntry);
+		          const bootstrapNode = document.getElementById("hours-settings-bootstrap");
 	          const bootstrapEntries =
 	            bootstrapNode
 	              ? (() => {
@@ -2752,17 +2894,20 @@
           };
 	          const entryCache = new Map();
 	          const state = {
-	            selectedDate: dateInput.value || "",
-	            currentEntry: null,
+		            selectedDate: dateInput.value || "",
+		            currentEntry: null,
 	            statusText: "",
 	            statusVariant: "",
               badgeState: "is-empty",
 	            lastResolvedKey: "",
               isLoading: false,
-              isDirty: false,
-              isSaving: false,
-              showSavedFlash: false,
-	          };
+	              isDirty: false,
+	              isSaving: false,
+	              showSavedFlash: false,
+                draftStatusText: "",
+                restoredDraftKey: "",
+		          };
+          let draftSaveTimeoutId = 0;
 
           const formatMinutesToHHMM = (minutes) => {
             const safeMinutes = Math.max(0, Number(minutes) || 0);
@@ -2851,14 +2996,19 @@
 	            };
 	          };
 
-          const renderBadge = () => {
+	          const renderBadge = () => {
             const badge = getBadgeConfig();
             stateBadge.textContent = badge.text;
             stateBadge.classList.remove("is-success", "is-empty", "is-dirty", "is-loading");
             stateBadge.classList.add(badge.className);
+	          };
+
+          const renderDraftStatus = () => {
+            draftStatus.textContent = state.draftStatusText || "";
+            draftStatus.hidden = !state.draftStatusText;
           };
 
-	          const renderStatus = () => {
+		          const renderStatus = () => {
 	            statusMessage.textContent = state.statusText || "";
 	            statusMessage.hidden = !state.statusText;
 	            statusMessage.classList.remove("is-success", "is-empty", "is-dirty", "is-loading");
@@ -2916,13 +3066,129 @@
             submitButton.classList.toggle("is-saving", Boolean(disabled));
           };
 
-          const autosizeComment = () => {
+	          const autosizeComment = () => {
             commentInput.style.height = "auto";
             const minHeight = 72;
             commentInput.style.height = `${Math.max(minHeight, commentInput.scrollHeight)}px`;
+	          };
+
+	          const setDraftStatus = (message) => {
+	            state.draftStatusText = message || "";
+	            renderDraftStatus();
+	          };
+
+          const emitDraftChange = () => {
+            window.dispatchEvent(new CustomEvent("hours:drafts-changed"));
           };
 
-	          const renderEntry = () => {
+	          const getCurrentDraftKey = () => createDraftStorageKey(clientIdInput.value, dateInput.value);
+
+          const readDraftPayload = () => ({
+            clientId: clientIdInput.value || "",
+            workDate: dateInput.value || "",
+            dayType: dayTypeSelect.value || defaultFormValues.dayType,
+            arrivalTime: arrivalInput.value || defaultFormValues.arrivalTime,
+            departureTime: departureInput.value || defaultFormValues.departureTime,
+            lunchBreakMinutes: lunchInput.value || String(defaultFormValues.lunchBreakMinutes),
+            commentText: commentInput.value || "",
+          });
+
+          const updateDraftUi = () => {
+            if (!draftStore) {
+              clearDraftButton.hidden = true;
+              return;
+            }
+            const currentKey = getCurrentDraftKey();
+            const hasDraft = Boolean(clientIdInput.value && dateInput.value && draftStore.get(clientIdInput.value, dateInput.value));
+            clearDraftButton.hidden = !hasDraft;
+            if (!hasDraft && state.restoredDraftKey === currentKey) {
+              state.restoredDraftKey = "";
+            }
+          };
+
+          const clearDraftFor = (clientId, workDate, { statusText = "" } = {}) => {
+            if (!draftStore || !clientId || !workDate) {
+              return;
+            }
+	            draftStore.remove(clientId, workDate);
+	            if (state.restoredDraftKey === createDraftStorageKey(clientId, workDate)) {
+	              state.restoredDraftKey = "";
+	            }
+            if (statusText) {
+              setDraftStatus(statusText);
+	            }
+	            updateDraftUi();
+              emitDraftChange();
+	          };
+
+          const persistDraftNow = () => {
+            if (!draftStore) {
+              return;
+            }
+            const draftPayload = readDraftPayload();
+            if (!draftPayload.clientId || !draftPayload.workDate) {
+              clearDraftButton.hidden = true;
+              return;
+            }
+            const baselineEntry = getBaselineEntry();
+            const baselineDraft = {
+              clientId: draftPayload.clientId,
+              workDate: draftPayload.workDate,
+              dayType: baselineEntry.dayType,
+              arrivalTime: baselineEntry.arrivalTime,
+              departureTime: baselineEntry.departureTime,
+              lunchBreakMinutes: baselineEntry.lunchBreakMinutes,
+              commentText: baselineEntry.commentText,
+            };
+            if (!isMeaningfulDraft(draftPayload, baselineDraft)) {
+              clearDraftFor(draftPayload.clientId, draftPayload.workDate);
+              return;
+            }
+	            draftStore.set(draftPayload);
+	            setDraftStatus("Brouillon sauvegarde");
+	            updateDraftUi();
+              emitDraftChange();
+	          };
+
+          const scheduleDraftSave = () => {
+            if (draftSaveTimeoutId) {
+              window.clearTimeout(draftSaveTimeoutId);
+            }
+            draftSaveTimeoutId = window.setTimeout(() => {
+              persistDraftNow();
+            }, DRAFT_SAVE_DEBOUNCE_MS);
+          };
+
+          const restoreDraftIfNeeded = () => {
+            if (!draftStore) {
+              return false;
+            }
+            const clientId = clientIdInput.value || "";
+            const workDate = dateInput.value || "";
+            if (!clientId || !workDate) {
+              updateDraftUi();
+              return false;
+            }
+            const draftEntry = draftStore.get(clientId, workDate);
+            if (!shouldRestoreDraft({ serverEntry: state.currentEntry && state.currentEntry.isExisting ? state.currentEntry : null, draftEntry })) {
+              updateDraftUi();
+              return false;
+            }
+            state.currentEntry = {
+              ...cloneEntry(draftEntry),
+              isExisting: false,
+            };
+            state.restoredDraftKey = createDraftStorageKey(clientId, workDate);
+            renderEntry();
+            state.statusText = "Brouillon local restaure";
+            state.statusVariant = "is-dirty";
+            renderStatus();
+            setDraftStatus("Brouillon sauvegarde");
+            updateDraftUi();
+            return true;
+          };
+
+		          const renderEntry = () => {
 	            const entry = state.currentEntry ? cloneEntry(state.currentEntry) : cloneEntry(defaultFormValues);
 	            originalWorkDateInput.value =
 	              state.currentEntry && state.currentEntry.isExisting && state.currentEntry.workDate
@@ -2934,22 +3200,28 @@
 	            lunchInput.value = entry.lunchBreakMinutes;
 	            commentInput.value = entry.commentText;
 	            dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
-              autosizeComment();
-              updateDirtyState();
-              renderSummary();
-              renderBadge();
-	          };
+	              autosizeComment();
+	              updateDirtyState();
+	              renderSummary();
+	              renderBadge();
+                updateDraftUi();
+		          };
 
-	          const setFormState = ({ entry, statusText, statusVariant, resolvedKey }) => {
+		          const setFormState = ({ entry, statusText, statusVariant, resolvedKey }) => {
 	            state.currentEntry = entry ? cloneEntry(entry) : null;
 	            state.statusText = statusText || "";
 	            state.statusVariant = statusVariant || "";
 	            state.lastResolvedKey = resolvedKey || "";
               state.isLoading = false;
-              state.isSaving = false;
-	            renderEntry();
-	            renderStatus();
-	          };
+	              state.isSaving = false;
+		            renderEntry();
+		            renderStatus();
+                if (!(state.currentEntry && state.currentEntry.isExisting)) {
+                  restoreDraftIfNeeded();
+                } else {
+                  setDraftStatus("");
+                }
+		          };
 
           const getRequestKey = (clientId, selectedDate) => `${clientId}:${selectedDate}`;
 
@@ -2980,18 +3252,13 @@
 	            });
 	          });
 
-	          const readEntryFromForm = () => ({
-	            workDate: dateInput.value || "",
-	            isExisting: Boolean(originalWorkDateInput.value),
-	            dayType: dayTypeSelect.value || defaultFormValues.dayType,
-	            arrivalTime: arrivalInput.value || defaultFormValues.arrivalTime,
-            departureTime: departureInput.value || defaultFormValues.departureTime,
-            lunchBreakMinutes: lunchInput.value || String(defaultFormValues.lunchBreakMinutes),
-	            commentText: commentInput.value || "",
-	          });
+		          const readEntryFromForm = () => ({
+		            ...readDraftPayload(),
+		            isExisting: Boolean(originalWorkDateInput.value),
+		          });
 
-          const markUnsavedIfNeeded = () => {
-            updateDirtyState();
+	          const markUnsavedIfNeeded = () => {
+	            updateDirtyState();
             if (state.isLoading || state.isSaving) {
               renderBadge();
               return;
@@ -3008,46 +3275,49 @@
               state.statusVariant = "is-empty";
             }
 
-            renderStatus();
-            renderSummary();
-            renderBadge();
-          };
+	            renderStatus();
+	            renderSummary();
+	            renderBadge();
+              scheduleDraftSave();
+	          };
 
 	          const watchSelectedDate = async () => {
 	            const clientId = clientIdInput.value;
 	            const selectedDate = dateInput.value;
 	            state.selectedDate = selectedDate;
 
-            if (!clientId || !selectedDate) {
+	            if (!clientId || !selectedDate) {
               if (activeController) {
                 activeController.abort();
 	                activeController = null;
 	              }
                 state.isLoading = false;
 	              setFormState({
-	                entry: null,
-	                statusText: "",
-	                statusVariant: "",
-	                resolvedKey: "",
-              });
-              return;
-            }
+		                entry: null,
+		                statusText: "",
+		                statusVariant: "",
+		                resolvedKey: "",
+	              });
+                setDraftStatus("");
+	              return;
+	            }
 
             const requestKey = getRequestKey(clientId, selectedDate);
 	            if (requestKey === state.lastResolvedKey) {
 	              return;
 	            }
 
-	            const cachedEntry = entryCache.get(requestKey);
-	            if (cachedEntry) {
+		            const cachedEntry = entryCache.get(requestKey);
+		            if (cachedEntry) {
               setFormState({
                 entry: cachedEntry,
                 statusText: "Entrée existante pour ce jour",
                 statusVariant: "is-success",
                 resolvedKey: requestKey,
-              });
-	              return;
-	            }
+	              });
+                  clearDraftFor(clientId, selectedDate);
+		              return;
+		            }
 
 	            if (activeController) {
 	              activeController.abort();
@@ -3082,9 +3352,10 @@
                 return;
               }
 
-              if (payload && payload.entry) {
-                persistEntryInCache({ ...payload.entry, isExisting: true });
-                setFormState({
+	              if (payload && payload.entry) {
+	                persistEntryInCache({ ...payload.entry, isExisting: true });
+                  clearDraftFor(clientId, selectedDate);
+	                setFormState({
                   entry: { ...payload.entry, isExisting: true },
                   statusText: "Entrée existante pour ce jour",
                   statusVariant: "is-success",
@@ -3093,13 +3364,13 @@
                 return;
               }
 
-	              setFormState({
-	                entry: null,
-	                statusText: "Aucune entrée d’heure pour ce jour",
-	                statusVariant: "is-empty",
-                resolvedKey: requestKey,
-              });
-            } catch (error) {
+		              setFormState({
+		                entry: null,
+		                statusText: "Aucune entrée d’heure pour ce jour",
+		                statusVariant: "is-empty",
+	                resolvedKey: requestKey,
+	              });
+	            } catch (error) {
 	              if (error && error.name === "AbortError") {
 	                return;
 	              }
@@ -3109,6 +3380,10 @@
               state.statusVariant = "";
               renderStatus();
               renderBadge();
+	              emitToast({
+	                type: "error",
+	                message: "Erreur de chargement de la journée",
+	              });
 	            } finally {
 	              if (activeController === controller) {
 	                activeController = null;
@@ -3118,17 +3393,36 @@
 
 	          dateInput.addEventListener("input", watchSelectedDate);
 	          dateInput.addEventListener("change", watchSelectedDate);
-          [dayTypeSelect, arrivalInput, departureInput, lunchInput].forEach((field) => {
-            field.addEventListener("input", markUnsavedIfNeeded);
-            field.addEventListener("change", markUnsavedIfNeeded);
+	          [dayTypeSelect, arrivalInput, departureInput, lunchInput].forEach((field) => {
+	            field.addEventListener("input", markUnsavedIfNeeded);
+	            field.addEventListener("change", markUnsavedIfNeeded);
+	          });
+          clientIdInput.addEventListener("change", () => {
+            setDraftStatus("");
+            updateDraftUi();
+            watchSelectedDate();
           });
           commentInput.addEventListener("input", () => {
             autosizeComment();
             markUnsavedIfNeeded();
           });
+          commentInput.addEventListener("change", markUnsavedIfNeeded);
 
-	          entryForm.addEventListener("submit", () => {
-	            const submittedEntry = readEntryFromForm();
+          clearDraftButton.addEventListener("click", () => {
+            if (draftSaveTimeoutId) {
+              window.clearTimeout(draftSaveTimeoutId);
+              draftSaveTimeoutId = 0;
+            }
+            const clientId = clientIdInput.value || "";
+            const workDate = dateInput.value || "";
+            if (!clientId || !workDate) {
+              return;
+            }
+            clearDraftFor(clientId, workDate, { statusText: "Brouillon efface" });
+          });
+
+		          entryForm.addEventListener("submit", () => {
+		            const submittedEntry = readEntryFromForm();
 	            if (!submittedEntry.workDate) {
 	              return;
 	            }
@@ -3140,20 +3434,19 @@
             renderBadge();
             updateSubmitButton(submitButton.dataset.savingLabel || "Enregistrement...", true);
 
-            try {
-              sessionStorage.setItem(
+	            try {
+	              sessionStorage.setItem(
                 SAVE_FLASH_STORAGE_KEY,
                 JSON.stringify({
                   clientId: clientIdInput.value,
                   workDate: submittedEntry.workDate,
                   savedAt: Date.now(),
-                })
-              );
-            } catch (error) {
-              // Ignore storage issues.
-            }
-
-	            persistEntryInCache({ ...submittedEntry, isExisting: true });
+	                })
+	              );
+	            } catch (error) {
+	              // Ignore storage issues.
+	            }
+			            persistEntryInCache({ ...submittedEntry, isExisting: true });
 	            setFormState({
 	              entry: { ...submittedEntry, isExisting: true },
 	              statusText: "Entrée existante pour ce jour",
@@ -3177,18 +3470,24 @@
 		            state.lastResolvedKey = getRequestKey(clientIdInput.value, dateInput.value);
 	          }
 
-            try {
-              const rawSaveFlash = sessionStorage.getItem(SAVE_FLASH_STORAGE_KEY);
+	            try {
+	              const rawSaveFlash = sessionStorage.getItem(SAVE_FLASH_STORAGE_KEY);
               if (rawSaveFlash) {
                 const saveFlash = JSON.parse(rawSaveFlash);
-                if (
-                  saveFlash &&
-                  saveFlash.clientId === clientIdInput.value &&
-                  saveFlash.workDate === dateInput.value &&
-                  Date.now() - Number(saveFlash.savedAt || 0) < 15000 &&
-                  !document.querySelector(".alert")
-                ) {
-                  updateSubmitButton(submitButton.dataset.successLabel || "✓ Journée enregistrée", true);
+	                if (
+	                  saveFlash &&
+	                  saveFlash.clientId === clientIdInput.value &&
+	                  saveFlash.workDate === dateInput.value &&
+	                  Date.now() - Number(saveFlash.savedAt || 0) < 15000 &&
+	                  !document.querySelector(".alert")
+	                ) {
+                    clearDraftFor(saveFlash.clientId, saveFlash.workDate);
+	                  emitToast({
+	                    type: "success",
+	                    message: "Journée enregistree",
+	                  });
+                    window.dispatchEvent(new CustomEvent("app:entry-saved"));
+	                  updateSubmitButton(submitButton.dataset.successLabel || "✓ Journée enregistrée", true);
                   window.setTimeout(() => {
                     updateSubmitButton(submitButton.dataset.defaultLabel || "Enregistrer", false);
                   }, 1400);
@@ -3200,6 +3499,7 @@
             }
 
 	            autosizeComment();
+              renderDraftStatus();
 		          renderEntry();
 	            renderSummary();
 	            markUnsavedIfNeeded();
@@ -3420,21 +3720,31 @@
 	      (() => {
 	        const shell = document.querySelector("[data-mobile-shell]");
 	        const track = document.querySelector("[data-mobile-track]");
-	        const views = Array.from(document.querySelectorAll("[data-mobile-view]"));
-	        const navButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
-	        const dots = Array.from(document.querySelectorAll("[data-mobile-dot]"));
-	        const monthInput = document.getElementById("month");
-	        const clientIdInput = document.querySelector('input[name="clientId"]');
-	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+		        const allViews = Array.from(document.querySelectorAll("[data-mobile-view]"));
+		        const navButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
+		        const dots = Array.from(document.querySelectorAll("[data-mobile-dot]"));
+		        const monthInput = document.getElementById("month");
+		        const clientIdInput = document.querySelector('input[name="clientId"]');
+		        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+		        const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
+		        const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-	        if (!shell || !track || views.length === 0 || navButtons.length === 0) {
-	          return;
-	        }
+		        if (!shell || !track || allViews.length === 0 || navButtons.length === 0) {
+		          return;
+		        }
 
-	        const getStorageKey = () => {
-	          const monthValue = monthInput ? monthInput.value || "" : "";
-	          const clientValue = clientIdInput ? clientIdInput.value || "" : "";
-	          return `hours_mobile_panel:${clientValue}:${monthValue}`;
+		        const viewKeys = navButtons.map((button) => button.dataset.targetView || "").filter(Boolean);
+		        const viewsByKey = new Map(allViews.map((view) => [view.dataset.mobileView || "", view]));
+		        const views = viewKeys.map((key) => viewsByKey.get(key)).filter(Boolean);
+
+		        if (views.length === 0) {
+		          return;
+		        }
+
+		        const getStorageKey = () => {
+		          const monthValue = monthInput ? monthInput.value || "" : "";
+		          const clientValue = clientIdInput ? clientIdInput.value || "" : "";
+		          return `hours_mobile_panel:${clientValue}:${monthValue}`;
 	        };
 
 	        const findViewIndex = (viewName) => {
@@ -3442,33 +3752,39 @@
 	          return nextIndex >= 0 ? nextIndex : 0;
 	        };
 
-	        const state = {
-	          index: 0,
-	          startX: 0,
-	          startY: 0,
-	          deltaX: 0,
-	          deltaY: 0,
-	          isTouching: false,
-	          lockedAxis: "",
-	        };
-	        const swipeIgnoreSelector = [
-	          "input",
-	          "textarea",
-	          "select",
-	          "button",
-	          "a",
-	          "summary",
-	          ".calendar-board-scroll",
-	          ".table-wrapper",
-	          ".archived-history",
-	        ].join(", ");
+		        const state = {
+		          index: 0,
+		          startX: 0,
+		          startY: 0,
+		          deltaX: 0,
+		          deltaY: 0,
+		          isTouching: false,
+		          lockedAxis: "",
+		        };
+		        let activeViewObserver = null;
+		        const swipeIgnoreSelector = [
+		          "input",
+		          "textarea",
+		          "select",
+		          "button",
+		          "a",
+		          "summary",
+		          "[role='button']",
+		          ".calendar-board-scroll",
+		          ".table-wrapper",
+		          ".archived-history",
+		          ".settings-mobile-nav",
+		        ].join(", ");
 
-	        const clampIndex = (nextIndex) => Math.max(0, Math.min(nextIndex, views.length - 1));
+		        const clampIndex = (nextIndex) => Math.max(0, Math.min(nextIndex, views.length - 1));
+		        const prefersReducedMotion = () => reducedMotionQuery.matches;
+		        const isSwipeEnabled = () => mobileQuery.matches && coarsePointerQuery.matches;
+		        const getActiveView = () => views[state.index] || views[0] || null;
 
-	        const readSavedIndex = () => {
-	          try {
-	            const rawValue = sessionStorage.getItem(getStorageKey());
-	            if (!rawValue) {
+		        const readSavedIndex = () => {
+		          try {
+		            const rawValue = sessionStorage.getItem(getStorageKey());
+		            if (!rawValue) {
 	              return 0;
 	            }
 	            return clampIndex(findViewIndex(rawValue));
@@ -3488,52 +3804,89 @@
 	          }
 	        };
 
-	        const syncActiveState = () => {
-	          const activeView = views[state.index] ? views[state.index].dataset.mobileView || "" : "";
-	          navButtons.forEach((button) => {
-	            const isActive = button.dataset.targetView === activeView;
-	            button.classList.toggle("is-active", isActive);
-	            button.setAttribute("aria-pressed", String(isActive));
-	          });
-	          dots.forEach((dot) => {
-	            const isActive = dot.dataset.targetView === activeView;
-	            dot.classList.toggle("is-active", isActive);
-	            dot.setAttribute("aria-pressed", String(isActive));
-	          });
-	        };
+		        const syncActiveState = () => {
+		          const activeView = getActiveView();
+		          const activeKey = activeView ? activeView.dataset.mobileView || "" : "";
+		          views.forEach((view) => {
+		            view.classList.toggle("is-active", view === activeView);
+		            view.setAttribute("aria-hidden", String(view !== activeView));
+		          });
+		          navButtons.forEach((button) => {
+		            const isActive = button.dataset.targetView === activeKey;
+		            button.classList.toggle("is-active", isActive);
+		            button.setAttribute("aria-pressed", String(isActive));
+		          });
+		          dots.forEach((dot) => {
+		            const isActive = dot.dataset.targetView === activeKey;
+		            dot.classList.toggle("is-active", isActive);
+		            dot.setAttribute("aria-pressed", String(isActive));
+		          });
+		        };
 
-	        const applyTransform = (percentOffset = 0, animate = true) => {
-	          track.style.transitionDuration = animate ? "180ms" : "0ms";
-	          track.style.transform = `translate3d(calc(${state.index * -100}% + ${percentOffset}%), 0, 0)`;
-	        };
+		        const syncShellHeight = () => {
+		          if (!mobileQuery.matches) {
+		            shell.style.height = "";
+		            return;
+		          }
+		          const activeView = getActiveView();
+		          if (!activeView) {
+		            return;
+		          }
+		          shell.style.height = `${Math.ceil(activeView.scrollHeight)}px`;
+		        };
 
-	        const setIndex = (nextIndex, { animate = true, persist = true } = {}) => {
-	          state.index = clampIndex(nextIndex);
-	          applyTransform(0, animate);
-	          syncActiveState();
-	          if (persist) {
-	            persistIndex(state.index);
-	          }
-	        };
+		        const observeActiveView = () => {
+		          if (activeViewObserver) {
+		            activeViewObserver.disconnect();
+		          }
+		          if (typeof ResizeObserver !== "function") {
+		            syncShellHeight();
+		            return;
+		          }
+		          const activeView = getActiveView();
+		          if (!activeView) {
+		            return;
+		          }
+		          activeViewObserver = new ResizeObserver(() => {
+		            window.requestAnimationFrame(syncShellHeight);
+		          });
+		          activeViewObserver.observe(activeView);
+		        };
+
+		        const applyTransform = (percentOffset = 0, animate = true) => {
+		          track.style.transitionDuration = animate && !prefersReducedMotion() ? "180ms" : "0ms";
+		          track.style.transform = `translate3d(calc(${state.index * -100}% + ${percentOffset}%), 0, 0)`;
+		        };
+
+		        const setIndex = (nextIndex, { animate = true, persist = true } = {}) => {
+		          state.index = clampIndex(nextIndex);
+		          applyTransform(0, animate);
+		          syncActiveState();
+		          observeActiveView();
+		          window.requestAnimationFrame(syncShellHeight);
+		          if (persist) {
+		            persistIndex(state.index);
+		          }
+		        };
 
 	        const handleTargetSelection = (targetView) => {
 	          setIndex(findViewIndex(targetView), { animate: true, persist: true });
 	        };
 
-	        const resetTouchState = () => {
-	          state.isTouching = false;
-	          state.lockedAxis = "";
-	          state.deltaX = 0;
-	          state.deltaY = 0;
-	        };
+		        const resetTouchState = () => {
+		          state.isTouching = false;
+		          state.lockedAxis = "";
+		          state.deltaX = 0;
+		          state.deltaY = 0;
+		        };
 
-	        const handleTouchStart = (event) => {
-	          if (!mobileQuery.matches || !event.touches || event.touches.length !== 1) {
-	            return;
-	          }
-	          if (event.target && event.target.closest(swipeIgnoreSelector)) {
-	            return;
-	          }
+		        const handleTouchStart = (event) => {
+		          if (!isSwipeEnabled() || !event.touches || event.touches.length !== 1) {
+		            return;
+		          }
+		          if (event.target && event.target.closest(swipeIgnoreSelector)) {
+		            return;
+		          }
 	          const touch = event.touches[0];
 	          state.isTouching = true;
 	          state.startX = touch.clientX;
@@ -3542,14 +3895,14 @@
 	          state.deltaY = 0;
 	          state.lockedAxis = "";
 	          track.style.transitionDuration = "0ms";
-	        };
+		        };
 
-	        const handleTouchMove = (event) => {
-	          if (!mobileQuery.matches || !state.isTouching || !event.touches || event.touches.length !== 1) {
-	            return;
-	          }
-	          const touch = event.touches[0];
-	          state.deltaX = touch.clientX - state.startX;
+		        const handleTouchMove = (event) => {
+		          if (!isSwipeEnabled() || !state.isTouching || !event.touches || event.touches.length !== 1) {
+		            return;
+		          }
+		          const touch = event.touches[0];
+		          state.deltaX = touch.clientX - state.startX;
 	          state.deltaY = touch.clientY - state.startY;
 
 	          if (!state.lockedAxis) {
@@ -3559,41 +3912,51 @@
 	            state.lockedAxis = Math.abs(state.deltaX) > Math.abs(state.deltaY) ? "x" : "y";
 	          }
 
-	          if (state.lockedAxis !== "x") {
-	            return;
-	          }
+		          if (state.lockedAxis !== "x") {
+		            return;
+		          }
 
-	          event.preventDefault();
-	          const width = shell.clientWidth || 1;
-	          const dragPercent = Math.max(-18, Math.min(18, (state.deltaX / width) * 100));
-	          applyTransform(dragPercent, false);
-	        };
+		          event.preventDefault();
+		          const width = shell.clientWidth || 1;
+		          const isAtFirstView = state.index === 0 && state.deltaX > 0;
+		          const isAtLastView = state.index === views.length - 1 && state.deltaX < 0;
+		          const dragResistance = isAtFirstView || isAtLastView ? 0.35 : 1;
+		          const dragPercent = Math.max(-18, Math.min(18, ((state.deltaX * dragResistance) / width) * 100));
+		          applyTransform(dragPercent, false);
+		        };
 
-	        const handleTouchEnd = () => {
-	          if (!mobileQuery.matches || !state.isTouching) {
-	            resetTouchState();
-	            return;
-	          }
+		        const handleTouchEnd = () => {
+		          if (!isSwipeEnabled() || !state.isTouching) {
+		            resetTouchState();
+		            return;
+		          }
 
-	          const shouldAdvance = state.lockedAxis === "x" && Math.abs(state.deltaX) > 52;
-	          if (shouldAdvance) {
-	            const direction = state.deltaX < 0 ? 1 : -1;
-	            setIndex(state.index + direction, { animate: true, persist: true });
-	          } else {
-	            setIndex(state.index, { animate: true, persist: false });
+		          const shouldAdvance =
+		            state.lockedAxis === "x" &&
+		            Math.abs(state.deltaX) >= 64 &&
+		            Math.abs(state.deltaX) > Math.abs(state.deltaY) * 1.2;
+		          if (shouldAdvance) {
+		            const direction = state.deltaX < 0 ? 1 : -1;
+		            setIndex(state.index + direction, { animate: true, persist: true });
+		          } else {
+		            setIndex(state.index, { animate: true, persist: false });
 	          }
 	          resetTouchState();
 	        };
 
-	        const syncForViewport = () => {
-	          if (!mobileQuery.matches) {
-	            track.style.transform = "";
-	            track.style.transitionDuration = "";
-	            syncActiveState();
-	            return;
-	          }
-	          setIndex(readSavedIndex(), { animate: false, persist: false });
-	        };
+		        const syncForViewport = () => {
+		          if (!mobileQuery.matches) {
+		            track.style.transform = "";
+		            track.style.transitionDuration = "";
+		            shell.style.height = "";
+		            syncActiveState();
+		            if (activeViewObserver) {
+		              activeViewObserver.disconnect();
+		            }
+		            return;
+		          }
+		          setIndex(readSavedIndex(), { animate: false, persist: false });
+		        };
 
 	        navButtons.forEach((button) => {
 	          button.addEventListener("click", () => {
@@ -3936,7 +4299,10 @@
 	                return;
 	              }
 	              if (file.size > 1_500_000) {
-	                window.alert("Image trop lourde. Choisissez un fichier inférieur à 1,5 MB.");
+	                emitToast({
+	                  type: "warning",
+	                  message: "Image trop lourde. Choisissez un fichier inferieur a 1,5 MB.",
+	                });
 	                upload.value = "";
 	                return;
 	              }
@@ -3945,6 +4311,10 @@
 	                syncClientLogoField(field);
 	              } catch (error) {
 	                console.error(error);
+	                emitToast({
+	                  type: "error",
+	                  message: "Impossible de charger l'image",
+	                });
 	              } finally {
 	                upload.value = "";
 	              }

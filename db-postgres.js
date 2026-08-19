@@ -653,6 +653,15 @@ async function deleteExpiredSessions(nowMs) {
   await pool.query(`DELETE FROM sessions WHERE expires_at_ms <= $1`, [nowMs]);
 }
 
+async function healthCheck() {
+  await initializeDatabase();
+  const result = await pool.query("SELECT 1 AS ok");
+  return {
+    ok: Boolean(result.rows[0] && Number(result.rows[0].ok) === 1),
+    engine: "postgres",
+  };
+}
+
 module.exports = {
   ensureUserDatabase,
   getAllClients,
@@ -681,4 +690,5 @@ module.exports = {
   getSessionByToken,
   deleteSession,
   deleteExpiredSessions,
+  healthCheck,
 };

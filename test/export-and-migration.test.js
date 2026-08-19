@@ -130,6 +130,7 @@ test("buildHistoryWorkbook keeps readable French labels", async () => {
       companyName: "JLO",
     },
     authUser: "john",
+    exportedAt: new Date("2026-08-18T09:00:00.000Z"),
     entries: [
       {
         work_date: "2026-08-18",
@@ -161,4 +162,101 @@ test("buildHistoryWorkbook keeps readable French labels", async () => {
   const reloaded = new (require("exceljs").Workbook)();
   await reloaded.xlsx.load(buffer);
   assert.equal(reloaded.worksheets.length, 1);
+});
+
+test("brand banner uses the footer page area instead of sticking to the last data row", async () => {
+  const buildWorkbookForCount = async (count) => {
+    const displayEntries = Array.from({ length: count }, (_, index) => {
+      const day = String(index + 1).padStart(2, "0");
+      return {
+        is_week_total: false,
+        work_date: `2026-08-${day}`,
+        work_date_display: `${day}/08/2026`,
+        day_type: "office",
+        day_type_display: "Bureau",
+        arrival_time_display: "09:00",
+        departure_time_display: "17:00",
+        lunch_break_minutes_display: 60,
+        worked_hhmm: "07:00",
+        overtime_hhmm: "00:00",
+        recovered_hhmm: "00:00",
+        recovered_minutes: 0,
+        under_target: false,
+        is_worked_day: true,
+        comment_text: index === 0 ? "RAS" : "",
+        week_summary_label: "",
+      };
+    });
+
+    return buildPeriodWorkbook({
+      client: {
+        company_name: "Acme",
+        company_logo: "",
+      },
+      userSettings: {
+        profileName: "John",
+        companyName: "JLO",
+      },
+      authUser: "john",
+      monthData: {
+        payPeriodStartDate: "2026-08-01",
+        payPeriodEndDate: "2026-08-31",
+        payPeriodLabel: "Août 2026",
+        workedDayCount: count,
+        totalHHMM: `${String(count * 7).padStart(2, "0")}:00`,
+        totalOvertimeHHMM: "00:00",
+        totalRecoveredHHMM: "00:00",
+        salaryAmountCents: null,
+        dayTypeCounts: {
+          office: count,
+          remote: 0,
+          leave: 0,
+          rtt: 0,
+          sick_leave: 0,
+          holiday: 0,
+        },
+        displayEntries,
+      },
+    });
+  };
+
+  const oneDayWorkbook = await buildWorkbookForCount(1);
+  const threeDayWorkbook = await buildWorkbookForCount(3);
+  const tenDayWorkbook = await buildWorkbookForCount(10);
+  const twentyFourDayWorkbook = await buildWorkbookForCount(24);
+
+  assert.deepEqual(oneDayWorkbook.worksheets[0]._brandBannerMeta, {
+    lastDataRow: 9,
+    footerRow: 23,
+    footerRowFloat: 22.078,
+    footerBottomRow: 29,
+    imageWidthPixels: 1169,
+    imageHeightPixels: 166,
+    estimatedPageCount: 1,
+    printArea: "A1:J29",
+  });
+  assert.deepEqual(threeDayWorkbook.worksheets[0]._brandBannerMeta, {
+    lastDataRow: 11,
+    footerRow: 22,
+    footerRowFloat: 21.169,
+    footerBottomRow: 28,
+    imageWidthPixels: 1169,
+    imageHeightPixels: 166,
+    estimatedPageCount: 1,
+    printArea: "A1:J28",
+  });
+
+  assert.equal(tenDayWorkbook.worksheets[0]._brandBannerMeta.estimatedPageCount, 2);
+  assert.equal(tenDayWorkbook.worksheets[0]._brandBannerMeta.printArea, "A1:J53");
+  assert.ok(
+    tenDayWorkbook.worksheets[0]._brandBannerMeta.footerRow >
+      tenDayWorkbook.worksheets[0]._brandBannerMeta.lastDataRow
+  );
+
+  assert.equal(twentyFourDayWorkbook.worksheets[0]._brandBannerMeta.estimatedPageCount, 2);
+  assert.equal(twentyFourDayWorkbook.worksheets[0]._brandBannerMeta.printArea, "A1:J47");
+  assert.ok(
+    twentyFourDayWorkbook.worksheets[0]._brandBannerMeta.footerRow >
+      twentyFourDayWorkbook.worksheets[0]._brandBannerMeta.lastDataRow
+  );
 });

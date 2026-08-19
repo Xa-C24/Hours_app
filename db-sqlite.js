@@ -944,6 +944,14 @@ function deleteExpiredSessions(nowMs) {
   deleteExpiredSessionsStmt.run(nowMs);
 }
 
+async function healthCheck() {
+  const row = authDb.prepare("SELECT 1 AS ok").get();
+  return {
+    ok: Boolean(row && row.ok === 1),
+    engine: "sqlite",
+  };
+}
+
 module.exports = {
   ensureUserDatabase,
   getAllClients,
@@ -972,4 +980,5 @@ module.exports = {
   getSessionByToken,
   deleteSession,
   deleteExpiredSessions,
+  healthCheck,
 };

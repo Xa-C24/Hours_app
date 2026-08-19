@@ -871,6 +871,34 @@
     notify();
   }
 
+  function emitToast(detail) {
+    if (typeof window === "undefined" || typeof window.showToast !== "function") {
+      return;
+    }
+    window.showToast(detail);
+  }
+
+  document.addEventListener(
+    "change",
+    (event) => {
+      const uploadInput = event.target instanceof HTMLElement ? event.target.closest("[data-settings-upload]") : null;
+      if (!(uploadInput instanceof HTMLInputElement)) {
+        return;
+      }
+      const file = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0] : null;
+      if (!file || file.size <= 1_500_000) {
+        return;
+      }
+      event.stopImmediatePropagation();
+      emitToast({
+        type: "warning",
+        message: "Image trop lourde. Choisissez un fichier inferieur a 1,5 MB.",
+      });
+      uploadInput.value = "";
+    },
+    true
+  );
+
   async function persistSettings(payload, reset = false) {
     const response = await fetch(reset ? "/api/settings/reset" : "/api/settings", {
       method: "POST",
@@ -897,12 +925,20 @@
     applySettings(optimisticSettings, state.settings);
     const persistedSettings = await persistSettings(patch, false);
     applySettings(persistedSettings, optimisticSettings);
+    emitToast({
+      type: "success",
+      message: "Preferences sauvegardees",
+    });
     return deepClone(state.settings);
   }
 
   async function resetSettings() {
     const persistedSettings = await persistSettings({}, true);
     applySettings(persistedSettings, state.settings);
+    emitToast({
+      type: "success",
+      message: "Preferences reinitialisees",
+    });
     return deepClone(state.settings);
   }
 
@@ -952,6 +988,10 @@
       await savePatch(patch);
     } catch (error) {
       console.error(error);
+      emitToast({
+        type: "error",
+        message: "Impossible d'enregistrer les preferences",
+      });
     }
   });
 
@@ -962,6 +1002,10 @@
         await resetSettings();
       } catch (error) {
         console.error(error);
+        emitToast({
+          type: "error",
+          message: "Impossible de reinitialiser les preferences",
+        });
       }
       return;
     }

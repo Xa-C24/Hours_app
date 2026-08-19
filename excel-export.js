@@ -10,6 +10,7 @@ const HISTORY_HEADER_ROW = 7;
 const HISTORY_DATA_START_ROW = HISTORY_HEADER_ROW + 1;
 const BRAND_BANNER_PATH = path.join(__dirname, "public", "bandeau_extract.png");
 const A4_LANDSCAPE_PAGE_HEIGHT_POINTS = 595.28;
+const A4_LANDSCAPE_PAGE_WIDTH_POINTS = 841.89;
 const EXCEL_PIXELS_TO_POINTS = 0.75;
 const FOOTER_BOTTOM_GAP_POINTS = 10;
 const FOOTER_MIN_SPACING_POINTS = 24;
@@ -184,6 +185,12 @@ function getPrintableHeightPoints(worksheet) {
   return A4_LANDSCAPE_PAGE_HEIGHT_POINTS - topMargin - bottomMargin;
 }
 
+function getPrintableWidthPoints(worksheet) {
+  const leftMargin = Number(worksheet.pageSetup?.margins?.left || 0) * 72;
+  const rightMargin = Number(worksheet.pageSetup?.margins?.right || 0) * 72;
+  return A4_LANDSCAPE_PAGE_WIDTH_POINTS - leftMargin - rightMargin;
+}
+
 function getSheetWidthPixels(worksheet, lastColumnCount) {
   let total = 0;
   for (let column = 1; column <= lastColumnCount; column += 1) {
@@ -235,6 +242,17 @@ function convertPixelsToColumnFloat(worksheet, lastColumnCount, offsetPixels) {
     cumulative += columnWidth;
   }
   return 0;
+}
+
+function getRowNumberAtPointPosition(worksheet, targetPoints) {
+  ensureRowsForPointPosition(worksheet, targetPoints);
+  let cumulative = 0;
+  let rowNumber = 1;
+  while (cumulative < targetPoints) {
+    cumulative += getRowHeightPoints(worksheet, rowNumber);
+    rowNumber += 1;
+  }
+  return Math.max(1, rowNumber - 1);
 }
 
 function getDayTypeLabel(dayType, fallback = "") {
@@ -540,9 +558,11 @@ function addBrandBannerToWorksheet(workbook, worksheet, afterRow, lastColumnCoun
     return {
       footerRow: afterRow,
       footerRowFloat: afterRow - 1,
+      footerBottomRow: afterRow,
       imageWidthPixels: 0,
       imageHeightPixels: 0,
       estimatedPageCount: 1,
+      endRow: afterRow,
     };
   }
   const imageId = workbook.addImage({
@@ -553,20 +573,27 @@ function addBrandBannerToWorksheet(workbook, worksheet, afterRow, lastColumnCoun
   const width = Math.round(sheetWidthPixels * 0.92);
   const height = Math.round((bannerSize.height / bannerSize.width) * width);
   const printableHeightPoints = getPrintableHeightPoints(worksheet);
+  const printableWidthPoints = getPrintableWidthPoints(worksheet);
+  const sheetWidthPoints = sheetWidthPixels * EXCEL_PIXELS_TO_POINTS;
+  const fitScale =
+    worksheet.pageSetup?.fitToWidth === 1 && sheetWidthPoints > printableWidthPoints
+      ? printableWidthPoints / sheetWidthPoints
+      : 1;
+  const effectivePrintableHeightPoints = printableHeightPoints / fitScale;
   const bannerHeightPoints = height * EXCEL_PIXELS_TO_POINTS;
-  const minimumFooterTopPoints =
-    printableHeightPoints - bannerHeightPoints - FOOTER_BOTTOM_GAP_POINTS;
+  const minimumFooterTopPointsWithinPage =
+    effectivePrintableHeightPoints - bannerHeightPoints - FOOTER_BOTTOM_GAP_POINTS;
   const contentBottomPoints = getCumulativeTopPoints(worksheet, afterRow + 1);
-  const desiredContentTopPoints = contentBottomPoints + FOOTER_MIN_SPACING_POINTS;
-  const footerTopPoints = Math.max(minimumFooterTopPoints, desiredContentTopPoints);
-  const zeroBasedPageIndex = Math.floor(footerTopPoints / printableHeightPoints);
-  const footerTopWithinPage = footerTopPoints - zeroBasedPageIndex * printableHeightPoints;
+  const maxContentBottomPointsWithinPage = minimumFooterTopPointsWithinPage - FOOTER_MIN_SPACING_POINTS;
+  const footerPageIndex = Math.max(
+    0,
+    Math.ceil((contentBottomPoints - maxContentBottomPointsWithinPage) / effectivePrintableHeightPoints)
+  );
   const finalFooterTopPoints =
-    footerTopWithinPage <= minimumFooterTopPoints
-      ? zeroBasedPageIndex * printableHeightPoints + minimumFooterTopPoints
-      : (zeroBasedPageIndex + 1) * printableHeightPoints + minimumFooterTopPoints;
+    footerPageIndex * effectivePrintableHeightPoints + minimumFooterTopPointsWithinPage;
   const finalBottomPoints = finalFooterTopPoints + bannerHeightPoints + FOOTER_BOTTOM_GAP_POINTS;
-  ensureRowsForPointPosition(worksheet, finalBottomPoints);
+  const footerPageBottomPoints = (footerPageIndex + 1) * effectivePrintableHeightPoints;
+  ensureRowsForPointPosition(worksheet, footerPageBottomPoints);
   const startRowFloat = convertPointsToRowFloat(worksheet, finalFooterTopPoints);
   const startRow = Math.floor(startRowFloat) + 1;
   const horizontalOffsetPixels = Math.max(0, Math.round((sheetWidthPixels - width) / 2));
@@ -579,13 +606,16 @@ function addBrandBannerToWorksheet(workbook, worksheet, afterRow, lastColumnCoun
   for (let row = startRow; row <= startRow + approxRows; row += 1) {
     worksheet.getRow(row).height = 22;
   }
+  const footerBottomRow = getRowNumberAtPointPosition(worksheet, finalBottomPoints);
+  const pageBottomRow = getRowNumberAtPointPosition(worksheet, footerPageBottomPoints);
   return {
     footerRow: startRow,
     footerRowFloat: Number(startRowFloat.toFixed(3)),
+    footerBottomRow,
     imageWidthPixels: width,
     imageHeightPixels: height,
-    estimatedPageCount: Math.max(1, Math.ceil(finalBottomPoints / printableHeightPoints)),
-    endRow: startRow + approxRows + 1,
+    estimatedPageCount: footerPageIndex + 1,
+    endRow: pageBottomRow,
   };
 }
 
@@ -823,6 +853,7 @@ async function buildPeriodWorkbook({ client, monthData, userSettings = {}, authU
     lastDataRow: endTableRow - 1,
     footerRow: bannerPlacement.footerRow,
     footerRowFloat: bannerPlacement.footerRowFloat,
+    footerBottomRow: bannerPlacement.footerBottomRow,
     imageWidthPixels: bannerPlacement.imageWidthPixels,
     imageHeightPixels: bannerPlacement.imageHeightPixels,
     estimatedPageCount: bannerPlacement.estimatedPageCount,
@@ -857,6 +888,7 @@ async function buildHistoryWorkbook({ client, entries, userSettings = {}, authUs
     lastDataRow: endDataRow - 1,
     footerRow: bannerPlacement.footerRow,
     footerRowFloat: bannerPlacement.footerRowFloat,
+    footerBottomRow: bannerPlacement.footerBottomRow,
     imageWidthPixels: bannerPlacement.imageWidthPixels,
     imageHeightPixels: bannerPlacement.imageHeightPixels,
     estimatedPageCount: bannerPlacement.estimatedPageCount,
