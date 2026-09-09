@@ -25,6 +25,8 @@ const {
   normalizeSettingsPatch,
   mergeSettings,
 } = require("./settings");
+const { validateAndPrepareWorkEntry } = require("./services/work-entry-service");
+const { createApiV1Router } = require("./routes/api-v1");
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -32,6 +34,7 @@ const DAILY_TARGET_MINUTES = 7 * 60;
 const SESSION_COOKIE_NAME = "hours_session";
 const CSRF_COOKIE_NAME = "hours_csrf";
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
+const MOBILE_TOKEN_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const CSRF_TOKEN_DURATION_MS = 12 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 10;
@@ -39,6 +42,9 @@ const RECOVERY_CODE_REGEX = /^\d{6}$/;
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_CLIENT_FIELD_LENGTH = 500;
 const MAX_CLIENT_LOGO_LENGTH = 2_000_000;
+const CLIENT_LOGO_DATA_URL_REGEX = /^data:image\/(?:png|jpe?g|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/i;
+const IS_DEVELOPMENT = process.env.NODE_ENV !== "production";
+const DEVELOPMENT_REVISION = `${Date.now()}-${process.pid}`;
 const CSV_SEPARATOR = ";";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_RATE_LIMITS = {
@@ -112,9 +118,19 @@ app.use(
   "/vendor/emoji-picker-element",
   express.static(path.join(__dirname, "node_modules", "emoji-picker-element"))
 );
+if (IS_DEVELOPMENT) {
+  app.use("/mobile", express.static(path.join(__dirname, "mobile")));
+}
 app.use(express.static(path.join(__dirname, "public")));
 
 app.disable("x-powered-by");
+
+if (IS_DEVELOPMENT) {
+  app.get("/__dev-revision", (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ revision: DEVELOPMENT_REVISION });
+  });
+}
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -126,6 +142,20 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   ensureCsrfToken(req, res);
   next();
+});
+
+app.use("/api/v1", (req, res, next) => {
+  const origin = req.get("origin");
+  if (origin === "capacitor://localhost") {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Vary", "Origin");
+  }
+  if (req.method === "OPTIONS") {
+    return origin === "capacitor://localhost" ? res.sendStatus(204) : res.sendStatus(403);
+  }
+  return next();
 });
 
 app.get("/healthz", async (req, res) => {
@@ -203,6 +233,19 @@ async function createSession(username) {
   return token;
 }
 
+async function createMobileAuthToken(username) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const expiresAtMs = Date.now() + MOBILE_TOKEN_DURATION_MS;
+  await db.deleteExpiredMobileAuthTokens(Date.now());
+  await db.createMobileAuthToken({ token_hash: tokenHash, username, expires_at_ms: expiresAtMs });
+  return { token, expiresAt: new Date(expiresAtMs).toISOString() };
+}
+
+function hashMobileAuthToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 async function getSessionFromRequest(req) {
   const token = getSessionTokenFromRequest(req);
   if (!token) {
@@ -271,6 +314,14 @@ function verifyPassword(password, saltHex, expectedHashHex) {
   } catch (error) {
     return false;
   }
+}
+
+async function authenticateCredentials(username, password) {
+  if (!username || !password) {
+    return null;
+  }
+  const user = await db.getUserByUsername(username);
+  return user && verifyPassword(password, user.password_salt, user.password_hash) ? user : null;
 }
 
 function getRequestIp(req) {
@@ -405,8 +456,12 @@ function isWorkedDayType(dayType) {
   return getDayTypeConfig(dayType).isWorkedDay;
 }
 
-function getTargetMinutesForDayType(dayType) {
-  return isWorkedDayType(dayType) ? DAILY_TARGET_MINUTES : 0;
+function getTargetMinutesForDayType(dayType, dailyGoalMinutes = DAILY_TARGET_MINUTES) {
+  const normalizedDailyGoal = Number(dailyGoalMinutes);
+  const targetMinutes = Number.isFinite(normalizedDailyGoal) && normalizedDailyGoal >= 0
+    ? Math.round(normalizedDailyGoal)
+    : DAILY_TARGET_MINUTES;
+  return isWorkedDayType(dayType) ? targetMinutes : 0;
 }
 
 function pad2(value) {
@@ -621,7 +676,15 @@ async function getUserSettings(username) {
 }
 
 async function saveUserSettings(username, input) {
-  const nextSettings = normalizeSettingsPatch(input);
+  const currentSettings = await getUserSettings(username);
+  const rawInput = input && typeof input === "object" ? input : {};
+  const nextInput = {
+    ...rawInput,
+    ...(rawInput.notifications && typeof rawInput.notifications === "object"
+      ? { notifications: { ...currentSettings.notifications, ...rawInput.notifications } }
+      : {}),
+  };
+  const nextSettings = normalizeSettingsPatch(nextInput);
   await db.upsertSettings(username, nextSettings);
   return getUserSettings(username);
 }
@@ -728,6 +791,87 @@ function getISOWeekNumber(dateString) {
   return Math.ceil(diffDays / 7);
 }
 
+function addDaysToDateString(dateString, days) {
+  if (typeof dateString !== "string" || !DATE_REGEX.test(dateString)) {
+    return "";
+  }
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+}
+
+function getCalendarGridBounds(startDate, endDate) {
+  const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+  const gridStart = new Date(startYear, startMonth - 1, startDay);
+  const gridEnd = new Date(endYear, endMonth - 1, endDay);
+  gridStart.setDate(gridStart.getDate() - ((gridStart.getDay() + 6) % 7));
+  gridEnd.setDate(gridEnd.getDate() + ((6 - ((gridEnd.getDay() + 6) % 7) + 7) % 7));
+  return {
+    startDate: formatDate(gridStart),
+    endDateExclusive: addDaysToDateString(formatDate(gridEnd), 1),
+  };
+}
+
+function buildCalendarWeekSummaries(calendarWeeks, todayDate) {
+  return calendarWeeks.map((calendarWeek) => {
+    const weekStartDate = calendarWeek[0]?.isoDate || "";
+    const totalWorkedMinutes = calendarWeek.reduce(
+      (sum, calendarDay) => sum + Number(calendarDay.entry?.worked_minutes || 0),
+      0
+    );
+    const totalOvertimeMinutes = calendarWeek.reduce(
+      (sum, calendarDay) => sum + getEntryOvertimeMinutes(calendarDay.entry),
+      0
+    );
+    const totalRecoveredMinutes = calendarWeek.reduce(
+      (sum, calendarDay) => sum + Number(calendarDay.entry?.recovered_minutes || 0),
+      0
+    );
+    const isEmptyFutureWeek = Boolean(
+      weekStartDate && todayDate && weekStartDate > todayDate && totalWorkedMinutes === 0
+    );
+    return {
+      weekNumber: getISOWeekNumber(weekStartDate),
+      isCurrentWeek: Boolean(todayDate && getWeekStartMonday(todayDate) === weekStartDate),
+      isEmptyFutureWeek,
+      totalWorkedMinutes,
+      totalOvertimeMinutes,
+      totalRecoveredMinutes,
+      totalWorkedHHMM: isEmptyFutureWeek ? "—" : formatMinutesToHHMM(totalWorkedMinutes),
+      totalOvertimeHHMM: isEmptyFutureWeek ? "—" : formatMinutesToHHMM(totalOvertimeMinutes),
+      totalRecoveredHHMM: isEmptyFutureWeek ? "—" : formatMinutesToHHMM(totalRecoveredMinutes),
+    };
+  });
+}
+
+function getEntryOvertimeMinutes(entry) {
+  const workedMinutes = Number(entry?.worked_minutes || 0);
+  const targetMinutes = Number(entry?.target_minutes || 0);
+  return Math.max(0, workedMinutes - targetMinutes);
+}
+
+function decorateWorkEntries(workEntries, dailyGoalMinutes = DAILY_TARGET_MINUTES) {
+  return workEntries.map((entry) => {
+    const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
+    const targetMinutes = getTargetMinutesForDayType(dayType, dailyGoalMinutes);
+    const overtimeMinutes = getEntryOvertimeMinutes({ ...entry, target_minutes: targetMinutes });
+    return {
+      ...entry,
+      day_type: dayType,
+      day_type_display: getDayTypeConfig(dayType).label,
+      target_minutes: targetMinutes,
+      is_worked_day: isWorkedDayType(dayType),
+      week_start: getWeekStartMonday(entry.work_date),
+      worked_hhmm: formatMinutesToHHMM(entry.worked_minutes),
+      overtime_minutes: overtimeMinutes,
+      overtime_hhmm: formatMinutesToHHMM(overtimeMinutes),
+      under_target: entry.worked_minutes < targetMinutes,
+    };
+  });
+}
+
 function formatWeekSummaryLabelFr(startDate, endDate, weekNumber) {
   const startLabel = formatDateDayMonthFr(startDate);
   const endLabel = formatDateDayMonthFr(endDate);
@@ -755,6 +899,7 @@ function getEmptyMonthData(month) {
   const { startDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
   return {
     entries: [],
+    calendarEntries: [],
     displayEntries: [],
     payPeriodStartDate: startDate,
     payPeriodEndDate: inclusiveEndDate,
@@ -771,20 +916,21 @@ function getEmptyMonthData(month) {
   };
 }
 
-async function getMonthData(username, clientId, month) {
+async function getMonthData(username, clientId, month, dailyGoalMinutes = DAILY_TARGET_MINUTES) {
   if (!clientId) {
     return getEmptyMonthData(month);
   }
 
   const normalizedMonth = normalizeMonth(month);
   const { startDate, endDate, inclusiveEndDate } = getMonthBounds(normalizedMonth);
+  const calendarGridBounds = getCalendarGridBounds(startDate, inclusiveEndDate);
   const salaryAmountCents = await db.getPayPeriodSalary(username, clientId, normalizedMonth);
   const yearToDateBounds = getYearToDateBounds(endDate);
   let runningBalanceMinutes = 0;
   const baseEntries = (await db.getWorkEntriesByClient(username, clientId, startDate, endDate)).map((entry) => {
       const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
-      const targetMinutes = getTargetMinutesForDayType(dayType);
-      const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
+      const targetMinutes = getTargetMinutesForDayType(dayType, dailyGoalMinutes);
+      const overtimeMinutes = getEntryOvertimeMinutes({ ...entry, target_minutes: targetMinutes });
       const missingMinutes = Math.max(0, targetMinutes - entry.worked_minutes);
       const recoveredMinutes = Math.min(Math.max(0, runningBalanceMinutes), missingMinutes);
 
@@ -817,10 +963,22 @@ async function getMonthData(username, clientId, month) {
     ...entry,
     week_color_class: weekClassByStart.get(entry.week_start) || "",
   }));
+  const recoveryByWorkDate = new Map(
+    entries.map((entry) => [entry.work_date, {
+      recovered_minutes: entry.recovered_minutes,
+      recovered_hhmm: entry.recovered_hhmm,
+    }])
+  );
+  const calendarEntries = decorateWorkEntries(await db.getWorkEntriesByClient(
+    username,
+    clientId,
+    calendarGridBounds.startDate,
+    calendarGridBounds.endDateExclusive
+  ), dailyGoalMinutes).map((entry) => ({ ...entry, ...(recoveryByWorkDate.get(entry.work_date) || {}) }));
   const displayEntries = [];
   let weekTotalMinutes = 0;
   let weekRecoveredMinutes = 0;
-  let weekTargetMinutes = 0;
+  let weekOvertimeMinutes = 0;
   let weekFirstWorkDate = "";
   let weekLastWorkDate = "";
 
@@ -833,11 +991,10 @@ async function getMonthData(username, clientId, month) {
     weekLastWorkDate = entry.work_date;
     weekTotalMinutes += entry.worked_minutes;
     weekRecoveredMinutes += entry.recovered_minutes;
-    weekTargetMinutes += entry.target_minutes;
+    weekOvertimeMinutes += entry.overtime_minutes;
     displayEntries.push(entry);
 
     if (!nextEntry || nextEntry.week_start !== entry.week_start) {
-      const weekOvertimeMinutes = Math.max(0, weekTotalMinutes - weekTargetMinutes);
       const weekNumber = getISOWeekNumber(entry.week_start || weekFirstWorkDate);
       displayEntries.push({
         is_week_total: true,
@@ -854,15 +1011,14 @@ async function getMonthData(username, clientId, month) {
       });
       weekTotalMinutes = 0;
       weekRecoveredMinutes = 0;
-      weekTargetMinutes = 0;
+      weekOvertimeMinutes = 0;
       weekFirstWorkDate = "";
       weekLastWorkDate = "";
     }
   }
 
   const totalMinutes = entries.reduce((sum, entry) => sum + entry.worked_minutes, 0);
-  const monthlyTargetMinutes = entries.reduce((sum, entry) => sum + entry.target_minutes, 0);
-  const totalOvertimeMinutes = Math.max(0, totalMinutes - monthlyTargetMinutes);
+  const totalOvertimeMinutes = entries.reduce((sum, entry) => sum + entry.overtime_minutes, 0);
   const totalRecoveredMinutes = entries.reduce((sum, entry) => sum + entry.recovered_minutes, 0);
   const workedDayCount = entries.reduce(
     (sum, entry) => sum + (entry.is_worked_day ? 1 : 0),
@@ -890,6 +1046,7 @@ async function getMonthData(username, clientId, month) {
   );
   return {
     entries,
+    calendarEntries,
     displayEntries,
     payPeriodStartDate: startDate,
     payPeriodEndDate: inclusiveEndDate,
@@ -906,10 +1063,10 @@ async function getMonthData(username, clientId, month) {
   };
 }
 
-function formatHistoryEntry(entry) {
+function formatHistoryEntry(entry, dailyGoalMinutes = DAILY_TARGET_MINUTES) {
   const dayType = normalizeDayType(entry.day_type) || DEFAULT_DAY_TYPE;
-  const targetMinutes = getTargetMinutesForDayType(dayType);
-  const overtimeMinutes = Math.max(0, entry.worked_minutes - targetMinutes);
+  const targetMinutes = getTargetMinutesForDayType(dayType, dailyGoalMinutes);
+  const overtimeMinutes = getEntryOvertimeMinutes({ ...entry, target_minutes: targetMinutes });
   return {
     ...entry,
     day_type: dayType,
@@ -1186,6 +1343,7 @@ async function renderIndex(res, options = {}) {
   const archivedClients = await getArchivedClientHistory(username);
   const {
     entries,
+    calendarEntries,
     displayEntries,
     payPeriodStartDate,
     payPeriodEndDate,
@@ -1199,7 +1357,7 @@ async function renderIndex(res, options = {}) {
     totalHHMM,
     totalOvertimeHHMM,
     totalRecoveredHHMM,
-  } = await getMonthData(username, selectedClient ? selectedClient.id : null, month);
+  } = await getMonthData(username, selectedClient ? selectedClient.id : null, month, userSettings.dailyGoal);
 
   const defaultFormData = {
     date: formatDate(new Date()),
@@ -1235,6 +1393,8 @@ async function renderIndex(res, options = {}) {
     selectedMonth: month,
     defaultEntryFormData: defaultFormData,
     entries,
+    calendarEntries,
+    buildCalendarWeekSummaries,
     displayEntries,
     payPeriodStartDate,
     payPeriodEndDate,
@@ -1292,6 +1452,8 @@ async function renderIndex(res, options = {}) {
     editingWorkDate,
     authUser: res.locals.authUser || "",
     csrfToken: res.locals.csrfToken || "",
+    isDevelopment: IS_DEVELOPMENT,
+    developmentRevision: DEVELOPMENT_REVISION,
   });
 }
 
@@ -1339,6 +1501,27 @@ app.use(async (req, res, next) => {
 });
 
 app.use(requireCsrf);
+
+app.use(
+  "/api/v1",
+  createApiV1Router({
+    authenticateCredentials,
+    createMobileAuthToken,
+    getClientSelection,
+    getMonthData,
+    getMobileAuthTokenByHash: (tokenHash) => db.getMobileAuthTokenByHash(tokenHash),
+    getUserByUsername: (username) => db.getUserByUsername(username),
+    hashMobileAuthToken,
+    normalizeClientId,
+    rateLimitLoginAttempt: (req) => {
+      const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
+      return consumeRateLimitBucket(`login:${getRequestIp(req)}:${username.toLowerCase()}`, AUTH_RATE_LIMITS.login.maxAttempts, AUTH_RATE_LIMITS.login.windowMs);
+    },
+    revokeMobileAuthToken: (tokenHash) => db.revokeMobileAuthToken(tokenHash),
+    serializeMonthDataForApi,
+    touchMobileAuthToken: (tokenHash) => db.touchMobileAuthToken(tokenHash),
+  })
+);
 
 function requireAuth(req, res, next) {
   if (!req.authUser) {
@@ -1392,7 +1575,7 @@ async function renderCsrfFailure(req, res) {
 }
 
 async function requireCsrf(req, res, next) {
-  if (req.method !== "POST") {
+  if (req.method !== "POST" || req.path === "/api/v1/auth/login" || req.path === "/api/v1/auth/logout") {
     return next();
   }
   const cookieToken = getCsrfTokenFromRequest(req);
@@ -1474,8 +1657,8 @@ app.post("/login", createRateLimitMiddleware("login", "la connexion", AUTH_RATE_
     });
   }
 
-  const user = await db.getUserByUsername(username);
-  if (!user || !verifyPassword(password, user.password_salt, user.password_hash)) {
+  const user = await authenticateCredentials(username, password);
+  if (!user) {
     logSecurityEvent("login_failed", {
       username,
       ip: getRequestIp(req),
@@ -1652,6 +1835,7 @@ app.post("/forgot-password", createRateLimitMiddleware("forgotPassword", "la ré
     recovery_code_salt: nextRecoverySaltHex,
     recovery_code_hash: nextRecoveryHashHex,
   });
+  await db.revokeMobileAuthTokensByUsername(username);
 
   return renderForgotPassword(res, {
     success: "Mot de passe reinitialise. Conservez votre nouveau code de recuperation.",
@@ -1727,7 +1911,8 @@ app.get("/api/entries/month", async (req, res) => {
     return res.status(404).json({ error: "Client introuvable." });
   }
 
-  const monthData = await getMonthData(req.authUser, client.id, month);
+  const userSettings = await getUserSettings(req.authUser);
+  const monthData = await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal);
   return res.json(serializeMonthDataForApi(month, client.id, monthData));
 });
 
@@ -1792,6 +1977,16 @@ app.post("/clients", async (req, res) => {
     });
   }
 
+  if (clientFormData.company_logo && !CLIENT_LOGO_DATA_URL_REGEX.test(clientFormData.company_logo)) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientError: "Le logo doit etre une image PNG, JPEG, WebP ou GIF valide.",
+      clientFormData,
+      showClientModal: true,
+    });
+  }
+
   const client = await db.createClient(req.authUser, clientFormData);
   return res.redirect(
     `/?month=${encodeURIComponent(month)}&clientId=${encodeURIComponent(client.id)}`
@@ -1835,6 +2030,16 @@ app.post("/clients/:clientId/update", async (req, res) => {
       month,
       clientId: existingClient.id,
       clientError: `Les champs client sont trop volumineux.`,
+      showClientInfoModal: true,
+    });
+  }
+
+  if (clientFormData.company_logo && !CLIENT_LOGO_DATA_URL_REGEX.test(clientFormData.company_logo)) {
+    return renderIndex(res, {
+      username: req.authUser,
+      month,
+      clientId: existingClient.id,
+      clientError: "Le logo doit etre une image PNG, JPEG, WebP ou GIF valide.",
       showClientInfoModal: true,
     });
   }
@@ -1914,13 +2119,13 @@ app.get("/export.xlsx", async (req, res) => {
     exportMode === "history"
       ? await buildHistoryWorkbook({
           client,
-          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry),
+          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map((entry) => formatHistoryEntry(entry, userSettings.dailyGoal)),
           userSettings,
           authUser: req.authUser,
         })
       : await buildPeriodWorkbook({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month),
+          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
           userSettings,
           authUser: req.authUser,
         });
@@ -1952,13 +2157,13 @@ app.get("/export.pdf", async (req, res) => {
     exportMode === "history"
       ? await buildHistoryPdfBuffer({
           client,
-          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry),
+          entries: (await db.getWorkEntriesByClient(req.authUser, client.id)).map((entry) => formatHistoryEntry(entry, userSettings.dailyGoal)),
           userSettings,
           authUser: req.authUser,
         })
       : await buildPeriodPdfBuffer({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month),
+          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
           userSettings,
           authUser: req.authUser,
         });
@@ -1981,13 +2186,14 @@ app.get("/export.csv", async (req, res) => {
     return res.status(400).send("Aucun client selectionne.");
   }
 
+  const userSettings = await getUserSettings(req.authUser);
   const lines =
     exportMode === "history"
       ? buildHistoryExportLines(
           client,
-          (await db.getWorkEntriesByClient(req.authUser, client.id)).map(formatHistoryEntry)
+          (await db.getWorkEntriesByClient(req.authUser, client.id)).map((entry) => formatHistoryEntry(entry, userSettings.dailyGoal))
         )
-      : buildPeriodExportLines(await getMonthData(req.authUser, client.id, month));
+      : buildPeriodExportLines(await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal));
   const filename = buildExportFilename(
     client.company_name,
     exportMode === "history" ? "historique" : month,
@@ -2056,107 +2262,43 @@ app.post("/entries", async (req, res) => {
     originalWorkDate,
     confirmReplace,
   } = req.body;
-  const normalizedClientId = normalizeClientId(clientId);
-  const client = normalizedClientId ? await db.getClientById(req.authUser, normalizedClientId) : null;
-  const normalizedComment = typeof commentText === "string" ? commentText.trim() : "";
-  const safeOriginalWorkDate = isValidDate(originalWorkDate) ? originalWorkDate : "";
-  const normalizedDayType = normalizeDayType(dayType) || DEFAULT_DAY_TYPE;
-  const isWorkedDay = isWorkedDayType(normalizedDayType);
+  const preparedEntry = await validateAndPrepareWorkEntry(
+    {
+      username: req.authUser,
+      clientId,
+      workDate: date,
+      originalWorkDate,
+      dayType,
+      arrivalTime,
+      departureTime,
+      lunchBreakMinutes,
+      commentText,
+    },
+    {
+      defaultDayType: DEFAULT_DAY_TYPE,
+      getClientById: db.getClientById,
+      isValidDate,
+      isValidTime,
+      isWorkedDayType,
+      maxCommentLength: MAX_COMMENT_LENGTH,
+      normalizeClientId,
+      normalizeDayType,
+      toMinutes,
+    }
+  );
   const month = normalizeMonth(selectedMonth || getPayPeriodMonthForDate(date));
   const entryMonth = normalizeMonth(getPayPeriodMonthForDate(date) || month);
-  const errors = [];
-
-  if (!client) {
-    errors.push("Selectionnez un client avant d'enregistrer une journée.");
-  }
-
-  if (!isValidDate(date)) {
-    errors.push("La date est invalide.");
-  }
-
-  if (isWorkedDay && !isValidTime(arrivalTime)) {
-    errors.push("L'heure d'arrivee est invalide (format attendu HH:MM).");
-  }
-
-  if (isWorkedDay && !isValidTime(departureTime)) {
-    errors.push("L'heure de depart est invalide (format attendu HH:MM).");
-  }
-
-  const breakMinutes = isWorkedDay ? Number(lunchBreakMinutes) : 0;
-  if (isWorkedDay && (!Number.isInteger(breakMinutes) || breakMinutes < 0)) {
-    errors.push("La pause dejeuner doit etre un entier positif ou nul.");
-  }
-
-  if (normalizedComment.length > MAX_COMMENT_LENGTH) {
-    errors.push(`Le commentaire ne doit pas depasser ${MAX_COMMENT_LENGTH} caracteres.`);
-  }
-
-  if (errors.length > 0) {
+  if (!preparedEntry.ok) {
     return renderIndex(res, {
       username: req.authUser,
       month,
-      clientId: normalizedClientId,
-      error: errors[0],
-      formData: {
-        date,
-        dayType: normalizedDayType,
-        arrivalTime,
-        departureTime,
-        lunchBreakMinutes,
-        commentText: normalizedComment,
-        originalWorkDate: safeOriginalWorkDate,
-      },
+      clientId: preparedEntry.normalizedClientId,
+      error: preparedEntry.message,
+      formData: { date, ...preparedEntry.formData },
     });
   }
-
-  let safeArrivalTime = arrivalTime;
-  let safeDepartureTime = departureTime;
-  let workedMinutes = 0;
-
-  if (isWorkedDay) {
-    const arrivalMinutes = toMinutes(arrivalTime);
-    const departureMinutes = toMinutes(departureTime);
-
-    if (departureMinutes <= arrivalMinutes) {
-      return renderIndex(res, {
-        username: req.authUser,
-        month,
-        clientId: client.id,
-        error: "L'heure de depart doit etre apres l'heure d'arrivee.",
-        formData: {
-          date,
-          dayType: normalizedDayType,
-          arrivalTime,
-          departureTime,
-          lunchBreakMinutes,
-          commentText: normalizedComment,
-          originalWorkDate: safeOriginalWorkDate,
-        },
-      });
-    }
-
-    workedMinutes = departureMinutes - arrivalMinutes - breakMinutes;
-    if (workedMinutes < 0) {
-      return renderIndex(res, {
-        username: req.authUser,
-        month,
-        clientId: client.id,
-        error: "La pause dejeuner est trop longue pour ce creneau horaire.",
-        formData: {
-          date,
-          dayType: normalizedDayType,
-          arrivalTime,
-          departureTime,
-          lunchBreakMinutes,
-          commentText: normalizedComment,
-          originalWorkDate: safeOriginalWorkDate,
-        },
-      });
-    }
-  } else {
-    safeArrivalTime = "00:00";
-    safeDepartureTime = "00:00";
-  }
+  const { client, entry, originalWorkDate: safeOriginalWorkDate } = preparedEntry;
+  const { day_type: normalizedDayType, worked_minutes: workedMinutes, lunch_break_minutes: breakMinutes, comment_text: normalizedComment, arrival_time: safeArrivalTime, departure_time: safeDepartureTime } = entry;
 
   const isDateChange = safeOriginalWorkDate && safeOriginalWorkDate !== date;
   const existingEntryAtTargetDate = await db.getWorkEntryByDate(req.authUser, client.id, date);
@@ -2231,6 +2373,9 @@ if (require.main === module) {
 
 module.exports = {
   app,
+  buildCalendarWeekSummaries,
+  decorateWorkEntries,
   getMonthData,
+  getISOWeekNumber,
   serializeMonthDataForApi,
 };

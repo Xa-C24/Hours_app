@@ -16,6 +16,8 @@ const {
 
 const serverSource = fs.readFileSync(path.resolve(__dirname, "..", "server.js"), "utf8");
 const schemaSource = fs.readFileSync(path.resolve(__dirname, "..", "schema.sql"), "utf8");
+const viewSource = fs.readFileSync(path.resolve(__dirname, "..", "views", "index.ejs"), "utf8");
+const styleSource = fs.readFileSync(path.resolve(__dirname, "..", "public", "style.css"), "utf8");
 
 test("migration requirements include settings and company_logo", () => {
   assert.deepEqual(AUTH_DB_REQUIREMENTS.sessions, [
@@ -45,6 +47,72 @@ test("export.csv handler serves CSV content instead of redirecting to XLSX", () 
   assert.match(exportCsvRoute[0], /buildExportFilename\([\s\S]*"csv"/);
   assert.match(exportCsvRoute[0], /encodeCsvForExcel\(lines\)/);
   assert.doesNotMatch(exportCsvRoute[0], /redirect\(`\/export\.xlsx/);
+});
+
+test("export.xlsx handler serves an actual Excel workbook", () => {
+  const exportXlsxRoute = serverSource.match(/app\.get\("\/export\.xlsx", async \(req, res\) => \{[\s\S]*?\n\}\);/);
+  assert.ok(exportXlsxRoute, "export.xlsx route should exist");
+  assert.match(exportXlsxRoute[0], /application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/);
+  assert.match(exportXlsxRoute[0], /buildPeriodWorkbook/);
+  assert.match(exportXlsxRoute[0], /buildHistoryWorkbook/);
+  assert.match(exportXlsxRoute[0], /buildExportFilename\([\s\S]*?"xlsx"/);
+  assert.match(exportXlsxRoute[0], /workbook\.xlsx\.writeBuffer\(\)/);
+});
+
+test("export choices show only PDF and Excel while the CSV route remains available", () => {
+  assert.equal((viewSource.match(/class="export-menu"/g) || []).length, 2);
+  assert.equal((viewSource.match(/>Exporter <span aria-hidden="true">/g) || []).length, 2);
+  assert.match(viewSource, /Document PDF[\s\S]*?Rapport mis en page pour lecture, partage ou archivage\./);
+  assert.match(viewSource, /Classeur Excel[\s\S]*?Données détaillées, filtrables et prêtes à être exploitées\./);
+  assert.match(viewSource, /href="\/export\.pdf\?month=/);
+  assert.match(viewSource, /href="\/export\.xlsx\?month=/);
+  assert.match(viewSource, /href="\/export\.pdf\?mode=history/);
+  assert.match(viewSource, /href="\/export\.xlsx\?mode=history/);
+  assert.doesNotMatch(viewSource, /CSV brut|Donn(?:ées|Ã©es) CSV|href="\/export\.csv/);
+  assert.match(styleSource, /\.export-menu-panel a:hover,[\s\S]*?transform: translateX\(2px\);/);
+  assert.match(styleSource, /\.export-menu-panel a:active\s*\{[\s\S]*?transform: scale\(0\.98\);/);
+});
+
+test("XLSX client logo is a single compact header image with its source ratio", async () => {
+  const clientLogoPath = path.resolve(__dirname, "..", "public", "bandeau_extract.png");
+  const clientLogo = fs.readFileSync(clientLogoPath);
+  const sourceWidth = clientLogo.readUInt32BE(16);
+  const sourceHeight = clientLogo.readUInt32BE(20);
+  const workbook = await buildPeriodWorkbook({
+    client: {
+      company_name: "Acme",
+      company_logo: `data:image/png;base64,${clientLogo.toString("base64")}`,
+    },
+    userSettings: { profileName: "John", companyName: "JLO" },
+    authUser: "john",
+    monthData: {
+      payPeriodStartDate: "2026-08-15",
+      payPeriodEndDate: "2026-09-14",
+      workedDayCount: 0,
+      totalHHMM: "00:00",
+      totalOvertimeHHMM: "00:00",
+      totalRecoveredHHMM: "00:00",
+      salaryAmountCents: null,
+      dayTypeCounts: {},
+      displayEntries: [],
+    },
+  });
+  const worksheet = workbook.worksheets[0];
+  const headerLogos = worksheet.getImages().filter((image) => image.range.tl.nativeRow < 4);
+
+  assert.equal(headerLogos.length, 1);
+  assert.ok(workbook.model.media.length >= 2, "client logo and footer banner are embedded");
+  assert.equal(headerLogos[0].range.tl.nativeCol, 9);
+  assert.equal(headerLogos[0].range.ext.width, 120);
+  assert.equal(headerLogos[0].range.ext.height, 17);
+  assert.ok(headerLogos[0].range.ext.width <= 120);
+  assert.ok(headerLogos[0].range.ext.height <= 84);
+  assert.ok(
+    Math.abs(
+      headerLogos[0].range.ext.width / headerLogos[0].range.ext.height - sourceWidth / sourceHeight
+    ) < 0.2
+  );
+  assert.equal(worksheet.pageSetup.printArea.startsWith("A1:J"), true);
 });
 
 test("buildPeriodWorkbook keeps the expected worksheet title and filename", async () => {

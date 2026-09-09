@@ -14,7 +14,7 @@
       (() => {
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
-        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "robot"];
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
         const allowedStyles = ["premium", "robot", "retro"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
@@ -45,6 +45,9 @@
               <option value="orange-sunset">Sable cuivre</option>
               <option value="forest-green">Sauge profonde</option>
               <option value="light-green">Celadon</option>
+              <option value="bordeaux-night">Bordeaux nuit</option>
+              <option value="lavender-mist">Lavande brume</option>
+              <option value="obsidian-gold">Obsidienne or</option>
             </select>
           </div>
           <div class="theme-picker">

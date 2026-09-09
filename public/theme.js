@@ -13,6 +13,9 @@
     "orange-sunset",
     "forest-green",
     "light-green",
+    "bordeaux-night",
+    "lavender-mist",
+    "obsidian-gold",
     "robot",
   ];
   const STYLES = ["premium", "robot", "retro"];
@@ -157,7 +160,7 @@
     section.classList.toggle("is-collapsed", collapsed);
     panel.hidden = collapsed;
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
-    const toggleLabel = collapsed ? "Ouvrir la période" : "Replier la période";
+    const toggleLabel = collapsed ? "Ouvrir la fenêtre" : "Replier la fenêtre";
     toggleButton.setAttribute("aria-label", toggleLabel);
     toggleButton.title = toggleLabel;
     if (persist) {

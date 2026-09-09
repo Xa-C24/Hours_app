@@ -61,6 +61,54 @@
     return Boolean(day !== null && day !== 0 && day !== 6 && isoDate < todayIso);
   }
 
+  function isWorkedDayRecord(record) {
+    if (typeof record?.is_worked_day === "boolean") {
+      return record.is_worked_day;
+    }
+    const dayType = String(record?.day_type || record?.dayType || "").trim();
+    return dayType === "office" || dayType === "remote";
+  }
+
+  function timeToMinutes(value) {
+    if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+      return null;
+    }
+    const [hours, minutes] = value.split(":").map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function isIncompleteWorkRecord(record) {
+    if (!isWorkedDayRecord(record)) {
+      return false;
+    }
+    const arrival = String(record.arrival_time ?? record.arrivalTime ?? "").trim();
+    const departure = String(record.departure_time ?? record.departureTime ?? "").trim();
+    if (Boolean(arrival) !== Boolean(departure)) {
+      return true;
+    }
+    if (!arrival && !departure) {
+      return false;
+    }
+    const arrivalMinutes = timeToMinutes(arrival);
+    const departureMinutes = timeToMinutes(departure);
+    if (arrivalMinutes === null || departureMinutes === null || departureMinutes <= arrivalMinutes) {
+      return true;
+    }
+    const pause = Number(record.lunch_break_minutes ?? record.lunchBreakMinutes ?? 0);
+    const expectedWorkedMinutes = departureMinutes - arrivalMinutes - (Number.isFinite(pause) ? pause : 0);
+    if (expectedWorkedMinutes < 0) {
+      return true;
+    }
+    const workedMinutes = Number(record.worked_minutes);
+    return Number.isFinite(workedMinutes) && Math.abs(workedMinutes - expectedWorkedMinutes) > 1;
+  }
+
+  function getWeekStart(date) {
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    return weekStart;
+  }
+
   function collectDrafts(storage, username, clientId, todayIso) {
     const drafts = [];
     const todayDate = parseIsoDate(todayIso);
@@ -118,7 +166,7 @@
           notifications.push({
             id: `missing-entry:${isoDate}`,
             type: "warning",
-            title: "Journée oublieé",
+            title: "Journée oubliée",
             message: `Aucune saisie pour ${getDayLabel(isoDate)}.`,
             category: "missingEntry",
             date: isoDate,
@@ -129,58 +177,103 @@
       }
     }
 
-    const todayEntry = todayIso ? entriesByDate.get(todayIso) || null : null;
-    if (
-      notificationsSettings.goalReached &&
-      todayEntry &&
-      dailyGoal > 0 &&
-      Number(todayEntry.worked_minutes || 0) >= dailyGoal
-    ) {
-      notifications.push({
-        id: `goal-reached:${todayIso}`,
-        type: "success",
-        title: "Objectif atteint",
-        message: `Votre objectif journalier est atteint avec ${todayEntry.worked_hhmm || formatMinutesAsHHMM(Number(todayEntry.worked_minutes || 0))}.`,
-        category: "goalReached",
-        date: todayIso,
-        important: true,
-      });
+    if (notificationsSettings.incompleteEntry && todayIso) {
+      const incompleteEntry = entries
+        .filter((entry) => entry.work_date && entry.work_date < todayIso && isIncompleteWorkRecord(entry))
+        .sort((left, right) => String(right.work_date).localeCompare(String(left.work_date)))[0];
+      if (incompleteEntry) {
+        notifications.push({
+          id: `incomplete-entry:${incompleteEntry.work_date}`,
+          type: "warning",
+          title: "Journée incomplète",
+          message: `Les horaires de ${getDayLabel(incompleteEntry.work_date)} sont incomplets ou incohérents.`,
+          category: "incompleteEntry",
+          date: incompleteEntry.work_date,
+          important: true,
+        });
+      }
     }
 
-    if (notificationsSettings.weeklySummary && todayIso) {
+    let weekTargetMinutes = 0;
+    let elapsedWeekTargetMinutes = 0;
+    let weekWorkedMinutes = 0;
+    if (todayIso) {
       const weekday = getWeekdayIndex(todayIso);
-      if (weekday === 5) {
-        const todayDate = parseIsoDate(todayIso);
-        if (todayDate) {
-          const weekStart = new Date(todayDate);
-          weekStart.setDate(todayDate.getDate() - ((todayDate.getDay() + 6) % 7));
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekStart.getDate() + 6);
-          const weekEntries = entries.filter((entry) => {
-            return entry.work_date >= formatIsoDate(weekStart) && entry.work_date <= formatIsoDate(weekEnd);
-          });
-          const weekWorkedMinutes = weekEntries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
-          const weekWorkedDays = weekEntries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
-          const weekTargetMinutes = weekWorkedDays * dailyGoal;
-          const remainingMinutes = Math.max(0, weekTargetMinutes - weekWorkedMinutes);
+      const todayDate = parseIsoDate(todayIso);
+      if (weekday !== null && todayDate) {
+        const weekStart = getWeekStart(todayDate);
+        const weekFriday = new Date(weekStart);
+        weekFriday.setDate(weekStart.getDate() + 4);
+        const periodStart = parseIsoDate(payPeriodStartDate);
+        const periodEnd = parseIsoDate(payPeriodEndDate);
+        for (let cursor = new Date(weekStart); cursor <= weekFriday; cursor.setDate(cursor.getDate() + 1)) {
+          const isoDate = formatIsoDate(cursor);
+          if ((periodStart && cursor < periodStart) || (periodEnd && cursor > periodEnd)) {
+            continue;
+          }
+          const entry = entriesByDate.get(isoDate);
+          if (!entry || isWorkedDayRecord(entry)) {
+            weekTargetMinutes += dailyGoal;
+            if (cursor <= todayDate) {
+              elapsedWeekTargetMinutes += dailyGoal;
+            }
+          }
+        }
+        weekWorkedMinutes = entries
+          .filter((entry) => entry.work_date >= formatIsoDate(weekStart) && entry.work_date <= formatIsoDate(weekFriday))
+          .reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
+
+        if (notificationsSettings.weeklyRisk && weekday === 5 && weekTargetMinutes > weekWorkedMinutes) {
+          const remainingMinutes = weekTargetMinutes - weekWorkedMinutes;
           notifications.push({
-            id: `weekly-summary:${todayIso}`,
-            type: remainingMinutes > 0 ? "info" : "success",
-            title: "Bilan hebdomadaire",
-            message:
-              remainingMinutes > 0
-                ? `Il reste ${formatMinutesAsHHMM(remainingMinutes)} a couvrir cette semaine.`
-                : `Semaine a jour avec ${formatMinutesAsHHMM(weekWorkedMinutes)} enregistrees.`,
-            category: "weeklySummary",
+            id: `weekly-risk:${todayIso}`,
+            type: "warning",
+            title: "Objectif hebdomadaire en risque",
+            message: `Il manque ${formatMinutesAsHHMM(remainingMinutes)} pour atteindre l'objectif de la semaine.`,
+            category: "weeklyRisk",
             date: todayIso,
-            important: false,
+            important: true,
+          });
+        }
+
+        const weeklyOvertimeMinutes = Math.max(0, weekWorkedMinutes - elapsedWeekTargetMinutes);
+        const threshold = Math.max(15, Number(notificationsSettings.weeklyOvertimeThreshold || 0));
+        if (notificationsSettings.weeklyOvertime && weeklyOvertimeMinutes >= threshold) {
+          notifications.push({
+            id: `weekly-overtime:${formatIsoDate(weekStart)}`,
+            type: "info",
+            title: "Seuil d'heures supplémentaires atteint",
+            message: `${formatMinutesAsHHMM(weeklyOvertimeMinutes)} d'heures supplémentaires cette semaine.`,
+            category: "weeklyOvertime",
+            date: todayIso,
+            important: true,
           });
         }
       }
     }
 
-    drafts.forEach((draft) => {
+    const incompleteDraftDates = new Set();
+    if (notificationsSettings.incompleteEntry) {
+      drafts.filter(isIncompleteWorkRecord).forEach((draft) => {
+        const draftDate = String(draft.workDate || "").trim();
+        incompleteDraftDates.add(draftDate);
+        notifications.push({
+          id: `incomplete-draft:${draftDate}`,
+          type: "warning",
+          title: "Journée incomplète",
+          message: `Le brouillon de ${getDayLabel(draftDate)} contient des horaires incomplets ou incohérents.`,
+          category: "incompleteEntry",
+          date: draftDate,
+          important: draftDate === todayIso,
+        });
+      });
+    }
+
+    if (notificationsSettings.unsavedDraft) drafts.forEach((draft) => {
       const draftDate = String(draft.workDate || "").trim();
+      if (incompleteDraftDates.has(draftDate)) {
+        return;
+      }
       notifications.push({
         id: `draft:${draftDate}`,
         type: "info",
@@ -191,6 +284,41 @@
         important: draftDate === todayIso,
       });
     });
+
+    if (notificationsSettings.periodEnding && todayIso && payPeriodStartDate && payPeriodEndDate) {
+      const startDate = parseIsoDate(payPeriodStartDate);
+      const endDate = parseIsoDate(payPeriodEndDate);
+      const todayDate = parseIsoDate(todayIso);
+      if (startDate && endDate && todayDate) {
+        const daysUntilEnd = Math.floor((endDate - todayDate) / 86400000);
+        if (daysUntilEnd >= 0 && daysUntilEnd <= 2) {
+          let pendingCount = 0;
+          const latestPastDay = new Date(todayDate);
+          latestPastDay.setDate(latestPastDay.getDate() - 1);
+          for (let cursor = new Date(startDate); cursor <= latestPastDay && cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+            const isoDate = formatIsoDate(cursor);
+            if (!isPastExpectedWorkday(isoDate, todayIso)) {
+              continue;
+            }
+            const entry = entriesByDate.get(isoDate);
+            if (!entry || isIncompleteWorkRecord(entry)) {
+              pendingCount += 1;
+            }
+          }
+          if (pendingCount > 0) {
+            notifications.push({
+              id: `period-ending:${payPeriodEndDate}`,
+              type: "warning",
+              title: "Fin de période proche",
+              message: `${pendingCount} journée${pendingCount > 1 ? "s" : ""} à compléter avant le ${getDayLabel(payPeriodEndDate)}.`,
+              category: "periodEnding",
+              date: todayIso,
+              important: true,
+            });
+          }
+        }
+      }
+    }
 
     return notifications.sort((left, right) => String(right.date || "").localeCompare(String(left.date || "")));
   }
@@ -316,11 +444,13 @@
     toastHistoryStore.set(state.toastedIds);
   }
 
-  function markAsRead(notificationId) {
-    if (!notificationId || isRead(notificationId)) {
+  function setReadState(notificationId, read) {
+    if (!notificationId || isRead(notificationId) === read) {
       return;
     }
-    state.readIds = [...state.readIds, notificationId];
+    state.readIds = read
+      ? [...state.readIds, notificationId]
+      : state.readIds.filter((readId) => readId !== notificationId);
     persistReadIds();
     render();
   }
@@ -351,9 +481,9 @@
           <strong>${notification.title}</strong>
           <p>${notification.message}</p>
         </div>
-        <button type="button" class="button-link button-neutral notification-item-action" data-notification-id="${notification.id}">
-          ${read ? "Lu" : "Marquer lu"}
-        </button>
+        <label class="notification-item-check" title="Cocher cette notification comme traitée">
+          <input type="checkbox" data-notification-id="${notification.id}" ${read ? "checked" : ""} aria-label="Notification traitée" />
+        </label>
       `;
       list.appendChild(item);
     });
@@ -381,12 +511,12 @@
     maybeToastImportantNotifications();
   }
 
-  list.addEventListener("click", (event) => {
-    const button = event.target instanceof HTMLElement ? event.target.closest("[data-notification-id]") : null;
-    if (!(button instanceof HTMLButtonElement)) {
+  list.addEventListener("change", (event) => {
+    const checkbox = event.target instanceof HTMLInputElement ? event.target.closest("[data-notification-id]") : null;
+    if (!(checkbox instanceof HTMLInputElement) || checkbox.type !== "checkbox") {
       return;
     }
-    markAsRead(button.dataset.notificationId || "");
+    setReadState(checkbox.dataset.notificationId || "", checkbox.checked);
   });
 
   readAllButton.addEventListener("click", () => {

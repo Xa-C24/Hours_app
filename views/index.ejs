@@ -17,7 +17,7 @@
       (() => {
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
-        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "robot"];
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
         const allowedStyles = ["premium", "robot", "retro"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
@@ -35,10 +35,81 @@
           window.matchMedia("(display-mode: standalone)").matches ||
           window.navigator.standalone === true;
         document.documentElement.setAttribute("data-display-mode", isStandalone ? "standalone" : "browser");
+
+        const entryScrollRestoreKey = "hours_entry_scroll_restore";
+        const entryScrollRestoreMaxAgeMs = 30000;
+        const payPeriodScrollRestoreTarget = "pay-period";
+        const entryFormScrollRestoreTarget = "entry-form";
+        const payPeriodScrollRestoreSelector = "[data-pay-period-card]";
+        const payPeriodScrollRestoreOffset = 20;
+        const resolveScrollRestoreSelector = (target) =>
+          target === payPeriodScrollRestoreTarget ? payPeriodScrollRestoreSelector : "[data-entry-card]";
+        const saveScrollRestoreState = ({ target = entryFormScrollRestoreTarget, scrollY = window.scrollY, savedAt = Date.now() } = {}) => {
+          sessionStorage.setItem(
+            entryScrollRestoreKey,
+            JSON.stringify({
+              target,
+              scrollY,
+              savedAt,
+            })
+          );
+        };
+        window.hoursScrollRestore = {
+          key: entryScrollRestoreKey,
+          maxAgeMs: entryScrollRestoreMaxAgeMs,
+          targets: {
+            entryForm: entryFormScrollRestoreTarget,
+            payPeriod: payPeriodScrollRestoreTarget,
+          },
+          selectors: {
+            entryForm: "[data-entry-card]",
+            payPeriod: payPeriodScrollRestoreSelector,
+          },
+          payPeriodOffset: payPeriodScrollRestoreOffset,
+          save: (payload) => {
+            saveScrollRestoreState(payload);
+          },
+        };
+        try {
+          const rawEntryScrollRestore = sessionStorage.getItem(entryScrollRestoreKey);
+          sessionStorage.removeItem(entryScrollRestoreKey);
+          if (rawEntryScrollRestore) {
+            const entryScrollRestore = JSON.parse(rawEntryScrollRestore);
+            const savedAt = Number(entryScrollRestore && entryScrollRestore.savedAt);
+            const scrollY = Number(entryScrollRestore && entryScrollRestore.scrollY);
+            const target =
+              entryScrollRestore && typeof entryScrollRestore.target === "string"
+                ? entryScrollRestore.target
+                : entryFormScrollRestoreTarget;
+            if (
+              Number.isFinite(savedAt) &&
+              Number.isFinite(scrollY) &&
+              scrollY >= 0 &&
+              Date.now() - savedAt <= entryScrollRestoreMaxAgeMs
+            ) {
+              const previousScrollRestoration = history.scrollRestoration;
+              history.scrollRestoration = "manual";
+              window.__hoursEntryScrollRestore = {
+                scrollY,
+                target,
+                targetSelector: resolveScrollRestoreSelector(target),
+                previousScrollRestoration,
+              };
+              document.documentElement.dataset.restoringScroll = "true";
+              document.documentElement.style.scrollBehavior = "auto";
+            }
+          }
+        } catch (error) {
+          // Ignore unavailable storage and unsupported history settings.
+        }
       })();
     </script>
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/style.css?v=robot-theme-palettes-v6" />
     <style>
+      html[data-restoring-scroll="true"] body {
+        visibility: hidden;
+      }
+
       .client-switch-form {
         display: flex;
         align-items: end;
@@ -498,7 +569,9 @@
 	      const _userSettings = userSettings && typeof userSettings === "object" ? userSettings : {};
 	      const _settingsDailyGoalMinutes = Number(_userSettings.dailyGoal || 0);
 	      const _settingsDailyGoalHHMM = `${String(Math.floor(Math.max(0, _settingsDailyGoalMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _settingsDailyGoalMinutes) % 60).padStart(2, "0")}`;
-	      const _settingsWeeklyGoalHHMM = `${String(Math.floor((_settingsDailyGoalMinutes * 5) / 60)).padStart(2, "0")}:${String((_settingsDailyGoalMinutes * 5) % 60).padStart(2, "0")}`;
+	      const _settingsWeeklyGoalMinutes = Math.max(0, Number(_userSettings.weeklyGoal || (_settingsDailyGoalMinutes * 5)));
+	      const _settingsWeeklyGoalHHMM = `${String(Math.floor(_settingsWeeklyGoalMinutes / 60)).padStart(2, "0")}:${String(_settingsWeeklyGoalMinutes % 60).padStart(2, "0")}`;
+	      const _settingsWeeklyGoalHours = String(Math.round((_settingsWeeklyGoalMinutes / 60) * 100) / 100);
 	      const _settingsMonthlyGoalHours = Math.round((_settingsDailyGoalMinutes * 20) / 60);
 	      const _mobileNavItems = [
 	        { key: "dashboard", label: "Dashboard", navLabel: "Accueil", icon: "◈" },
@@ -508,16 +581,17 @@
 	        { key: "settings", label: "Réglages", navLabel: "Réglages", icon: "⚙" },
 	      ];
       const _settingsSections = [
-        { key: "profile", icon: "👤", label: "Profil", description: "Informations personnelles et identité visuelle." },
-        { key: "work", icon: "💼", label: "Travail", description: "Cadre de travail, horaires et rythme par défaut." },
-        { key: "goals", icon: "🎯", label: "Objectifs", description: "Repères journaliers, hebdomadaires et annuels." },
-        { key: "appearance", icon: "🎨", label: "Apparence", description: "Thème, accent et confort visuel." },
-        { key: "notifications", icon: "🔔", label: "Notifications", description: "Rappels et hooks de communication." },
-        { key: "export", icon: "📄", label: "Export", description: "Formats, branding et conventions de sortie." },
-        { key: "security", icon: "🔐", label: "Sécurité", description: "Accès, sessions et protection du compte." },
-        { key: "help", icon: "📚", label: "Centre d'aide", description: "Base de connaissances, FAQ et support." },
-        { key: "about", icon: "❤️", label: "À propos", description: "Version, licence, roadmap et changelog." },
-	      ];
+        { key: "profile", icon: "👤", label: "Profil", description: "Votre identité dans l'application." },
+        { key: "work", icon: "💼", label: "Travail", description: "Horaires et semaine habituels." },
+        { key: "goals", icon: "🎯", label: "Objectifs", description: "Repère journalier actif." },
+        { key: "appearance", icon: "🎨", label: "Apparence", description: "Thème et confort visuel." },
+        { key: "notifications", icon: "🔔", label: "Notifications", description: "Rappels réellement disponibles." },
+        { key: "account", icon: "◌", label: "Compte & données", description: "Session et préférences locales." },
+      ];
+      const _settingsSecondarySections = [
+        { key: "help", icon: "?", label: "Aide" },
+        { key: "about", icon: "i", label: "Version 0.9" },
+      ];
 	      const _settingsGoalCards = [
 	        { label: "Journalier", value: _settingsDailyGoalHHMM.replace(":", " h "), meta: "Repère piloté par la préférence active" },
 	        { label: "Hebdomadaire", value: _settingsWeeklyGoalHHMM.replace(":", " h "), meta: "Projection sur cinq journées travaillées" },
@@ -551,7 +625,9 @@
           <h1>Suivi mensuel des heures de travail et de ta mère</h1>
         </div>
         <div class="header-actions">
-          <form action="/" method="get" class="client-switch-form">
+          <section class="header-control-group header-client-group" aria-label="Client actif">
+            <p class="header-control-caption">Client actif</p>
+            <form action="/" method="get" class="client-switch-form">
             <input type="hidden" name="month" value="<%= selectedMonth %>" />
             <div class="theme-picker">
               <label for="clientSelectApp">Client</label>
@@ -602,7 +678,10 @@
               aria-label="Ajouter un client"
               title="Ajouter un client"
             >+</button>
-          </form>
+            </form>
+          </section>
+          <section class="header-control-group header-appearance-group" aria-label="Personnalisation visuelle">
+            <p class="header-control-caption">Apparence</p>
 	          <div class="theme-picker">
 	            <label for="themeSelectApp">Theme</label>
 	            <select id="themeSelectApp" data-theme-selector data-setting-key="theme">
@@ -613,6 +692,9 @@
               <option value="orange-sunset">Sable cuivre</option>
               <option value="forest-green">Sauge profonde</option>
               <option value="light-green">Celadon</option>
+              <option value="bordeaux-night">Bordeaux nuit</option>
+              <option value="lavender-mist">Lavande brume</option>
+              <option value="obsidian-gold">Obsidienne or</option>
             </select>
           </div>
 	          <div class="theme-picker">
@@ -622,7 +704,10 @@
 	              <option value="robot">Robot</option>
 	              <option value="retro">SEGA</option>
 	            </select>
-	          </div>
+            </div>
+          </section>
+          <section class="header-control-group header-account-group" aria-label="Notifications et compte">
+            <p class="header-control-caption">Mon espace</p>
             <details
               class="notifications-menu"
               data-notifications-menu
@@ -637,7 +722,7 @@
               <div class="notifications-panel app-card-compact" data-notifications-panel>
                 <div class="notifications-panel-head">
                   <strong>Notifications</strong>
-                  <button type="button" class="button-link button-neutral" data-notifications-read-all hidden>Tout marquer comme lu</button>
+                  <button type="button" class="button-link button-neutral" data-notifications-read-all hidden>Tout cocher</button>
                 </div>
                 <div class="notifications-list" data-notifications-list></div>
                 <p class="notifications-empty" data-notifications-empty hidden>Aucune notification pour le moment.</p>
@@ -653,29 +738,42 @@
 	              <span class="user-menu-caret" aria-hidden="true">▾</span>
 	            </summary>
 	            <div class="user-menu-panel app-card-compact">
-	              <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="profile" data-ripple>
-	                ⚙️ Paramètres
-	              </button>
-	              <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="help" data-ripple>
-	                📚 Centre d'aide
-	              </button>
-	              <button type="button" class="button-link button-neutral user-menu-link" data-open-command-palette data-ripple>
-	                ⌘K Command Palette
-	              </button>
+                <div class="user-menu-profile">
+                  <span class="user-menu-avatar" aria-hidden="true"><%= authUser ? String(authUser).charAt(0).toUpperCase() : "C" %></span>
+                  <span class="user-menu-profile-copy">
+                    <span>Compte connect&eacute;</span>
+                    <strong><%= authUser || "Compte" %></strong>
+                  </span>
+                </div>
+                <div class="user-menu-actions">
+	                <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="profile" data-ripple>
+                    <span class="user-menu-action-icon" aria-hidden="true">⚙</span>
+                    <span><strong>Param&egrave;tres</strong><small>Profil et pr&eacute;f&eacute;rences</small></span>
+	                </button>
+	                <button type="button" class="button-link button-neutral user-menu-link" data-open-settings-workspace data-settings-target="help" data-ripple>
+                    <span class="user-menu-action-icon" aria-hidden="true">?</span>
+                    <span><strong>Centre d'aide</strong><small>Guides et assistance</small></span>
+	                </button>
+	                <button type="button" class="button-link button-neutral user-menu-link" data-open-command-palette data-ripple>
+                    <span class="user-menu-action-icon" aria-hidden="true">⌘</span>
+                    <span><strong>Actions rapides</strong><small>Rechercher une commande</small></span>
+	                </button>
+                </div>
 	              <form action="/logout" method="post" class="logout-form user-menu-logout">
-	                <button type="submit" class="secondary" data-ripple>Déconnexion</button>
+	                <button type="submit" class="secondary" data-ripple><span aria-hidden="true">↗</span> D&eacute;connexion</button>
 	              </form>
 	            </div>
 	          </details>
+          </section>
 	        </div>
 	      </header>
 
       <% if (_clientError) { %>
-      <p class="alert"><%= _clientError %></p>
+      <p class="alert" data-main-workspace><%= _clientError %></p>
       <% } %>
 
 	      <% if (_errorMessage && !_showReplaceConfirmation) { %>
-	      <p class="alert"><%= _errorMessage %></p>
+      <p class="alert" data-main-workspace><%= _errorMessage %></p>
 	      <% } %>
 
 	      <section class="settings-workspace card premium-surface app-surface app-card" data-settings-workspace hidden>
@@ -703,8 +801,16 @@
 	              </button>
 	              <% }); %>
 	            </nav>
+	            <nav class="settings-nav settings-nav-secondary" aria-label="Informations paramètres">
+	              <% _settingsSecondarySections.forEach((section) => { %>
+	              <button type="button" class="settings-nav-item settings-nav-item-secondary" data-settings-nav-item data-settings-target="<%= section.key %>" aria-pressed="false">
+	                <span class="settings-nav-icon" aria-hidden="true"><%= section.icon %></span>
+	                <span class="settings-nav-copy"><strong><%= section.label %></strong></span>
+	              </button>
+	              <% }); %>
+	            </nav>
 	          </aside>
-		          <div class="settings-content">
+	          <div class="settings-content">
 		            <header class="settings-content-head">
 		              <div>
 		                <span class="section-eyebrow">Personal Workspace</span>
@@ -716,7 +822,61 @@
 	              </div>
 	            </header>
 
-		            <section class="settings-panel" data-settings-section="profile">
+	            <section class="settings-panel settings-v2-panel is-active" data-settings-section="profile" data-settings-form="profile">
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Profil</span><h3>Votre identité</h3></div></div>
+	              <div class="settings-profile-hero app-card-compact">
+	                <div class="settings-avatar-stack"><div class="settings-avatar-art" aria-hidden="true" data-settings-avatar-art><%= authUser ? authUser.slice(0, 1).toUpperCase() : "H" %></div><input id="settingsProfilePhotoUploadV2" type="file" accept="image/*" hidden data-settings-upload="profilePhoto" /></div>
+	                <div class="settings-hero-copy"><span class="settings-profile-kicker">Espace personnel</span><strong data-settings-profile-name><%= _userSettings.profileName || authUser || "Votre espace" %></strong><span data-settings-profile-summary>Les informations visibles dans votre espace personnel.</span></div>
+	                <div class="settings-profile-actions"><small class="settings-photo-status" data-settings-photo-status><span aria-hidden="true">●</span><%= _userSettings.profilePhoto ? "Photo enregistrée" : "Aucune photo importée" %></small><button type="button" class="button-link button-neutral" data-settings-photo-trigger data-ripple><span aria-hidden="true">↗</span> Changer la photo</button></div>
+	              </div>
+	              <div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsProfileNameV2">Nom</label><input class="form-input" id="settingsProfileNameV2" value="<%= _userSettings.profileName || authUser || '' %>" data-setting-key="profileName" /></div><div class="form-field"><label class="form-label" for="settingsProfileEmailV2">Adresse mail</label><input class="form-input" id="settingsProfileEmailV2" type="email" value="<%= _userSettings.profileEmail || _userEmail %>" data-setting-key="profileEmail" /></div><div class="form-field"><label class="form-label" for="settingsProfileCompanyV2">Entreprise</label><input class="form-input" id="settingsProfileCompanyV2" value="<%= _userSettings.companyName || _userCompanyName || (selectedClient ? selectedClient.name : '') %>" data-setting-key="companyName" /></div></div>
+	              <div class="settings-panel-actions"><button type="button" class="primary btn-save-primary" data-settings-save-section="profile" data-ripple>Enregistrer</button></div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="work" data-settings-form="work" hidden>
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Travail</span><h3>Votre rythme habituel</h3></div></div>
+	              <div class="settings-subsection"><strong>Horaires habituels</strong><div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsDefaultStartTimeV2">Arrivée</label><input class="form-input" id="settingsDefaultStartTimeV2" type="time" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div><div class="form-field"><label class="form-label" for="settingsDefaultEndTimeV2">Départ</label><input class="form-input" id="settingsDefaultEndTimeV2" type="time" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" /></div><div class="form-field"><label class="form-label" for="settingsDefaultBreakV2">Pause (minutes)</label><input class="form-input" id="settingsDefaultBreakV2" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div></div></div>
+	              <div class="settings-panel-actions"><button type="button" class="primary btn-save-primary" data-settings-save-section="work" data-ripple>Enregistrer</button></div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="goals" hidden>
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Objectifs</span><h3>Votre repère de travail</h3></div></div>
+	              <div class="settings-goal-hero"><span>Objectif journalier</span><strong><%= _settingsDailyGoalHHMM %></strong><small>Utilisé pour les indicateurs et les rappels de l'application.</small></div>
+	              <div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsDailyGoalV2">Durée cible quotidienne</label><input class="form-input" id="settingsDailyGoalV2" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div><div class="form-field"><label class="form-label" for="settingsWeeklyGoalV2">Durée hebdomadaire (heures)</label><input class="form-input" id="settingsWeeklyGoalV2" type="number" min="1" max="168" step="0.25" value="<%= _settingsWeeklyGoalHours %>" data-setting-key="weeklyGoal" data-setting-unit="hours" /></div></div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="appearance" hidden>
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Apparence</span><h3>Choisissez votre ambiance</h3></div></div>
+	              <div class="settings-subsection"><strong>Thème</strong><div class="settings-choice-group"><label class="settings-choice"><input type="radio" name="themeV2" value="light" <%= _userSettings.theme === 'light' ? 'checked' : '' %> data-setting-key="theme" /><span>Clair</span></label><label class="settings-choice"><input type="radio" name="themeV2" value="dark" <%= _userSettings.theme === 'dark' ? 'checked' : '' %> data-setting-key="theme" /><span>Sombre</span></label></div></div>
+	              <div class="settings-subsection"><strong>Accent</strong><div class="settings-choice-group"><% [{ key: 'amber', label: 'Ambre' }, { key: 'steel', label: 'Acier' }, { key: 'sage', label: 'Sauge' }, { key: 'coral', label: 'Corail' }].forEach((accent) => { %><label class="settings-choice"><input type="radio" name="accentV2" value="<%= accent.key %>" <%= _userSettings.accentColor === accent.key ? 'checked' : '' %> data-setting-key="accentColor" /><span><%= accent.label %></span></label><% }); %></div></div>
+	              <div class="settings-subsection"><strong>Animations</strong><div class="settings-choice-group"><% [{ key: 'subtle', label: 'Activées' }, { key: 'reduced', label: 'Réduites' }, { key: 'off', label: 'Désactivées' }].forEach((animation) => { %><label class="settings-choice"><input type="radio" name="animationsV2" value="<%= animation.key %>" <%= _userSettings.animations === animation.key ? 'checked' : '' %> data-setting-key="animations" /><span><%= animation.label %></span></label><% }); %></div></div>
+	              <div class="settings-subsection"><strong>Densité</strong><div class="settings-choice-group"><label class="settings-choice"><input type="radio" name="compactV2" value="false" <%= !_userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Confortable</span></label><label class="settings-choice"><input type="radio" name="compactV2" value="true" <%= _userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Compact</span></label></div></div>
+	              <div class="settings-subsection"><strong>Taille de texte</strong><div class="settings-choice-group"><% [{ key: 'comfort', label: 'Confort' }, { key: 'compact', label: 'Compacte' }, { key: 'large', label: 'Large' }].forEach((fontSize) => { %><label class="settings-choice"><input type="radio" name="fontSizeV2" value="<%= fontSize.key %>" <%= _userSettings.fontSize === fontSize.key ? 'checked' : '' %> data-setting-key="fontSize" /><span><%= fontSize.label %></span></label><% }); %></div></div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="notifications" hidden>
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Notifications</span><h3>Les rappels utiles</h3></div></div>
+	              <div class="settings-toggle-grid">
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Journée oubliée</strong><small>Prévenir lorsqu'un jour ouvré passé n'a aucune saisie.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.incompleteEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="incompleteEntry" /><span><strong>Journée incomplète</strong><small>Signaler des horaires partiels ou incohérents.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyRisk ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyRisk" /><span><strong>Objectif hebdomadaire en risque</strong><small>Prévenir le vendredi si l'objectif de la semaine n'est pas atteint.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyOvertime ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyOvertime" /><span><strong>Heures supplémentaires</strong><small>Prévenir quand le cumul hebdomadaire dépasse votre seuil.</small></span></label>
+	                <label class="settings-toggle-card settings-notification-threshold"><span><strong>Seuil d'heures supplémentaires (minutes)</strong><small>Saisissez votre choix en minutes.</small></span><input class="form-input" type="number" min="15" max="1440" step="15" value="<%= Number((_userSettings.notifications && _userSettings.notifications.weeklyOvertimeThreshold) || 120) %>" data-setting-key="notifications" data-setting-subkey="weeklyOvertimeThreshold" aria-label="Seuil d'heures supplémentaires en minutes" /></label>
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.periodEnding ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="periodEnding" /><span><strong>Fin de période</strong><small>Rappeler les journées à compléter durant les deux derniers jours.</small></span></label>
+	                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.unsavedDraft ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="unsavedDraft" /><span><strong>Brouillon non enregistré</strong><small>Prévenir lorsqu'une saisie locale n'a pas été enregistrée.</small></span></label>
+	              </div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="account" hidden>
+	              <div class="settings-panel-head"><div><span class="section-eyebrow">Compte & données</span><h3>Votre session locale</h3></div></div>
+	              <div class="settings-info-list"><article class="settings-info-item"><strong>Compte actif</strong><span><%= _userSettings.profileName || authUser || "Utilisateur" %></span></article><article class="settings-info-item"><strong>Session</strong><span>Session locale active sur ce navigateur.</span></article></div>
+	              <div class="settings-note"><strong>Préférences</strong><span>Réinitialisez uniquement les réglages enregistrés dans votre espace.</span></div><div class="settings-panel-actions"><button type="button" class="button-link button-neutral" data-settings-reset data-ripple>Réinitialiser les préférences</button></div>
+	            </section>
+
+	            <section class="settings-panel settings-v2-panel" data-settings-section="help" hidden><div class="settings-panel-head"><div><span class="section-eyebrow">Aide</span><h3>Besoin d'un repère ?</h3></div></div><p class="settings-panel-copy">Utilisez la Command Palette pour aller rapidement à un réglage, ou relancez l'onboarding pour revoir la prise en main.</p><button type="button" class="button-link button-neutral" data-onboarding-relaunch data-ripple>Relancer l'onboarding</button></section>
+	            <section class="settings-panel settings-v2-panel" data-settings-section="about" hidden><div class="settings-panel-head"><div><span class="section-eyebrow">Version</span><h3>App_Hours 0.9</h3></div></div><p class="settings-panel-copy">Usage interne. Les nouveautés sont livrées avec l'application.</p></section>
+
+	            <section class="settings-panel" data-settings-section="profile">
 		              <div class="settings-panel-head">
 		                <div>
 		                  <span class="section-eyebrow">👤 Profil</span>
@@ -850,8 +1010,11 @@
 		                    <option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option>
 		                    <option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option>
 		                    <option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option>
-		                    <option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option>
-		                    <option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option>
+	                    <option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option>
+	                    <option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option>
+	                    <option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option>
+	                    <option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option>
+	                    <option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option>
 		                  </select>
 		                </div>
 		                <div class="form-field">
@@ -897,10 +1060,13 @@
 	                </div>
 	              </div>
 		              <div class="settings-toggle-grid">
-		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
-		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.goalReached ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="goalReached" /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
-		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklySummary ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklySummary" /><span><strong>Fin de semaine</strong><small>Préparer un bilan le vendredi.</small></span></label>
-		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.productNews ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="productNews" /><span><strong>Nouveautés</strong><small>Réserver un canal pour les évolutions produit.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Journée oubliée</strong><small>Prévenir lorsqu'un jour ouvré passé n'a aucune saisie.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.incompleteEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="incompleteEntry" /><span><strong>Journée incomplète</strong><small>Signaler des horaires partiels ou incohérents.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyRisk ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyRisk" /><span><strong>Objectif hebdomadaire en risque</strong><small>Prévenir le vendredi si l'objectif de la semaine n'est pas atteint.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyOvertime ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyOvertime" /><span><strong>Heures supplémentaires</strong><small>Prévenir quand le cumul hebdomadaire dépasse votre seuil.</small></span></label>
+		                <label class="settings-toggle-card settings-notification-threshold"><span><strong>Seuil d'heures supplémentaires (minutes)</strong><small>Saisissez votre choix en minutes</small></span><input class="form-input" type="number" min="15" max="1440" step="15" value="<%= Number((_userSettings.notifications && _userSettings.notifications.weeklyOvertimeThreshold) || 120) %>" data-setting-key="notifications" data-setting-subkey="weeklyOvertimeThreshold" aria-label="Seuil d'heures supplémentaires en minutes" /></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.periodEnding ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="periodEnding" /><span><strong>Fin de période</strong><small>Rappeler les journées à compléter durant les deux derniers jours.</small></span></label>
+		                <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.unsavedDraft ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="unsavedDraft" /><span><strong>Brouillon non enregistré</strong><small>Prévenir lorsqu'une saisie locale n'a pas été enregistrée.</small></span></label>
 		              </div>
 	            </section>
 
@@ -1012,13 +1178,14 @@
 	        </div>
 	      </section>
 
+	      <% let _calendarWeekModalData = []; %>
 	      <% if (selectedClient) { %>
       <%
         const _todayDate = defaultEntryFormData && defaultEntryFormData.date ? defaultEntryFormData.date : formData.date;
         const _todayEntry = entries.find((entry) => entry.work_date === _todayDate) || null;
         const _todayWorkedMinutes = _todayEntry ? Number(_todayEntry.worked_minutes || 0) : 0;
         const _todayWorkedHHMM = _todayEntry ? _todayEntry.worked_hhmm : "00:00";
-        const _todayTargetMinutes = _todayEntry ? Number(_todayEntry.target_minutes || 0) : 7 * 60;
+	        const _todayTargetMinutes = _todayEntry ? Number(_todayEntry.target_minutes || 0) : _settingsDailyGoalMinutes;
         const _todayTargetHHMM = _todayTargetMinutes > 0 ? `${String(Math.floor(_todayTargetMinutes / 60)).padStart(2, "0")}:${String(_todayTargetMinutes % 60).padStart(2, "0")}` : "00:00";
         const _todayProgress = _todayTargetMinutes > 0 ? Math.max(0, Math.min(100, Math.round((_todayWorkedMinutes / _todayTargetMinutes) * 100))) : 0;
         const _todayMeta = _todayEntry
@@ -1051,7 +1218,7 @@
         const _weekEntries = _todayWeekStart ? entries.filter((entry) => entry.week_start === _todayWeekStart) : [];
         const _weekTotalMinutes = _weekEntries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
         const _weekTargetMinutes = _weekEntries.reduce((sum, entry) => sum + Number(entry.target_minutes || 0), 0);
-        const _weekOvertimeMinutes = Math.max(0, _weekTotalMinutes - _weekTargetMinutes);
+	        const _weekOvertimeMinutes = _weekEntries.reduce((sum, entry) => sum + Number(entry.overtime_minutes || 0), 0);
         const _weekBalanceMinutes = _weekTotalMinutes - _weekTargetMinutes;
         const _weekWorkedDays = _weekEntries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
         const _weekTotalHHMM = `${String(Math.floor(Math.max(0, _weekTotalMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _weekTotalMinutes) % 60).padStart(2, "0")}`;
@@ -1069,6 +1236,8 @@
         const _monthAverageHHMM = `${String(Math.floor(Math.max(0, _monthAverageMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthAverageMinutes) % 60).padStart(2, "0")}`;
         const _monthTargetMinutes = entries.reduce((sum, entry) => sum + Number(entry.target_minutes || 0), 0);
         const _monthTargetHHMM = `${String(Math.floor(Math.max(0, _monthTargetMinutes) / 60)).padStart(2, "0")}:${String(Math.max(0, _monthTargetMinutes) % 60).padStart(2, "0")}`;
+	        const _monthOvertimeMinutes = entries.reduce((sum, entry) => sum + Number(entry.overtime_minutes || 0), 0);
+        const _monthOvertimeHHMM = `${String(Math.floor(_monthOvertimeMinutes / 60)).padStart(2, "0")}:${String(_monthOvertimeMinutes % 60).padStart(2, "0")}`;
         const _monthRemainingMinutes = Math.max(0, _monthTargetMinutes - totalMinutes);
         const _monthRemainingHHMM = `${String(Math.floor(_monthRemainingMinutes / 60)).padStart(2, "0")}:${String(_monthRemainingMinutes % 60).padStart(2, "0")}`;
         const _monthProgress = _monthTargetMinutes > 0 ? Math.max(0, Math.min(100, Math.round((totalMinutes / _monthTargetMinutes) * 100))) : 0;
@@ -1135,16 +1304,26 @@
           }
         }
 	      %>
-      <div class="mobile-premium-shell" data-mobile-shell>
+      <div class="mobile-premium-shell" data-mobile-shell data-main-workspace>
 	        <div class="mobile-premium-track" data-mobile-track>
 	          <div class="mobile-premium-view" data-mobile-view="dashboard" data-mobile-title="Dashboard">
 	      <section class="premium-summary-grid premium-dashboard-grid cockpit-dashboard" aria-label="Dashboard">
 	        <article class="cockpit-hero card premium-surface app-surface app-card">
 	          <div class="cockpit-hero-copy">
-	            <span class="cockpit-kicker">Cockpit</span>
-	            <h2 data-settings-cockpit-profile-name><%= _heroMessage %></h2>
-	            <p class="cockpit-hero-date"><%= _todayDateLabel || "Aujourd'hui" %></p>
-	            <p class="cockpit-hero-subtitle" data-settings-cockpit-company><%= (_userSettings.companyName || selectedClient.company_name) %> · <%= _payPeriodLabel || selectedMonth %></p>
+	            <div class="cockpit-welcome-card">
+	              <span class="cockpit-kicker">Cockpit</span>
+	              <h2 data-settings-cockpit-profile-name><%= _heroMessage %></h2>
+	            </div>
+	            <div class="cockpit-hero-info-grid">
+	              <div class="cockpit-hero-info-card">
+	                <span>Aujourd'hui</span>
+	                <strong class="cockpit-hero-date"><%= _todayDateLabel || "Aujourd'hui" %></strong>
+	              </div>
+	              <div class="cockpit-hero-info-card">
+	                <span>Période active</span>
+	                <strong class="cockpit-hero-subtitle" data-settings-cockpit-company><span><%= (_userSettings.companyName || selectedClient.company_name) %></span><span class="cockpit-hero-period"><%= _payPeriodLabel || selectedMonth %></span></strong>
+	              </div>
+	            </div>
 	            <div class="cockpit-insight-inline">
 			              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
 			              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
@@ -1225,20 +1404,28 @@
 		            </div>
 		            <% }); %>
 		          </div>
-			          <div class="cockpit-week-summary">
-			            <div class="cockpit-stat-pill">
-		              <span>Semaine</span>
+		          <div class="cockpit-week-summary">
+		            <div class="cockpit-stat-pill cockpit-stat-pill-worked">
+		              <span>Temps travaillé</span>
 		              <strong data-settings-cockpit="weekTotal"><%= _weekTotalHHMM %></strong>
+		              <small class="cockpit-stat-detail"><%= _weekWorkedDays %> jour<%= _weekWorkedDays > 1 ? "s" : "" %> renseigné<%= _weekWorkedDays > 1 ? "s" : "" %></small>
 		            </div>
-			            <div class="cockpit-stat-pill">
-			              <span>Écart</span>
-			              <strong data-settings-cockpit="weekBalance"><%= _weekTrendLabel %></strong>
-			            </div>
-			            <div class="cockpit-stat-pill">
-			              <span>Mois</span>
-			              <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
-			            </div>
-				          </div>
+		            <div class="cockpit-stat-pill cockpit-stat-pill-overtime">
+		              <span>Heures supplémentaires</span>
+		              <strong data-settings-cockpit="weekOvertime"><%= _weekOvertimeHHMM %></strong>
+		              <small class="cockpit-stat-detail">Cumulées cette semaine</small>
+		            </div>
+		            <div class="cockpit-stat-pill cockpit-stat-pill-month-overtime">
+		              <span>Heures sup. du mois</span>
+		              <strong data-settings-cockpit="monthOvertime"><%= _monthOvertimeHHMM %></strong>
+		              <small class="cockpit-stat-detail">Cumulées sur le mois</small>
+		            </div>
+		            <div class="cockpit-stat-pill cockpit-stat-pill-period">
+		              <span>Objectif de période</span>
+		              <strong data-settings-cockpit="monthProgress"><%= _monthProgress %>%</strong>
+		              <small class="cockpit-stat-detail" data-settings-cockpit="periodBreakdown"><%= totalHHMM %> h réalisées sur <%= _monthTargetHHMM %> prévues sur la période en cours</small>
+		            </div>
+		          </div>
 			        </article>
 
 			        <section class="card premium-surface mobile-stats-card app-surface app-card" aria-label="Synthèse du mois">
@@ -1315,6 +1502,7 @@
 	              data-default-departure-time="<%= defaultEntryFormData.departureTime %>"
 	              data-default-lunch-break-minutes="<%= defaultEntryFormData.lunchBreakMinutes %>"
 	              data-default-comment-text="<%= defaultEntryFormData.commentText || "" %>"
+	              data-target-minutes="<%= _settingsDailyGoalMinutes %>"
                 data-is-editing="<%= _isEditing ? "1" : "0" %>"
 	            >
 			          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
@@ -1323,52 +1511,45 @@
 			          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
 
               <div class="entry-shell">
-                <div class="entry-daybar">
-	                  <div class="field form-field entry-daybar-date">
+                <div class="entry-daybar entry-context-grid">
+	                  <div class="field form-field entry-daybar-date entry-context-card">
 	                    <label class="form-label" for="date">Date selectionnee</label>
 	                    <input class="form-input" id="date" name="date" type="date" required value="<%= formData.date %>" />
-                  </div>
-	                  <div class="entry-daybar-meta">
-	                    <div class="entry-daybar-client">
-		                      <span class="entry-daybar-caption">Client actif</span>
-		                      <div class="entry-daybar-client-card">
-		                        <div class="entry-daybar-client-copy">
-		                          <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
-		                          <% if (selectedClient && (selectedClient.phone || selectedClient.email)) { %>
-		                          <span class="entry-daybar-client-detail"><%= selectedClient.phone || "Téléphone non renseigné" %></span>
-		                          <span class="entry-daybar-client-detail"><%= selectedClient.email || "Email non renseigné" %></span>
-		                          <% } %>
-		                        </div>
-		                        <div class="entry-daybar-client-logo<%= selectedClient && selectedClient.company_logo ? ' has-image' : '' %>">
-		                          <% if (selectedClient && selectedClient.company_logo) { %>
-		                          <img src="<%= selectedClient.company_logo %>" alt="Logo client" />
-		                          <% } else { %>
-		                          <span><%= selectedClient ? selectedClient.company_name.slice(0, 1).toUpperCase() : "?" %></span>
-		                          <% } %>
-		                        </div>
-		                      </div>
-		                    </div>
-	                    <div class="entry-daybar-state">
+                      <div class="entry-date-status-row">
 	                      <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
 	                      <p class="entry-load-status" data-entry-load-status hidden aria-live="polite"></p>
+                      </div>
+                  </div>
+	                  <div class="entry-daybar-meta entry-context-card">
+	                    <div class="entry-daybar-client">
+			                      <span class="entry-daybar-caption">Client actif</span>
+	                      <div class="entry-daybar-client-card">
+	                        <div class="entry-daybar-client-copy">
+	                          <div class="entry-daybar-client-logo<%= selectedClient && selectedClient.company_logo ? ' has-image' : '' %>">
+	                            <% if (selectedClient && selectedClient.company_logo) { %>
+	                            <img src="<%= selectedClient.company_logo %>" alt="Logo client" />
+	                            <% } else { %>
+	                            <span><%= selectedClient ? selectedClient.company_name.slice(0, 1).toUpperCase() : "?" %></span>
+	                            <% } %>
+	                          </div>
+	                          <div class="entry-daybar-client-info">
+	                            <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
+	                            <% if (selectedClient && (selectedClient.phone || selectedClient.email)) { %>
+	                            <span class="entry-daybar-client-detail"><%= selectedClient.phone || "Téléphone non renseigné" %></span>
+	                            <span class="entry-daybar-client-detail"><%= selectedClient.email || "Email non renseigné" %></span>
+	                            <% } %>
+	                          </div>
+	                        </div>
+	                      </div>
+		                    </div>
+	                    <div class="entry-daybar-state">
 	                      <p class="entry-draft-status" data-entry-draft-status hidden aria-live="polite"></p>
 	                    </div>
 	                  </div>
                 </div>
 
-                <div class="entry-main-layout">
-	                  <div class="field form-field entry-day-type-field">
-	                    <label class="form-label" for="dayType">Type de journée</label>
-	                    <select class="form-select" id="dayType" name="dayType" required data-day-type-select>
-                      <% dayTypeOptions.forEach((option) => { %>
-                      <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
-                        <%= option.label %>
-                      </option>
-                      <% }); %>
-                    </select>
-                  </div>
-
-                  <section class="entry-hours-panel" aria-label="Bloc horaire">
+                <div class="entry-main-layout entry-day-layout">
+                  <section class="entry-hours-panel entry-workday-panel" aria-label="Bloc horaire">
                     <div class="entry-hours-panel-head">
                       <div>
                         <span class="entry-hours-kicker">Horaire</span>
@@ -1378,6 +1559,16 @@
                     </div>
 
                     <div class="entry-hours-grid">
+	                      <div class="field form-field entry-day-type-field entry-day-type-card">
+	                        <label class="form-label" for="dayType">Type de journée</label>
+	                        <select class="form-select" id="dayType" name="dayType" required data-day-type-select>
+                          <% dayTypeOptions.forEach((option) => { %>
+                          <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
+                            <%= option.label %>
+                          </option>
+                          <% }); %>
+                        </select>
+                      </div>
 	                      <div class="field form-field entry-time-field">
 	                        <label class="form-label" for="arrivalTime">Heure d'arrivee</label>
 	                        <input
@@ -1458,16 +1649,11 @@
                   </div>
                 </div>
 
-		            <div class="form-actions entry-form-actions">
+		            <div class="form-actions entry-form-actions entry-actions-footer">
 			            <button
-                    type="button"
-                    class="button-link button-neutral btn-ghost"
-                    data-entry-clear-draft
-                    hidden
-                  >Effacer le brouillon</button>
-			            <button
-	                    type="submit"
-	                    data-ripple
+		                    type="submit"
+		                    class="btn-save-primary"
+		                    data-ripple
                     data-entry-submit-button
                     data-default-label="<%= _isEditing ? "Mettre a jour" : "Enregistrer" %>"
                     data-saving-label="Enregistrement..."
@@ -1494,9 +1680,10 @@
         const _safeDefaultEntryFormData =
           defaultEntryFormData && typeof defaultEntryFormData === "object" ? defaultEntryFormData : {};
         const _safeEntries = Array.isArray(entries) ? entries : [];
+        const _safeCalendarEntries = Array.isArray(calendarEntries) ? calendarEntries : _safeEntries;
         const _selectedDate = _safeFormData.date || "";
         const _calendarTodayDate = _safeDefaultEntryFormData.date || "";
-        const _calendarEntriesByDate = new Map(_safeEntries.map((entry) => [entry.work_date, entry]));
+        const _calendarEntriesByDate = new Map(_safeCalendarEntries.map((entry) => [entry.work_date, entry]));
         const _normalizedSelectedMonth =
           typeof selectedMonth === "string" && /^\d{4}-\d{2}$/.test(selectedMonth)
             ? selectedMonth
@@ -1680,6 +1867,7 @@
               isoDate: _isoDate,
               dayNumber: _currentDate.getDate(),
               weekdayShort: _currentDate.toLocaleDateString("fr-FR", { weekday: "short" }),
+              weekdayLabel: _currentDate.toLocaleDateString("fr-FR", { weekday: "long" }),
               dateLabel: _currentDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" }),
               entry: _entry,
               isWeekend: _isWeekend,
@@ -1698,8 +1886,37 @@
           }
           _calendarWeeks.push(_weekDays);
         }
+        const _calendarWeekSummaries =
+          typeof buildCalendarWeekSummaries === "function"
+            ? buildCalendarWeekSummaries(_calendarWeeks, _calendarTodayDate)
+            : [];
+	        _calendarWeekModalData = _calendarWeeks.map((weekDays, weekIndex) => {
+          const summary = _calendarWeekSummaries[weekIndex] || {};
+          return {
+            weekNumber: summary.weekNumber || 0,
+            startDate: weekDays[0] ? weekDays[0].isoDate : "",
+            endDate: weekDays[6] ? weekDays[6].isoDate : "",
+            totalWorkedHHMM: summary.totalWorkedHHMM || "00:00",
+            totalOvertimeHHMM: summary.totalOvertimeHHMM || "00:00",
+            totalRecoveredHHMM: summary.totalRecoveredHHMM || "00:00",
+            workedDayCount: weekDays.filter((day) => day.entry && day.entry.is_worked_day).length,
+            days: weekDays.map((day) => ({
+              isoDate: day.isoDate,
+              weekdayLabel: day.weekdayLabel,
+              dateLabel: day.dateLabel,
+              typeLabel: day.entry ? day.entry.day_type_display : day.stateLabel,
+              arrival: day.entry && day.entry.arrival_time_display ? day.entry.arrival_time_display : "—",
+              departure: day.entry && day.entry.departure_time_display ? day.entry.departure_time_display : "—",
+              pause: day.entry && day.entry.lunch_break_minutes_display !== "" ? String(day.entry.lunch_break_minutes_display) : "—",
+              workedHHMM: day.entry ? day.entry.worked_hhmm : "—",
+              overtimeHHMM: day.entry ? day.entry.overtime_hhmm : "—",
+              recoveredHHMM: day.entry && typeof day.entry.recovered_hhmm === "string" ? day.entry.recovered_hhmm : "—",
+              stateTone: day.stateTone,
+            })),
+          };
+        });
       %>
-      <section class="card premium-surface premium-surface-wide pay-period-card app-surface app-card" data-pay-period-card>
+      <section class="card premium-surface premium-surface-wide pay-period-card app-surface app-card" data-pay-period-card data-scroll-restore-anchor="pay-period">
         <div class="month-header">
           <div class="month-header-copy">
             <h2>Période de paie</h2>
@@ -1709,29 +1926,26 @@
           </div>
 
           <div class="month-tools">
-            <form action="/" method="get" class="month-form">
+            <form action="/" method="get" class="month-form" data-month-auto-submit>
               <input type="hidden" name="clientId" value="<%= _selectedClientId %>" />
               <div class="month-form-row">
                 <label for="month">Choisir un mois</label>
                 <div class="month-form-controls">
-                  <input id="month" name="month" type="month" required value="<%= selectedMonth %>" />
-                  <button type="submit" data-ripple>Afficher</button>
-	                  <a
-	                    class="button-link"
-	                    href="/export.pdf?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-	                    data-toast-info="Export PDF pret"
-	                    data-ripple
-	                  >
-                    Export PDF
-                  </a>
-	                  <a
-	                    class="button-link"
-	                    href="/export.csv?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>"
-	                    data-toast-info="Export CSV pret"
-	                    data-ripple
-	                  >
-                    Export CSV
-                  </a>
+	                  <input id="month" name="month" type="month" required value="<%= selectedMonth %>" aria-describedby="monthLoadingStatus" />
+	                  <span id="monthLoadingStatus" class="month-loading-status" role="status" aria-live="polite" hidden>Chargement...</span>
+	                  <details class="export-menu">
+	                    <summary class="button-link export-menu-trigger" data-ripple>Exporter <span aria-hidden="true">▾</span></summary>
+	                    <div class="export-menu-panel">
+	                      <a href="/export.pdf?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>" data-toast-info="Export PDF pret" data-ripple>
+	                        <strong>Document PDF</strong>
+	                        <span>Rapport mis en page pour lecture, partage ou archivage.</span>
+	                      </a>
+	                      <a href="/export.xlsx?month=<%= encodeURIComponent(selectedMonth) %>&clientId=<%= encodeURIComponent(_selectedClientId) %>" data-toast-info="Classeur Excel pret" data-ripple>
+	                        <strong>Classeur Excel</strong>
+	                        <span>Données détaillées, filtrables et prêtes à être exploitées.</span>
+	                      </a>
+	                    </div>
+	                  </details>
                 </div>
               </div>
             </form>
@@ -1856,16 +2070,17 @@
 	            <div class="calendar-board-scroll">
 	              <div class="calendar-board" data-calendar-board>
                 <div class="calendar-weekdays" aria-hidden="true">
-                  <span>Lun</span>
-                  <span>Mar</span>
-                  <span>Mer</span>
-                  <span>Jeu</span>
-                  <span>Ven</span>
-                  <span>Sam</span>
-                  <span>Dim</span>
+                  <span>LUN</span>
+                  <span>MAR</span>
+                  <span>MER</span>
+                  <span>JEU</span>
+                  <span>VEN</span>
+                  <span>SAM</span>
+                  <span>DIM</span>
+                  <span class="calendar-week-total-heading">SEMAINE</span>
                 </div>
                 <div class="calendar-grid">
-                  <% _calendarWeeks.forEach((calendarWeek) => { %>
+                  <% _calendarWeeks.forEach((calendarWeek, weekIndex) => { %>
                   <% calendarWeek.forEach((calendarDay) => { %>
                   <% if (!calendarDay.isInPeriod) { %>
                   <div class="calendar-day-filler" aria-hidden="true">
@@ -1915,6 +2130,25 @@
                   </button>
                   <% } %>
                   <% }); %>
+                  <% const calendarWeekSummary = _calendarWeekSummaries[weekIndex]; %>
+                  <aside
+                    class="calendar-week-total-card<%= calendarWeekSummary && calendarWeekSummary.isEmptyFutureWeek ? ' is-empty-future' : '' %>"
+                    role="button"
+                    tabindex="0"
+                    aria-haspopup="dialog"
+                    aria-label="Afficher le résumé de la semaine <%= calendarWeekSummary && calendarWeekSummary.weekNumber ? calendarWeekSummary.weekNumber : '' %>"
+                    data-week-summary-index="<%= weekIndex %>"
+                    data-week-start="<%= _calendarWeeks[weekIndex] && _calendarWeeks[weekIndex][0] ? _calendarWeeks[weekIndex][0].isoDate : '' %>"
+                    data-week-end="<%= _calendarWeeks[weekIndex] && _calendarWeeks[weekIndex][6] ? _calendarWeeks[weekIndex][6].isoDate : '' %>"
+                    data-week-number="<%= calendarWeekSummary && calendarWeekSummary.weekNumber ? calendarWeekSummary.weekNumber : '' %>"
+                  >
+                    <span class="calendar-week-total-kicker"><%= calendarWeekSummary && calendarWeekSummary.weekNumber ? `Semaine ${calendarWeekSummary.weekNumber}` : "Semaine" %></span>
+                    <strong class="calendar-week-total-value"><%= calendarWeekSummary ? calendarWeekSummary.totalWorkedHHMM : "00:00" %></strong>
+                    <span class="calendar-week-total-label"><%= calendarWeekSummary && calendarWeekSummary.isEmptyFutureWeek ? "A venir" : "travaillees" %></span>
+                    <% if (!(calendarWeekSummary && calendarWeekSummary.isEmptyFutureWeek)) { %>
+                    <strong class="calendar-week-total-overtime<%= calendarWeekSummary && calendarWeekSummary.totalOvertimeMinutes === 0 ? ' is-zero' : '' %>"><%= calendarWeekSummary ? calendarWeekSummary.totalOvertimeHHMM : "00:00" %> sup.</strong>
+                    <% } %>
+                  </aside>
                   <% }); %>
                 </div>
               </div>
@@ -1974,22 +2208,19 @@
 	                  </span>
 	                </div>
 	                <div class="archived-client-actions">
-		                  <a
-		                    class="button-link"
-		                    href="/export.pdf?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
-		                    data-toast-info="Export PDF pret"
-		                    data-ripple
-		                  >
-	                    Export PDF
-	                  </a>
-		                  <a
-		                    class="button-link"
-		                    href="/export.csv?mode=history&clientId=<%= encodeURIComponent(client.id) %>"
-		                    data-toast-info="Export CSV pret"
-		                    data-ripple
-		                  >
-	                    Export CSV
-	                  </a>
+		                  <details class="export-menu">
+		                    <summary class="button-link export-menu-trigger" data-ripple>Exporter <span aria-hidden="true">▾</span></summary>
+		                    <div class="export-menu-panel">
+		                      <a href="/export.pdf?mode=history&clientId=<%= encodeURIComponent(client.id) %>" data-toast-info="Export PDF pret" data-ripple>
+		                        <strong>Document PDF</strong>
+		                        <span>Rapport mis en page pour lecture, partage ou archivage.</span>
+		                      </a>
+		                      <a href="/export.xlsx?mode=history&clientId=<%= encodeURIComponent(client.id) %>" data-toast-info="Classeur Excel pret" data-ripple>
+		                        <strong>Classeur Excel</strong>
+		                        <span>Données détaillées, filtrables et prêtes à être exploitées.</span>
+		                      </a>
+		                    </div>
+		                  </details>
 		                  <form action="/clients/<%= client.id %>/restore" method="post" data-toast-success="Client restaure">
 	                    <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
 	                    <button type="submit" class="button-link button-neutral" data-ripple>Restaurer</button>
@@ -2102,7 +2333,7 @@
 		              </div>
 		              <div class="settings-mobile-sections">
 	                <% _settingsSections.forEach((section) => { %>
-	                <article class="settings-mobile-section app-card-compact" data-settings-section="<%= section.key %>">
+	                <article class="settings-mobile-section app-card-compact" data-settings-section="<%= section.key %>" <%= section.key === 'profile' || section.key === 'work' ? `data-settings-form="${section.key}"` : '' %>>
 	                  <span class="section-eyebrow"><%= section.icon %> <%= section.label %></span>
 	                  <h3><%= section.label %></h3>
 	                  <p><%= section.description %></p>
@@ -2111,34 +2342,31 @@
 		                    <div class="form-field"><label class="form-label">Nom</label><input class="form-input" type="text" placeholder="Nom complet" value="<%= _userSettings.profileName || authUser || '' %>" data-setting-key="profileName" /></div>
 			                    <div class="form-field"><label class="form-label">Entreprise</label><input class="form-input" type="text" placeholder="Entreprise" value="<%= _userSettings.companyName || _userCompanyName || (selectedClient ? selectedClient.name : '') %>" data-setting-key="companyName" /></div>
 		                  </div>
-			                  <% } else if (section.key === "work") { %>
-			                  <div class="settings-mobile-stack">
-			                    <div class="form-field"><label class="form-label">Contrat</label><select class="form-select" data-setting-key="contractType"><option value="35h" <%= _userSettings.contractType === '35h' ? 'selected' : '' %>>35 h</option><option value="39h" <%= _userSettings.contractType === '39h' ? 'selected' : '' %>>39 h</option><option value="freelance" <%= _userSettings.contractType === 'freelance' ? 'selected' : '' %>>Forfait</option><option value="custom" <%= _userSettings.contractType === 'custom' ? 'selected' : '' %>>Personnalisé</option></select></div>
-		                    <div class="form-field"><label class="form-label" for="settingsDailyTargetMobile">Objectif journalier</label><input class="form-input" id="settingsDailyTargetMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div>
-		                    <div class="form-field"><label class="form-label" for="settingsDefaultBreakMobile">Pause par défaut</label><input class="form-input" id="settingsDefaultBreakMobile" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div>
+	                  <% } else if (section.key === "work") { %>
+	                  <div class="settings-mobile-stack">
+	                    <div class="form-field"><label class="form-label" for="settingsDefaultBreakMobile">Pause par défaut</label><input class="form-input" id="settingsDefaultBreakMobile" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDefaultStartTimeMobile">Début habituel</label><input class="form-input" id="settingsDefaultStartTimeMobile" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDefaultEndTimeMobile">Fin habituelle</label><input class="form-input" id="settingsDefaultEndTimeMobile" type="time" step="60" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" /></div>
-		                    <div class="form-field"><label class="form-label" for="settingsWeekStartMobile">Premier jour</label><select class="form-select" id="settingsWeekStartMobile" data-setting-key="firstDayOfWeek"><option value="monday" <%= _userSettings.firstDayOfWeek === 'monday' ? 'selected' : '' %>>Lundi</option><option value="sunday" <%= _userSettings.firstDayOfWeek === 'sunday' ? 'selected' : '' %>>Dimanche</option></select></div>
 		                  </div>
-		                  <% } else if (section.key === "goals") { %>
-		                  <div class="settings-kpi-grid">
-	                    <% _settingsGoalCards.forEach((goalCard) => { %>
-	                    <article class="stat-card app-card-compact">
-	                      <span class="stat-label"><%= goalCard.label %></span>
-	                      <strong class="stat-value"><%= goalCard.value %></strong>
-	                    </article>
-		                  <% }); %>
-		                  </div>
+	                  <% } else if (section.key === "goals") { %>
+	                  <div class="settings-mobile-stack"><article class="settings-goal-hero"><span>Objectif journalier</span><strong><%= _settingsDailyGoalHHMM %></strong><small>Utilisé par les indicateurs et rappels.</small></article><div class="form-field"><label class="form-label" for="settingsDailyGoalMobile">Durée cible</label><input class="form-input" id="settingsDailyGoalMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div></div>
 		                  <% } else if (section.key === "appearance") { %>
 		                  <div class="settings-mobile-stack">
-		                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option></select></div>
+	                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option></select></div>
 		                    <div class="form-field"><label class="form-label" for="settingsAccentMobile">Accent</label><select class="form-select" id="settingsAccentMobile" data-setting-key="accentColor"><option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option><option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option><option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option><option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option></select></div>
 		                  </div>
 		                  <% } else if (section.key === "notifications") { %>
-		                  <div class="settings-mobile-stack">
-		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Rappel oubli</strong><small>Alerter si une journée n'est pas saisie.</small></span></label>
-		                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.goalReached ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="goalReached" /><span><strong>Objectif atteint</strong><small>Informer quand la cible du jour est atteinte.</small></span></label>
-		                  </div>
+	                  <div class="settings-mobile-stack">
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.missingEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="missingEntry" /><span><strong>Journée oubliée</strong><small>Jour ouvré passé sans saisie.</small></span></label>
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.incompleteEntry ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="incompleteEntry" /><span><strong>Journée incomplète</strong><small>Horaires partiels ou incohérents.</small></span></label>
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyRisk ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyRisk" /><span><strong>Objectif hebdomadaire en risque</strong><small>Alerte le vendredi.</small></span></label>
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.weeklyOvertime ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="weeklyOvertime" /><span><strong>Heures supplémentaires</strong><small>Seuil hebdomadaire atteint.</small></span></label>
+	                    <label class="settings-toggle-card settings-notification-threshold"><span><strong>Seuil d'heures supplémentaires (minutes)</strong><small>60 pour 1 heure, 120 pour 2 heures.</small></span><input class="form-input" type="number" min="15" max="1440" step="15" value="<%= Number((_userSettings.notifications && _userSettings.notifications.weeklyOvertimeThreshold) || 120) %>" data-setting-key="notifications" data-setting-subkey="weeklyOvertimeThreshold" aria-label="Seuil d'heures supplémentaires en minutes" /></label>
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.periodEnding ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="periodEnding" /><span><strong>Fin de période</strong><small>Rappel deux jours avant la clôture.</small></span></label>
+	                    <label class="settings-toggle-card"><input type="checkbox" <%= _userSettings.notifications && _userSettings.notifications.unsavedDraft ? 'checked' : '' %> data-setting-key="notifications" data-setting-subkey="unsavedDraft" /><span><strong>Brouillon non enregistré</strong><small>Saisie locale non sauvegardée.</small></span></label>
+	                  </div>
+	                  <% } else if (section.key === "account") { %>
+	                  <div class="settings-mobile-stack"><article class="app-card-compact"><strong>Session locale</strong><span>Active sur ce navigateur.</span></article><button type="button" class="button-link button-neutral" data-settings-reset data-ripple>Réinitialiser les préférences</button></div>
 			                  <% } else if (section.key === "help") { %>
 			                  <div class="settings-mobile-stack">
 			                    <div class="form-field"><label class="form-label">Recherche</label><input class="form-input" type="search" placeholder="FAQ, exports, calendrier..." data-settings-help-search /></div>
@@ -2152,7 +2380,7 @@
 			                  </div>
 		                  <% } else if (section.key === "export") { %>
 		                  <div class="settings-mobile-stack">
-		                    <article class="app-card-compact"><strong>CSV</strong><span>Export brut compatible compta.</span></article>
+		                    <article class="app-card-compact"><strong>Classeur Excel</strong><span>Export détaillé, filtrable et compatible tableur.</span></article>
 		                    <article class="app-card-compact"><strong>Nom de fichier</strong><span><%= _userSettings.exportFilenamePattern || 'hours_{client}_{month}' %></span></article>
 		                  </div>
 		                  <% } else if (section.key === "security") { %>
@@ -2170,6 +2398,9 @@
 		                    <article class="app-card-compact"><strong>Section active</strong><span>Contenu disponible sur la version bureau.</span></article>
 		                  </div>
 		                  <% } %>
+	                  <% if (section.key === "profile" || section.key === "work") { %>
+	                  <div class="settings-panel-actions"><button type="button" class="primary btn-save-primary" data-settings-save-section="<%= section.key %>" data-ripple>Enregistrer</button></div>
+	                  <% } %>
 	                </article>
 	                <% }); %>
 	              </div>
@@ -2207,7 +2438,7 @@
 	        </nav>
       </div>
       <% } else { %>
-      <section class="card premium-surface client-empty-card">
+      <section class="card premium-surface client-empty-card" data-main-workspace>
         <div class="section-heading">
           <p class="section-eyebrow">Clients</p>
           <h2>Créez votre premier client</h2>
@@ -2278,6 +2509,9 @@
 	        <form action="/clients" method="post" class="login-form">
 	          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
 	          <input type="hidden" name="company_logo" value="<%= _clientFormData.company_logo || '' %>" data-client-logo-value />
+	          <% if (_clientError) { %>
+	          <p class="alert" role="alert"><%= _clientError %></p>
+	          <% } %>
 	          <div class="client-modal-grid">
             <div class="field">
               <label for="clientCompanyName">Entreprise</label>
@@ -2343,6 +2577,9 @@
 	        <form action="/clients/<%= selectedClient.id %>/update" method="post" class="login-form">
 	          <input type="hidden" name="selectedMonth" value="<%= selectedMonth %>" />
 	          <input type="hidden" name="company_logo" value="<%= selectedClient.company_logo || '' %>" data-client-logo-value />
+	          <% if (_clientError) { %>
+	          <p class="alert" role="alert"><%= _clientError %></p>
+	          <% } %>
 	          <div class="client-modal-grid">
             <div class="field">
               <label for="clientInfoCompanyName">Entreprise</label>
@@ -2375,10 +2612,11 @@
 	                  <% } %>
 	                </div>
 	                <div class="client-logo-actions">
-	                  <input type="file" accept="image/*" hidden data-client-logo-upload />
+	                  <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden data-client-logo-upload />
 	                  <button type="button" class="button-link button-neutral" data-client-logo-trigger data-ripple>Importer un logo</button>
 	                  <button type="button" class="button-link button-neutral" data-client-logo-clear <%= selectedClient.company_logo ? '' : 'hidden' %> data-ripple>Supprimer</button>
 	                </div>
+	                <p class="client-logo-status" data-client-logo-status role="status" aria-live="polite"></p>
 	              </div>
 	            </div>
 	            <div class="field field-full">
@@ -2387,7 +2625,7 @@
 	            </div>
           </div>
           <div class="form-actions">
-            <button type="submit" data-ripple>Enregistrer</button>
+            <button type="submit" class="btn-save-primary" data-ripple>Enregistrer</button>
             <button type="button" class="button-link button-neutral" data-close-client-info-modal data-ripple>Fermer</button>
           </div>
         </form>
@@ -2449,6 +2687,23 @@
 	        <div class="day-details-shell" data-day-details-content></div>
 	      </section>
 	    </div>
+
+      <div class="client-modal" data-week-summary-modal aria-hidden="true" hidden>
+        <div class="client-modal-backdrop" data-close-week-summary-modal></div>
+        <section class="card premium-surface client-modal-dialog week-summary-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="weekSummaryTitle">
+          <div class="client-modal-header">
+            <div class="section-heading">
+              <p class="section-eyebrow">Période de paie</p>
+              <h2 id="weekSummaryTitle">Résumé de la semaine</h2>
+              <p data-week-summary-subtitle></p>
+            </div>
+            <button type="button" class="client-modal-close secondary" data-close-week-summary-modal aria-label="Fermer">×</button>
+          </div>
+          <div class="week-summary-content" data-week-summary-content></div>
+        </section>
+      </div>
+
+	      <script id="calendar-week-modal-data" type="application/json"><%- JSON.stringify(_calendarWeekModalData).replace(/</g, "\\u003c") %></script>
 
 	    <div class="onboarding-overlay" data-onboarding hidden>
 	      <div class="onboarding-shell card premium-surface app-surface app-card">
@@ -2538,6 +2793,10 @@
 	              <div class="form-field">
 	                <label class="form-label" for="onboardingDailyGoal">Objectif journalier</label>
 	                <input class="form-input" id="onboardingDailyGoal" type="time" step="60" data-onboarding-field="dailyGoal" />
+	              </div>
+	              <div class="form-field">
+	                <label class="form-label" for="onboardingWeeklyGoal">Durée hebdomadaire (heures)</label>
+	                <input class="form-input" id="onboardingWeeklyGoal" type="number" min="1" max="168" step="0.25" placeholder="Ex : 25" data-onboarding-field="weeklyGoalHours" />
 	              </div>
 	            </div>
 	          </section>
@@ -2648,6 +2907,8 @@
 		        day_type_display: entry.day_type_display,
 		        is_worked_day: entry.is_worked_day,
 		        under_target: entry.under_target,
+		        target_minutes: entry.target_minutes,
+		        overtime_minutes: entry.overtime_minutes,
 		        arrival_time_display: entry.arrival_time_display,
 			        departure_time_display: entry.departure_time_display,
 			        lunch_break_minutes_display: entry.lunch_break_minutes_display,
@@ -2666,9 +2927,11 @@
 			          worked_hhmm: entry.worked_hhmm,
 			          day_type: entry.day_type,
 			          day_type_display: entry.day_type_display,
-			          is_worked_day: entry.is_worked_day,
-			          under_target: entry.under_target,
-			          arrival_time_display: entry.arrival_time_display,
+		          is_worked_day: entry.is_worked_day,
+		          under_target: entry.under_target,
+		          target_minutes: entry.target_minutes,
+		          overtime_minutes: entry.overtime_minutes,
+		          arrival_time_display: entry.arrival_time_display,
 			          departure_time_display: entry.departure_time_display,
 			          lunch_break_minutes_display: entry.lunch_break_minutes_display,
 			          comment_text: entry.comment_text || "",
@@ -2679,9 +2942,9 @@
 		      <script src="/toast-center.js"></script>
 		      <script src="/entry-draft-store.js"></script>
 		      <script src="/notification-center.js"></script>
-		      <script src="/settings-store.js"></script>
+		      <script src="/settings-store.js?v=settings-v2-5"></script>
 		      <script src="/onboarding.js"></script>
-		      <script src="/workspace-tabs.js"></script>
+		      <script src="/workspace-tabs.js?v=week-summary-modal-v4"></script>
 		      <script>
 		      (() => {
 		        const bootstrapNode = document.getElementById("hours-settings-bootstrap");
@@ -2826,7 +3089,6 @@
           const summaryValue = entryForm ? entryForm.querySelector("[data-entry-summary-value]") : null;
           const summaryFeedback = entryForm ? entryForm.querySelector("[data-entry-summary-feedback]") : null;
           const submitButton = entryForm ? entryForm.querySelector("[data-entry-submit-button]") : null;
-          const clearDraftButton = entryForm ? entryForm.querySelector("[data-entry-clear-draft]") : null;
 	        let activeController = null;
 
 	        if (
@@ -2844,16 +3106,16 @@
             !stateBadge ||
 	            !summaryValue ||
 	            !summaryFeedback ||
-	            !submitButton ||
-            !clearDraftButton
+	            !submitButton
 	        ) {
 	          return;
 	        }
 
           const SAVE_FLASH_STORAGE_KEY = "hours_entry_save_flash";
           const DRAFT_SAVE_DEBOUNCE_MS = 280;
-		          const SUMMARY_TARGET_MINUTES = 7 * 60;
-		          const workedDayTypes = new Set(["office", "remote"]);
+		          let summaryTargetMinutes = Math.max(0, Number(entryForm.dataset.targetMinutes || 7 * 60));
+			          const workedDayTypes = new Set(["office", "remote"]);
+          const scrollRestoreApi = window.hoursScrollRestore || null;
           const draftStoreApi = window.hoursEntryDraftStore || null;
           const draftStore =
             draftStoreApi && typeof draftStoreApi.createEntryDraftStore === "function"
@@ -2871,6 +3133,8 @@
             draftStoreApi && typeof draftStoreApi.shouldRestoreDraft === "function"
               ? draftStoreApi.shouldRestoreDraft
               : ({ serverEntry, draftEntry }) => !serverEntry && Boolean(draftEntry);
+
+          const pendingEntryScrollRestore = window.__hoursEntryScrollRestore || null;
 		          const bootstrapNode = document.getElementById("hours-settings-bootstrap");
 	          const bootstrapEntries =
 	            bootstrapNode
@@ -3052,12 +3316,12 @@
               return;
             }
 
-            if (plannedMinutes >= SUMMARY_TARGET_MINUTES) {
+	            if (plannedMinutes >= summaryTargetMinutes) {
               summaryFeedback.textContent = "Objectif atteint";
               return;
             }
 
-            summaryFeedback.textContent = `Il reste ${formatDurationLabel(SUMMARY_TARGET_MINUTES - plannedMinutes)}`;
+	            summaryFeedback.textContent = `Il reste ${formatDurationLabel(summaryTargetMinutes - plannedMinutes)}`;
           };
 
           const updateSubmitButton = (label, disabled) => {
@@ -3093,15 +3357,13 @@
             commentText: commentInput.value || "",
           });
 
-          const updateDraftUi = () => {
-            if (!draftStore) {
-              clearDraftButton.hidden = true;
-              return;
-            }
-            const currentKey = getCurrentDraftKey();
-            const hasDraft = Boolean(clientIdInput.value && dateInput.value && draftStore.get(clientIdInput.value, dateInput.value));
-            clearDraftButton.hidden = !hasDraft;
-            if (!hasDraft && state.restoredDraftKey === currentKey) {
+	          const updateDraftUi = () => {
+	            if (!draftStore) {
+	              return;
+	            }
+	            const currentKey = getCurrentDraftKey();
+	            const hasDraft = Boolean(clientIdInput.value && dateInput.value && draftStore.get(clientIdInput.value, dateInput.value));
+	            if (!hasDraft && state.restoredDraftKey === currentKey) {
               state.restoredDraftKey = "";
             }
           };
@@ -3125,10 +3387,9 @@
             if (!draftStore) {
               return;
             }
-            const draftPayload = readDraftPayload();
-            if (!draftPayload.clientId || !draftPayload.workDate) {
-              clearDraftButton.hidden = true;
-              return;
+	            const draftPayload = readDraftPayload();
+	            if (!draftPayload.clientId || !draftPayload.workDate) {
+	              return;
             }
             const baselineEntry = getBaselineEntry();
             const baselineDraft = {
@@ -3281,6 +3542,27 @@
               scheduleDraftSave();
 	          };
 
+	          window.addEventListener("hours:settings-changed", (event) => {
+	            const nextSettings = event instanceof CustomEvent && event.detail ? event.detail.settings : null;
+	            if (!nextSettings || typeof nextSettings !== "object") {
+	              return;
+	            }
+	            summaryTargetMinutes = Math.max(0, Number(nextSettings.dailyGoal || summaryTargetMinutes));
+	            if (state.currentEntry && state.currentEntry.isExisting) {
+	              renderSummary();
+	              return;
+	            }
+	            defaultFormValues.arrivalTime = nextSettings.defaultStartTime || defaultFormValues.arrivalTime;
+	            defaultFormValues.departureTime = nextSettings.defaultEndTime || defaultFormValues.departureTime;
+	            defaultFormValues.lunchBreakMinutes = String(nextSettings.defaultPause ?? defaultFormValues.lunchBreakMinutes);
+	            if (!state.isDirty) {
+	              state.currentEntry = null;
+	              renderEntry();
+	              return;
+	            }
+	            renderSummary();
+	          });
+
 	          const watchSelectedDate = async () => {
 	            const clientId = clientIdInput.value;
 	            const selectedDate = dateInput.value;
@@ -3408,21 +3690,8 @@
           });
           commentInput.addEventListener("change", markUnsavedIfNeeded);
 
-          clearDraftButton.addEventListener("click", () => {
-            if (draftSaveTimeoutId) {
-              window.clearTimeout(draftSaveTimeoutId);
-              draftSaveTimeoutId = 0;
-            }
-            const clientId = clientIdInput.value || "";
-            const workDate = dateInput.value || "";
-            if (!clientId || !workDate) {
-              return;
-            }
-            clearDraftFor(clientId, workDate, { statusText: "Brouillon efface" });
-          });
-
-		          entryForm.addEventListener("submit", () => {
-		            const submittedEntry = readEntryFromForm();
+	          entryForm.addEventListener("submit", () => {
+	            const submittedEntry = readEntryFromForm();
 	            if (!submittedEntry.workDate) {
 	              return;
 	            }
@@ -3434,10 +3703,20 @@
             renderBadge();
             updateSubmitButton(submitButton.dataset.savingLabel || "Enregistrement...", true);
 
-	            try {
-	              sessionStorage.setItem(
-                SAVE_FLASH_STORAGE_KEY,
-                JSON.stringify({
+		            try {
+                  if (scrollRestoreApi && typeof scrollRestoreApi.save === "function") {
+                    scrollRestoreApi.save({
+                      target:
+                        scrollRestoreApi.targets && scrollRestoreApi.targets.entryForm
+                          ? scrollRestoreApi.targets.entryForm
+                          : "entry-form",
+                      scrollY: window.scrollY,
+                      savedAt: Date.now(),
+                    });
+                  }
+		              sessionStorage.setItem(
+	                SAVE_FLASH_STORAGE_KEY,
+	                JSON.stringify({
                   clientId: clientIdInput.value,
                   workDate: submittedEntry.workDate,
                   savedAt: Date.now(),
@@ -3504,6 +3783,38 @@
 	            renderSummary();
 	            markUnsavedIfNeeded();
 	            window.requestAnimationFrame(() => {
+		              if (pendingEntryScrollRestore) {
+                    const fallbackTarget = pendingEntryScrollRestore.targetSelector
+                      ? document.querySelector(pendingEntryScrollRestore.targetSelector)
+                      : entryForm.closest("[data-entry-card]");
+                    const fallbackTop =
+                      fallbackTarget instanceof HTMLElement
+                        ? Math.max(
+                            0,
+                            fallbackTarget.getBoundingClientRect().top +
+                              window.scrollY -
+                              (pendingEntryScrollRestore.target === "pay-period"
+                                ? (scrollRestoreApi && Number.isFinite(scrollRestoreApi.payPeriodOffset)
+                                    ? scrollRestoreApi.payPeriodOffset
+                                    : 20)
+                                : 0)
+                          )
+                        : 0;
+		                const maxScrollY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+		                if (pendingEntryScrollRestore.scrollY <= maxScrollY) {
+	                  window.scrollTo(0, pendingEntryScrollRestore.scrollY);
+		                } else if (fallbackTarget instanceof HTMLElement) {
+                      window.scrollTo(0, Math.min(fallbackTop, maxScrollY));
+	                }
+		                document.documentElement.removeAttribute("data-restoring-scroll");
+	                document.documentElement.style.scrollBehavior = "";
+	                try {
+	                  history.scrollRestoration = pendingEntryScrollRestore.previousScrollRestoration || "auto";
+	                } catch (error) {
+	                  // Ignore unsupported history settings.
+	                }
+	                delete window.__hoursEntryScrollRestore;
+	              }
 	              const initialClientId = clientIdInput.value;
 	              const initialDate = dateInput.value;
 	              if (!initialClientId || !initialDate) {
@@ -3984,20 +4295,24 @@
 		        syncForViewport();
 		      })();
 
-		      (() => {
-		        const workspace = document.querySelector("[data-settings-workspace]");
+	      (() => {
+	        const workspace = document.querySelector("[data-settings-workspace]");
+	        const mainWorkspaces = Array.from(document.querySelectorAll("[data-main-workspace]"));
+	        const footer = document.querySelector(".app-footer");
 		        const openButtons = Array.from(document.querySelectorAll("[data-open-settings-workspace]"));
 		        const closeButtons = Array.from(document.querySelectorAll("[data-close-settings-workspace]"));
 		        const navButtons = Array.from(document.querySelectorAll("[data-settings-nav-item]"));
-		        const sections = Array.from(document.querySelectorAll("[data-settings-section]"));
+	        const sections = Array.from(document.querySelectorAll(".settings-v2-panel, .settings-mobile-section"));
 		        const helpSearchInputs = Array.from(document.querySelectorAll("[data-settings-help-search]"));
 		        const helpItems = Array.from(document.querySelectorAll("[data-settings-help-item]"));
 		        const commandPalette = document.querySelector("[data-command-palette]");
 		        const commandPaletteInput = document.querySelector("[data-command-palette-input]");
 		        const commandPaletteItems = Array.from(document.querySelectorAll("[data-command-item]"));
 		        const commandPaletteCloseButtons = Array.from(document.querySelectorAll("[data-close-command-palette]"));
-		        const mobileSettingsButton = document.querySelector('[data-mobile-nav-button][data-target-view="settings"]');
-		        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+	        const mobileSettingsButton = document.querySelector('[data-mobile-nav-button][data-target-view="settings"]');
+	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
+	        let returnScrollY = 0;
+	        let lastOpenButton = null;
 
 		        if (!workspace || navButtons.length === 0 || sections.length === 0) {
 		          return;
@@ -4008,7 +4323,7 @@
 
 		        const scrollBehavior = () => (prefersReducedMotion.matches ? "auto" : "smooth");
 
-		        const syncNavState = (targetKey) => {
+	        const syncNavState = (targetKey) => {
 		          navButtons.forEach((button) => {
 		            const isActive = button.dataset.settingsTarget === targetKey;
 		            button.classList.toggle("is-active", isActive);
@@ -4016,18 +4331,59 @@
 		          });
 		        };
 
-		        const revealWorkspace = () => {
-		          workspace.hidden = false;
-		          workspace.classList.add("is-open");
-		        };
+	        const setSettingsMode = (isActive) => {
+	          if (mobileQuery.matches) {
+	            document.documentElement.removeAttribute("data-settings-mode");
+	            document.body.removeAttribute("data-settings-mode");
+	            mainWorkspaces.forEach((item) => item.removeAttribute("aria-hidden"));
+	            mainWorkspaces.forEach((item) => {
+	              item.hidden = false;
+	            });
+	            footer?.removeAttribute("aria-hidden");
+	            if (footer) {
+	              footer.hidden = false;
+	            }
+	            return;
+	          }
+	          document.documentElement.toggleAttribute("data-settings-mode", isActive);
+	          document.body.toggleAttribute("data-settings-mode", isActive);
+	          mainWorkspaces.forEach((item) => item.setAttribute("aria-hidden", String(isActive)));
+	          mainWorkspaces.forEach((item) => {
+	            item.hidden = isActive;
+	          });
+	          footer?.setAttribute("aria-hidden", String(isActive));
+	          if (footer) {
+	            footer.hidden = isActive;
+	          }
+	        };
 
-		        const closeWorkspace = () => {
-		          workspace.hidden = true;
-		          workspace.classList.remove("is-open");
-		        };
+	        const setVisibleSection = (targetKey) => {
+	          sections.forEach((section) => {
+	            const isActive = section.dataset.settingsSection === targetKey;
+	            section.classList.toggle("is-active", isActive);
+	            section.hidden = !isActive;
+	          });
+	        };
 
-		        const focusSection = (targetKey) => {
-		          const matchingSections = sections.filter((item) => item.dataset.settingsSection === targetKey);
+	        const revealWorkspace = () => {
+	          returnScrollY = window.scrollY;
+	          workspace.hidden = false;
+	          workspace.classList.add("is-open");
+	          setSettingsMode(true);
+	        };
+
+	        const closeWorkspace = () => {
+	          workspace.hidden = true;
+	          workspace.classList.remove("is-open");
+	          setSettingsMode(false);
+	          window.scrollTo({ top: returnScrollY, behavior: scrollBehavior() });
+	          const menuTrigger = lastOpenButton?.closest("details")?.querySelector("summary");
+	          (menuTrigger || lastOpenButton)?.focus();
+	        };
+
+	        const focusSection = (targetKey) => {
+	          setVisibleSection(targetKey);
+	          const matchingSections = sections.filter((item) => item.dataset.settingsSection === targetKey);
 		          const section = mobileQuery.matches
 		            ? matchingSections.find((item) => item.closest('[data-mobile-view="settings"]')) || matchingSections[0] || sections[0]
 		            : matchingSections.find((item) => item.closest("[data-settings-workspace]")) || matchingSections[0] || sections[0];
@@ -4035,8 +4391,10 @@
 		            return;
 		          }
 		          syncNavState(section.dataset.settingsSection || "");
-		          section.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
-		        };
+	          section.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+	        };
+
+	        setVisibleSection("profile");
 
 		        const openWorkspace = (targetKey = "profile") => {
 		          if (mobileQuery.matches && mobileSettingsButton) {
@@ -4095,18 +4453,31 @@
 		          });
 		        };
 
-		        openButtons.forEach((button) => {
-		          button.addEventListener("click", () => {
-		            detailMenus.forEach((menu) => {
+	        openButtons.forEach((button) => {
+	          button.addEventListener("click", () => {
+	            lastOpenButton = button;
+	            detailMenus.forEach((menu) => {
 		              menu.open = false;
 		            });
 		            openWorkspace(button.dataset.settingsTarget || "profile");
 		          });
 		        });
 
-		        closeButtons.forEach((button) => {
-		          button.addEventListener("click", closeWorkspace);
-		        });
+	        closeButtons.forEach((button) => {
+	          button.addEventListener("click", closeWorkspace);
+	        });
+
+	        const syncSettingsModeForViewport = () => {
+	          if (mobileQuery.matches) {
+	            setSettingsMode(false);
+	          }
+	        };
+
+	        if (typeof mobileQuery.addEventListener === "function") {
+	          mobileQuery.addEventListener("change", syncSettingsModeForViewport);
+	        } else if (typeof mobileQuery.addListener === "function") {
+	          mobileQuery.addListener(syncSettingsModeForViewport);
+	        }
 
 		        navButtons.forEach((button) => {
 		          button.addEventListener("click", () => {
@@ -4242,6 +4613,11 @@
 	      })();
 
 	      (() => {
+	        const CLIENT_LOGO_MAX_SOURCE_FILE_SIZE = 10_000_000;
+	        const CLIENT_LOGO_MAX_DATA_URL_LENGTH = 1_800_000;
+	        const CLIENT_LOGO_MAX_DIMENSION = 1600;
+	        const SUPPORTED_CLIENT_LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
 	        function readImageAsDataUrl(file) {
 	          return new Promise((resolve, reject) => {
 	            const reader = new FileReader();
@@ -4249,6 +4625,44 @@
 	            reader.onerror = () => reject(reader.error || new Error("read_failed"));
 	            reader.readAsDataURL(file);
 	          });
+	        }
+
+	        function loadImageFromDataUrl(dataUrl) {
+	          return new Promise((resolve, reject) => {
+	            const image = new Image();
+	            image.onload = () => resolve(image);
+	            image.onerror = () => reject(new Error("invalid_image"));
+	            image.src = dataUrl;
+	          });
+	        }
+
+	        function renderOptimizedClientLogo(image) {
+	          let scale = Math.min(1, CLIENT_LOGO_MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+	          for (let attempt = 0; attempt < 6; attempt += 1) {
+	            const canvas = document.createElement("canvas");
+	            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+	            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+	            const context = canvas.getContext("2d");
+	            if (!context) {
+	              throw new Error("canvas_unavailable");
+	            }
+	            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+	            const dataUrl = canvas.toDataURL("image/webp", 0.84);
+	            if (dataUrl.length <= CLIENT_LOGO_MAX_DATA_URL_LENGTH) {
+	              return dataUrl;
+	            }
+	            scale *= 0.78;
+	          }
+	          throw new Error("image_too_large");
+	        }
+
+	        function setClientLogoStatus(field, message, state = "") {
+	          const status = field.querySelector("[data-client-logo-status]");
+	          if (!(status instanceof HTMLElement)) {
+	            return;
+	          }
+	          status.textContent = message;
+	          status.dataset.state = state;
 	        }
 
 	        function syncClientLogoField(field) {
@@ -4298,23 +4712,49 @@
 	              if (!file || !(hiddenInput instanceof HTMLInputElement)) {
 	                return;
 	              }
-	              if (file.size > 1_500_000) {
+	              if (!SUPPORTED_CLIENT_LOGO_TYPES.has(file.type)) {
+	                const message = "Format non pris en charge. Utilisez un PNG, JPEG, WebP ou GIF.";
 	                emitToast({
 	                  type: "warning",
-	                  message: "Image trop lourde. Choisissez un fichier inferieur a 1,5 MB.",
+	                  message,
 	                });
+	                setClientLogoStatus(field, message, "error");
+	                upload.value = "";
+	                return;
+	              }
+	              if (file.size > CLIENT_LOGO_MAX_SOURCE_FILE_SIZE) {
+	                const message = "Image trop lourde. Choisissez un fichier inferieur a 10 MB.";
+	                emitToast({
+	                  type: "warning",
+	                  message,
+	                });
+	                setClientLogoStatus(field, message, "error");
 	                upload.value = "";
 	                return;
 	              }
 	              try {
-	                hiddenInput.value = await readImageAsDataUrl(file);
+	                const sourceDataUrl = await readImageAsDataUrl(file);
+	                const image = await loadImageFromDataUrl(sourceDataUrl);
+	                const shouldOptimize = file.type !== "image/gif" && sourceDataUrl.length > CLIENT_LOGO_MAX_DATA_URL_LENGTH;
+	                hiddenInput.value = shouldOptimize ? renderOptimizedClientLogo(image) : sourceDataUrl;
 	                syncClientLogoField(field);
+	                setClientLogoStatus(
+	                  field,
+	                  shouldOptimize
+	                    ? "Logo optimise et charge. Cliquez sur Enregistrer pour valider la modification."
+	                    : "Logo charge. Cliquez sur Enregistrer pour valider la modification.",
+	                  "success"
+	                );
 	              } catch (error) {
 	                console.error(error);
+	                const message = error && error.message === "image_too_large"
+	                  ? "Image trop lourde, meme apres optimisation."
+	                  : "Image invalide ou non lisible. Essayez un autre fichier.";
 	                emitToast({
 	                  type: "error",
-	                  message: "Impossible de charger l'image",
+	                  message,
 	                });
+	                setClientLogoStatus(field, message, "error");
 	              } finally {
 	                upload.value = "";
 	              }
@@ -4325,6 +4765,7 @@
 	            clearButton.addEventListener("click", () => {
 	              hiddenInput.value = "";
 	              syncClientLogoField(field);
+	              setClientLogoStatus(field, "Logo supprime. Cliquez sur Enregistrer pour valider la modification.", "success");
 	            });
 	          }
 
@@ -4452,6 +4893,23 @@
           navigator.serviceWorker.register("/sw.js").catch(() => {});
         });
       }
+
+      <% if (isDevelopment) { %>
+      (() => {
+        const revision = "<%= developmentRevision %>";
+        window.setInterval(async () => {
+          try {
+            const response = await fetch("/__dev-revision", { cache: "no-store" });
+            const payload = await response.json();
+            if (response.ok && payload.revision && payload.revision !== revision) {
+              window.location.reload();
+            }
+          } catch (error) {
+            // The server may be unavailable briefly while Node restarts.
+          }
+        }, 1200);
+      })();
+      <% } %>
     </script>
   </body>
 </html>

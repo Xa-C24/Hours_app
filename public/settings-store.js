@@ -335,6 +335,7 @@
     isEditing: Boolean(bootstrap.isEditing),
     listeners: new Set(),
   };
+  let settingsSaveQueue = Promise.resolve();
   const fallbackCompanyName =
     typeof bootstrap.fallbackCompanyName === "string" ? bootstrap.fallbackCompanyName.trim() : "";
 
@@ -448,7 +449,10 @@
     }
     if (cockpitCompanyTarget) {
       const payPeriodLabel = bootstrap.payPeriodLabel || bootstrap.selectedMonth || "";
-      cockpitCompanyTarget.textContent = [effectiveCompanyName, payPeriodLabel].filter(Boolean).join(" · ");
+      cockpitCompanyTarget.innerHTML = [
+        effectiveCompanyName ? `<span>${escapeCalendarHtml(effectiveCompanyName)}</span>` : "",
+        payPeriodLabel ? `<span class="cockpit-hero-period">${escapeCalendarHtml(payPeriodLabel)}</span>` : "",
+      ].filter(Boolean).join("");
     }
 
     if (!(avatarArt instanceof HTMLElement)) {
@@ -501,19 +505,40 @@
       const key = element.dataset.settingKey || "";
       const subkey = element.dataset.settingSubkey || "";
       if (key === "notifications" && subkey && element instanceof HTMLInputElement) {
-        element.checked = Boolean(state.settings.notifications && state.settings.notifications[subkey]);
+        const notificationValue = state.settings.notifications && state.settings.notifications[subkey];
+        if (element.type === "checkbox") {
+          element.checked = Boolean(notificationValue);
+        } else {
+          const fallbackValue = subkey === "weeklyOvertimeThreshold" ? 120 : "";
+          const numericValue = Number(notificationValue);
+          element.value = String(Number.isFinite(numericValue) && numericValue >= 15 ? numericValue : fallbackValue);
+        }
         return;
       }
-      if (key === "compactMode" && element instanceof HTMLSelectElement) {
-        element.value = state.settings.compactMode ? "true" : "false";
+      if (key === "compactMode") {
+        const compactValue = state.settings.compactMode ? "true" : "false";
+        if (element instanceof HTMLInputElement && element.type === "radio") {
+          element.checked = element.value === compactValue;
+        } else if ("value" in element) {
+          element.value = compactValue;
+        }
         return;
       }
       if (key === "dailyGoal" && element instanceof HTMLInputElement) {
         element.value = formatMinutes(state.settings.dailyGoal);
         return;
       }
+      if (key === "weeklyGoal" && element instanceof HTMLInputElement) {
+        const weeklyGoal = Math.max(0, Number(state.settings.weeklyGoal || (state.settings.dailyGoal * 5)));
+        element.value = String(Math.round((weeklyGoal / 60) * 100) / 100);
+        return;
+      }
       if (key === "defaultPause" && element instanceof HTMLInputElement) {
         element.value = String(state.settings.defaultPause);
+        return;
+      }
+      if (element instanceof HTMLInputElement && element.type === "radio" && state.settings[key] !== undefined) {
+        element.checked = element.value === String(state.settings[key]);
         return;
       }
       if ("value" in element && state.settings[key] !== undefined) {
@@ -591,12 +616,85 @@
     });
   }
 
+  function getIsoWeekNumber(date) {
+    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - (utcDate.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function positionCustomSelectMenu(wrapper, trigger, menu) {
+    if (!(wrapper instanceof HTMLElement) || !(trigger instanceof HTMLElement) || !(menu instanceof HTMLElement) || menu.hidden) {
+      return;
+    }
+
+    const triggerBounds = trigger.getBoundingClientRect();
+    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const viewportGutter = 12;
+    const spaceAbove = Math.max(0, triggerBounds.top - viewportGutter);
+    const spaceBelow = Math.max(0, viewportHeight - triggerBounds.bottom - viewportGutter);
+    const maximumMenuHeight = Math.min(18 * 16, viewportHeight * 0.45);
+    const menuHeight = Math.min(menu.scrollHeight, maximumMenuHeight);
+    const shouldOpenUp = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+    const availableHeight = shouldOpenUp ? spaceAbove : spaceBelow;
+
+    wrapper.classList.toggle("is-dropup", shouldOpenUp);
+    menu.classList.toggle("is-dropup", shouldOpenUp);
+    menu.style.setProperty("--app-custom-select-available-height", `${Math.floor(availableHeight)}px`);
+  }
+
+  function positionEntryDayTypeMenu(wrapper, trigger, menu) {
+    if (!(wrapper instanceof HTMLElement) || !(trigger instanceof HTMLElement) || !(menu instanceof HTMLElement) || menu.hidden) {
+      return;
+    }
+
+    const entryCard = wrapper.closest("[data-entry-card]");
+    const commentField = entryCard ? entryCard.querySelector(".entry-comment-field") : null;
+    const triggerBounds = trigger.getBoundingClientRect();
+    const commentBounds = commentField instanceof HTMLElement ? commentField.getBoundingClientRect() : null;
+    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const viewportGutter = 12;
+    const menuGap = 7;
+    const spaceAbove = Math.max(0, triggerBounds.top - viewportGutter);
+    const spaceBelow = Math.max(0, viewportHeight - triggerBounds.bottom - viewportGutter);
+    const maximumMenuHeight = Math.min(13 * 16, viewportHeight * 0.35);
+    const menuHeight = Math.min(menu.scrollHeight, maximumMenuHeight);
+    const wouldOverlapComment = Boolean(commentBounds && triggerBounds.bottom + menuGap + menuHeight > commentBounds.top);
+    const shouldOpenUp = (wouldOverlapComment || spaceBelow < menuHeight) && spaceAbove > 0;
+    const availableHeight = shouldOpenUp ? spaceAbove : spaceBelow;
+
+    wrapper.classList.toggle("is-dropup", shouldOpenUp);
+    menu.classList.toggle("is-dropup", shouldOpenUp);
+    menu.style.setProperty("--entry-day-type-menu-available-height", `${Math.floor(availableHeight)}px`);
+  }
+
+  function positionOpenCustomSelects() {
+    document.querySelectorAll(".app-custom-select.is-open").forEach((wrapper) => {
+      const trigger = wrapper.querySelector("[data-custom-select-trigger]");
+      const menu = wrapper.querySelector("[data-custom-select-menu]");
+      if (isEntryDayTypeCustomSelect(wrapper)) {
+        positionEntryDayTypeMenu(wrapper, trigger, menu);
+      } else {
+        positionCustomSelectMenu(wrapper, trigger, menu);
+      }
+    });
+  }
+
+  function isEntryDayTypeCustomSelect(wrapper) {
+    return wrapper instanceof HTMLElement &&
+      Boolean(wrapper.closest("[data-entry-card]") && wrapper.querySelector("select[data-day-type-select]"));
+  }
+
   function closeCustomSelects() {
     document.querySelectorAll("[data-custom-select-menu]").forEach((menu) => {
       if (menu instanceof HTMLElement) {
         menu.hidden = true;
+        menu.classList.remove("is-dropup");
+        menu.style.removeProperty("--app-custom-select-available-height");
+        menu.style.removeProperty("--entry-day-type-menu-available-height");
       }
     });
+    document.querySelectorAll(".app-custom-select").forEach((wrapper) => wrapper.classList.remove("is-open", "is-dropup"));
     document.querySelectorAll("[data-custom-select-trigger]").forEach((trigger) => {
       if (trigger instanceof HTMLElement) {
         trigger.setAttribute("aria-expanded", "false");
@@ -672,10 +770,16 @@
       : [];
     const weekWorkedMinutes = weekEntries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
     const weekWorkedDays = weekEntries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
-    const weekTargetMinutes = weekWorkedDays * dailyGoal;
+    const configuredWeeklyGoal = Math.max(0, Number(state.settings.weeklyGoal || 0));
+    const weekTargetMinutes = configuredWeeklyGoal || (weekWorkedDays * dailyGoal);
     const weekBalanceMinutes = weekWorkedMinutes - weekTargetMinutes;
+    const weekOvertimeMinutes = weekEntries.reduce(
+      (sum, entry) => sum + Number(entry.overtime_minutes || 0),
+      0
+    );
     const weekBalanceHHMM = formatMinutes(Math.abs(weekBalanceMinutes));
     setText("weekTotal", formatMinutes(weekWorkedMinutes));
+    setText("weekOvertime", formatMinutes(weekOvertimeMinutes));
     setText(
       "weekBalance",
       weekBalanceMinutes > 0
@@ -688,12 +792,18 @@
     const monthWorkedMinutes = state.entries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
     const monthWorkedDays = state.entries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
     const monthTargetMinutes = monthWorkedDays * dailyGoal;
+    const monthOvertimeMinutes = state.entries.reduce(
+      (sum, entry) => sum + Number(entry.overtime_minutes || 0),
+      0
+    );
     const monthRemainingMinutes = Math.max(0, monthTargetMinutes - monthWorkedMinutes);
     const monthProgress = monthTargetMinutes > 0
       ? Math.max(0, Math.min(100, Math.round((monthWorkedMinutes / monthTargetMinutes) * 100)))
       : 0;
     setText("monthTarget", formatMinutes(monthTargetMinutes));
     setText("monthProgress", `${monthProgress}%`);
+    setText("monthOvertime", formatMinutes(monthOvertimeMinutes));
+    setText("periodBreakdown", `${formatMinutes(monthWorkedMinutes)} heures réalisées sur ${formatMinutes(monthTargetMinutes)} prévues sur la période en cours`);
     setText("monthRemaining", formatMinutes(monthRemainingMinutes));
 
     const progressRing = document.querySelector("[data-cockpit-progress]");
@@ -762,17 +872,57 @@
     weekdayLabels.forEach((label) => {
       weekdaysHtml += `<span>${label}</span>`;
     });
+    weekdaysHtml += '<span class="calendar-week-total-heading">SEMAINE</span>';
     weekdaysHtml += "</div>";
 
     let gridHtml = '<div class="calendar-grid">';
-    for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor = addDays(cursor, 1)) {
+    let weekWorkedMinutes = 0;
+    let weekTargetMinutes = 0;
+    let weekOvertimeMinutes = 0;
+    let weekSummaryIndex = 0;
+    const appendWeekSummary = (weekEndDate) => {
+      const weekStartIso = formatIsoDate(addDays(weekEndDate, -6));
+      const weekEndIso = formatIsoDate(weekEndDate);
+      const weekNumber = getIsoWeekNumber(weekEndDate);
+      const isEmptyFutureWeek = weekStartIso > todayIso && weekWorkedMinutes === 0;
+      const summaryHtml = `
+        <aside
+          class="calendar-week-total-card${isEmptyFutureWeek ? " is-empty-future" : ""}"
+          role="button"
+          tabindex="0"
+          aria-haspopup="dialog"
+          aria-label="Afficher le résumé de la semaine ${weekNumber}"
+          data-week-summary-index="${weekSummaryIndex}"
+          data-week-start="${weekStartIso}"
+          data-week-end="${weekEndIso}"
+          data-week-number="${weekNumber}"
+        >
+          <span class="calendar-week-total-kicker">Semaine</span>
+          <strong class="calendar-week-total-value">${isEmptyFutureWeek ? "—" : formatMinutes(weekWorkedMinutes)}</strong>
+          <span class="calendar-week-total-label">${isEmptyFutureWeek ? "À venir" : "Total"}</span>
+          ${isEmptyFutureWeek ? "" : `<strong class="calendar-week-total-overtime${weekOvertimeMinutes === 0 ? " is-zero" : ""}">${formatMinutes(weekOvertimeMinutes)} sup.</strong>`}
+        </aside>
+      `;
+      weekSummaryIndex += 1;
+      weekWorkedMinutes = 0;
+      weekTargetMinutes = 0;
+      weekOvertimeMinutes = 0;
+      return summaryHtml;
+    };
+    for (let cursor = new Date(gridStart), dayIndex = 0; cursor <= gridEnd; cursor = addDays(cursor, 1), dayIndex += 1) {
       const isoDate = formatIsoDate(cursor);
       const isInPeriod = cursor >= startDate && cursor <= endDate;
       if (!isInPeriod) {
         gridHtml += `<div class="calendar-day-filler" aria-hidden="true"><span>${cursor.getDate()}</span></div>`;
+        if ((dayIndex + 1) % 7 === 0) {
+          gridHtml += appendWeekSummary(cursor);
+        }
         continue;
       }
       const entry = entryMap.get(isoDate) || null;
+      weekWorkedMinutes += Number(entry?.worked_minutes || 0);
+      weekTargetMinutes += Number(entry?.target_minutes || 0);
+      weekOvertimeMinutes += Number(entry?.overtime_minutes || 0);
       const stateLabel = buildStateLabel(entry, isoDate, todayIso);
       const isToday = isoDate === todayIso;
       const isSelected = isoDate === selectedDate;
@@ -836,12 +986,16 @@
           </div>
         </button>
       `;
+      if ((dayIndex + 1) % 7 === 0) {
+        gridHtml += appendWeekSummary(cursor);
+      }
     }
     gridHtml += "</div>";
     board.innerHTML = `${weekdaysHtml}${gridHtml}`;
     syncSelectedCalendarCard();
     applyCalendarFilter();
     bindCalendarHoverTooltips();
+    window.dispatchEvent(new CustomEvent("hours:calendar-rendered"));
   }
 
   function notify() {
@@ -914,22 +1068,77 @@
     return data && data.settings ? data.settings : state.settings;
   }
 
-  async function savePatch(patch) {
-    const optimisticSettings = { ...state.settings, ...patch };
-    if (patch.notifications) {
-      optimisticSettings.notifications = patch.notifications;
+  function savePatch(patch) {
+    const runSave = async () => {
+      const optimisticSettings = { ...state.settings, ...patch };
+      if (patch.notifications) {
+        optimisticSettings.notifications = { ...(state.settings.notifications || {}), ...patch.notifications };
+      }
+      if (patch.onboarding) {
+        optimisticSettings.onboarding = patch.onboarding;
+      }
+      applySettings(optimisticSettings, state.settings);
+      const persistedSettings = await persistSettings(patch, false);
+      applySettings(persistedSettings, optimisticSettings);
+      emitToast({
+        type: "success",
+        message: "Préférences sauvegardees",
+      });
+      return deepClone(state.settings);
+    };
+
+    const request = settingsSaveQueue.then(runSave, runSave);
+    settingsSaveQueue = request.catch(() => {});
+    return request;
+  }
+
+  function getDefaultEndTimeForGoal(startTime, dailyGoal, pauseMinutes, fallbackTime) {
+    if (typeof startTime !== "string" || !/^\d{2}:\d{2}$/.test(startTime)) {
+      return fallbackTime;
     }
-    if (patch.onboarding) {
-      optimisticSettings.onboarding = patch.onboarding;
+    if (Math.max(0, Number(dailyGoal) || 0) === 0) {
+      return fallbackTime;
     }
-    applySettings(optimisticSettings, state.settings);
-    const persistedSettings = await persistSettings(patch, false);
-    applySettings(persistedSettings, optimisticSettings);
-    emitToast({
-      type: "success",
-      message: "Preferences sauvegardees",
-    });
-    return deepClone(state.settings);
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + Math.max(0, Number(dailyGoal) || 0) + Math.max(0, Number(pauseMinutes) || 0);
+    if (endMinutes >= 24 * 60) {
+      return fallbackTime;
+    }
+    return formatMinutes(endMinutes);
+  }
+
+  function getScheduledWorkMinutes(startTime, endTime, pauseMinutes) {
+    if (
+      typeof startTime !== "string" ||
+      typeof endTime !== "string" ||
+      !/^\d{2}:\d{2}$/.test(startTime) ||
+      !/^\d{2}:\d{2}$/.test(endTime)
+    ) {
+      return null;
+    }
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+    const duration = endHours * 60 + endMinutes - (startHours * 60 + startMinutes) - Math.max(0, Number(pauseMinutes) || 0);
+    return duration >= 0 ? duration : null;
+  }
+
+  function getLegacyDefaultEndTimeAlignment(settings) {
+    const dailyGoal = Math.max(0, Number(settings.dailyGoal || 0));
+    const scheduledMinutes = getScheduledWorkMinutes(
+      settings.defaultStartTime,
+      settings.defaultEndTime,
+      settings.defaultPause
+    );
+    if (dailyGoal === 0 || dailyGoal === 7 * 60 || scheduledMinutes !== 7 * 60) {
+      return "";
+    }
+    return getDefaultEndTimeForGoal(
+      settings.defaultStartTime,
+      dailyGoal,
+      settings.defaultPause,
+      settings.defaultEndTime
+    );
   }
 
   async function resetSettings() {
@@ -937,7 +1146,7 @@
     applySettings(persistedSettings, state.settings);
     emitToast({
       type: "success",
-      message: "Preferences reinitialisees",
+      message: "Préférences réinitialisées",
     });
     return deepClone(state.settings);
   }
@@ -951,18 +1160,44 @@
     if (key === "notifications" && subkey && element instanceof HTMLInputElement) {
       return {
         notifications: {
-          ...(state.settings.notifications || {}),
-          [subkey]: element.checked,
+          [subkey]: element.type === "checkbox" ? element.checked : Number(element.value),
         },
       };
     }
     if (key === "dailyGoal" && element instanceof HTMLInputElement) {
-      return { dailyGoal: parseMinutes(element.value, state.settings.dailyGoal) };
+      const dailyGoal = parseMinutes(element.value, state.settings.dailyGoal);
+      return {
+        dailyGoal,
+        defaultEndTime: getDefaultEndTimeForGoal(
+          state.settings.defaultStartTime,
+          dailyGoal,
+          state.settings.defaultPause,
+          state.settings.defaultEndTime
+        ),
+      };
+    }
+    if (key === "weeklyGoal" && element instanceof HTMLInputElement) {
+      const hours = Number(String(element.value).trim().replace(",", "."));
+      if (!Number.isFinite(hours)) {
+        return null;
+      }
+      const weeklyGoal = Math.max(60, Math.min(7 * 24 * 60, Math.round(hours * 60)));
+      const dailyGoal = Math.round(weeklyGoal / 5);
+      return {
+        weeklyGoal,
+        dailyGoal,
+        defaultEndTime: getDefaultEndTimeForGoal(
+          state.settings.defaultStartTime,
+          dailyGoal,
+          state.settings.defaultPause,
+          state.settings.defaultEndTime
+        ),
+      };
     }
     if (key === "defaultPause" && element instanceof HTMLInputElement) {
       return { defaultPause: parseMinutes(element.value, state.settings.defaultPause) };
     }
-    if (key === "compactMode" && element instanceof HTMLSelectElement) {
+    if (key === "compactMode" && "value" in element) {
       return { compactMode: element.value === "true" };
     }
     if ("value" in element) {
@@ -974,6 +1209,12 @@
   document.addEventListener("change", async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement) || !target.matches("[data-setting-key]")) {
+      return;
+    }
+    if (target instanceof HTMLInputElement && target.type === "radio" && !target.checked) {
+      return;
+    }
+    if (target.closest("[data-settings-form]")) {
       return;
     }
     const patch = buildPatchFromControl(target);
@@ -990,12 +1231,46 @@
       console.error(error);
       emitToast({
         type: "error",
-        message: "Impossible d'enregistrer les preferences",
+        message: "Impossible d'enregistrer les préférences",
       });
     }
   });
 
   document.addEventListener("click", async (event) => {
+    const saveSectionButton = event.target instanceof HTMLElement ? event.target.closest("[data-settings-save-section]") : null;
+    if (saveSectionButton) {
+      const sectionKey = saveSectionButton.dataset.settingsSaveSection || "";
+      // The desktop and mobile forms coexist in the DOM. Scope the save to the
+      // button's own section so a mobile save never collects hidden desktop fields.
+      const section = saveSectionButton.closest(`[data-settings-section="${sectionKey}"]`);
+      const fields = section ? Array.from(section.querySelectorAll("[data-setting-key]")) : [];
+      const patch = fields.reduce((nextPatch, field) => {
+        if (field instanceof HTMLInputElement && field.type === "radio" && !field.checked) {
+          return nextPatch;
+        }
+        const fieldPatch = buildPatchFromControl(field);
+        if (!fieldPatch) {
+          return nextPatch;
+        }
+        if (fieldPatch.notifications) {
+          nextPatch.notifications = { ...(nextPatch.notifications || state.settings.notifications || {}), ...fieldPatch.notifications };
+        } else {
+          Object.assign(nextPatch, fieldPatch);
+        }
+        return nextPatch;
+      }, {});
+      if (Object.keys(patch).length === 0) {
+        return;
+      }
+      try {
+        await savePatch(patch);
+      } catch (error) {
+        console.error(error);
+        emitToast({ type: "error", message: "Impossible d'enregistrer cette section" });
+      }
+      return;
+    }
+
     const resetButton = event.target instanceof HTMLElement ? event.target.closest("[data-settings-reset]") : null;
     if (resetButton) {
       try {
@@ -1004,7 +1279,7 @@
         console.error(error);
         emitToast({
           type: "error",
-          message: "Impossible de reinitialiser les preferences",
+          message: "Impossible de réinitialiser les préférences",
         });
       }
       return;
@@ -1053,6 +1328,14 @@
         closeCustomSelects();
         menu.hidden = !willOpen;
         customSelectTrigger.setAttribute("aria-expanded", String(willOpen));
+        if (willOpen) {
+          wrapper.classList.add("is-open");
+          if (isEntryDayTypeCustomSelect(wrapper)) {
+            positionEntryDayTypeMenu(wrapper, customSelectTrigger, menu);
+          } else {
+            positionCustomSelectMenu(wrapper, customSelectTrigger, menu);
+          }
+        }
       }
       return;
     }
@@ -1070,6 +1353,12 @@
       }
       if (genericMenu instanceof HTMLElement) {
         genericMenu.hidden = true;
+        genericMenu.classList.remove("is-dropup");
+        genericMenu.style.removeProperty("--app-custom-select-available-height");
+        genericMenu.style.removeProperty("--entry-day-type-menu-available-height");
+      }
+      if (wrapper instanceof HTMLElement) {
+        wrapper.classList.remove("is-open", "is-dropup");
       }
       if (genericTrigger instanceof HTMLElement) {
         genericTrigger.setAttribute("aria-expanded", "false");
@@ -1100,6 +1389,12 @@
     syncSelectedCalendarCard();
     updateCockpit();
   });
+
+  window.addEventListener("resize", positionOpenCustomSelects, { passive: true });
+  window.addEventListener("scroll", positionOpenCustomSelects, { capture: true, passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", positionOpenCustomSelects, { passive: true });
+  }
 
   document.addEventListener("change", async (event) => {
     const uploadInput = event.target instanceof HTMLElement ? event.target.closest("[data-settings-upload]") : null;
@@ -1231,4 +1526,10 @@
 
   ensureCustomSelects();
   applySettings(state.settings);
+  const alignedDefaultEndTime = getLegacyDefaultEndTimeAlignment(state.settings);
+  if (alignedDefaultEndTime && alignedDefaultEndTime !== state.settings.defaultEndTime) {
+    persistSettings({ defaultEndTime: alignedDefaultEndTime })
+      .then((settings) => applySettings(settings, state.settings))
+      .catch((error) => console.error(error));
+  }
 })();

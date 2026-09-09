@@ -14,6 +14,8 @@ const A4_LANDSCAPE_PAGE_WIDTH_POINTS = 841.89;
 const EXCEL_PIXELS_TO_POINTS = 0.75;
 const FOOTER_BOTTOM_GAP_POINTS = 10;
 const FOOTER_MIN_SPACING_POINTS = 24;
+const CLIENT_LOGO_MAX_WIDTH_PIXELS = 120;
+const CLIENT_LOGO_MAX_HEIGHT_PIXELS = 84;
 
 const PALETTE = {
   ink: "FF23313D",
@@ -321,6 +323,7 @@ function styleHeaderBand(worksheet, client, options = {}) {
   worksheet.mergeCells("A3:I3");
   worksheet.mergeCells("A4:I4");
   worksheet.mergeCells("J1:J4");
+  worksheet.getColumn(10).width = 18;
 
   ["A1", "A3", "A4", "J1"].forEach((address) => {
     const cell = worksheet.getCell(address);
@@ -533,6 +536,72 @@ function setupSheetLayout(worksheet, title) {
   };
 }
 
+function readImageDimensionsFromDataUrl(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:image\/(png|jpeg|jpg|gif);base64,([\s\S]+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const image = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (match[1].toLowerCase() === "png" && image.length >= 24 && image.toString("ascii", 1, 4) === "PNG") {
+    return { width: image.readUInt32BE(16), height: image.readUInt32BE(20) };
+  }
+  if (
+    match[1].toLowerCase() === "gif" &&
+    image.length >= 10 &&
+    (image.toString("ascii", 0, 6) === "GIF87a" || image.toString("ascii", 0, 6) === "GIF89a")
+  ) {
+    return { width: image.readUInt16LE(6), height: image.readUInt16LE(8) };
+  }
+  if (image.length < 9 || image[0] !== 0xff || image[1] !== 0xd8) {
+    return null;
+  }
+
+  let offset = 2;
+  while (offset + 8 < image.length) {
+    if (image[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    const marker = image[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9) {
+      continue;
+    }
+    if (offset + 2 > image.length) {
+      return null;
+    }
+    const segmentLength = image.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > image.length) {
+      return null;
+    }
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      return {
+        height: image.readUInt16BE(offset + 3),
+        width: image.readUInt16BE(offset + 5),
+      };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+function getClientLogoDisplayDimensions(dataUrl) {
+  const source = readImageDimensionsFromDataUrl(dataUrl);
+  if (!source || !source.width || !source.height) {
+    return { width: CLIENT_LOGO_MAX_HEIGHT_PIXELS, height: CLIENT_LOGO_MAX_HEIGHT_PIXELS };
+  }
+  const scale = Math.min(
+    CLIENT_LOGO_MAX_WIDTH_PIXELS / source.width,
+    CLIENT_LOGO_MAX_HEIGHT_PIXELS / source.height,
+    1
+  );
+  return {
+    width: Math.max(1, Math.round(source.width * scale)),
+    height: Math.max(1, Math.round(source.height * scale)),
+  };
+}
+
 function maybeAddClientLogo(workbook, worksheet, client) {
   const dataUrl = typeof client.company_logo === "string" ? client.company_logo.trim() : "";
   const match = dataUrl.match(/^data:image\/(png|jpeg|jpg|gif);base64,/i);
@@ -544,9 +613,10 @@ function maybeAddClientLogo(workbook, worksheet, client) {
     base64: dataUrl,
     extension,
   });
+  const size = getClientLogoDisplayDimensions(dataUrl);
   worksheet.addImage(imageId, {
-    tl: { col: 8.75, row: 0.35 },
-    br: { col: 9.85, row: 3.6 },
+    tl: { col: 9.05, row: 0.25 },
+    ext: size,
   });
   return true;
 }

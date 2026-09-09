@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hours App</title>
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <section id="login-view" class="login-view" aria-labelledby="login-title">
+      <div class="brand-mark">H</div><p class="eyebrow">HOURS APP</p><h1 id="login-title">Votre temps,<br>clairement.</h1>
+      <form id="login-form" class="surface"><label>Utilisateur<input name="username" autocomplete="username" required></label><label>Mot de passe<input name="password" type="password" autocomplete="current-password" required></label><p id="login-error" class="error" aria-live="polite"></p><button id="login-submit" type="submit">Connexion</button></form>
+    </section>
+    <section id="workspace-view" hidden>
+      <header><span class="brand">HOURS</span><button id="logout-button" aria-label="Se déconnecter">Déconnexion</button><p id="user-name"></p></header>
+      <div class="content"><label class="client-label">Client<select id="client-select"></select></label><div class="month-nav"><button id="previous-month" aria-label="Mois précédent">‹</button><h1 id="month-label"></h1><button id="next-month" aria-label="Mois suivant">›</button></div><p id="workspace-status" aria-live="polite"></p><section id="month-summary" class="summary"></section><section id="calendar-days" class="days" aria-label="Calendrier"></section></div>
+      <nav aria-label="Navigation principale"><button disabled>Aujourd'hui</button><button class="active">Calendrier</button><button disabled>Réglages</button></nav>
+    </section>
+    <section id="network-view" class="login-view" hidden><div class="surface"><h1>Serveur indisponible</h1><p id="network-message">Impossible de joindre le serveur.</p><button id="retry-button" type="button">Réessayer</button></div></section>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

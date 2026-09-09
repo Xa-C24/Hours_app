@@ -51,21 +51,21 @@ test("missing-entry notification is created for an expected workday without entr
   assert.equal(notifications[0].id, "missing-entry:2026-08-18");
 });
 
-test("goal reached notification reuses the existing daily goal threshold", () => {
+test("incomplete entry notification detects a partial workday", () => {
   const notifications = buildNotifications({
     entries: [
       {
-        work_date: "2026-08-19",
-        worked_minutes: 450,
-        worked_hhmm: "07:30",
+        work_date: "2026-08-18",
+        day_type: "office",
+        arrival_time: "09:00",
+        departure_time: "",
       },
     ],
     settings: {
       dailyGoal: 420,
       notifications: {
         missingEntry: false,
-        goalReached: true,
-        weeklySummary: false,
+        incompleteEntry: true,
       },
     },
     todayIso: "2026-08-19",
@@ -74,19 +74,22 @@ test("goal reached notification reuses the existing daily goal threshold", () =>
     drafts: [],
   });
 
-  assert.equal(notifications[0].category, "goalReached");
-  assert.match(notifications[0].message, /07:30/);
+  assert.equal(notifications[0].category, "incompleteEntry");
+  assert.match(notifications[0].message, /incomplets ou incohérents/);
 });
 
-test("disabled preference prevents notifications", () => {
+test("disabled préférence prevents notifications", () => {
   const notifications = buildNotifications({
     entries: [],
     settings: {
       dailyGoal: 420,
       notifications: {
         missingEntry: false,
-        goalReached: false,
-        weeklySummary: false,
+        incompleteEntry: false,
+        weeklyRisk: false,
+        weeklyOvertime: false,
+        periodEnding: false,
+        unsavedDraft: false,
       },
     },
     todayIso: "2026-08-19",
@@ -121,7 +124,7 @@ test("read-state store supports unread badge and mark as read flows", () => {
   assert.equal(storage.getItem(key), JSON.stringify(["n1", "n2"]));
 });
 
-test("weekly summary appears on Friday only when enabled", () => {
+test("weekly risk appears on Friday when the weekly objective is not reached", () => {
   const notifications = buildNotifications({
     entries: [
       { work_date: "2026-08-17", worked_minutes: 420, is_worked_day: true },
@@ -134,8 +137,7 @@ test("weekly summary appears on Friday only when enabled", () => {
       dailyGoal: 420,
       notifications: {
         missingEntry: false,
-        goalReached: false,
-        weeklySummary: true,
+        weeklyRisk: true,
       },
     },
     todayIso: "2026-08-21",
@@ -144,8 +146,90 @@ test("weekly summary appears on Friday only when enabled", () => {
     drafts: [],
   });
 
-  assert.equal(notifications[0].category, "weeklySummary");
-  assert.match(notifications[0].message, /Il reste 01:00/);
+  assert.equal(notifications[0].category, "weeklyRisk");
+  assert.match(notifications[0].message, /00:60|01:00/);
+});
+
+test("weekly overtime uses the configured threshold and elapsed workdays", () => {
+  const notifications = buildNotifications({
+    entries: [
+      { work_date: "2026-08-17", worked_minutes: 450, is_worked_day: true },
+      { work_date: "2026-08-18", worked_minutes: 450, is_worked_day: true },
+    ],
+    settings: {
+      dailyGoal: 420,
+      notifications: {
+        weeklyOvertime: true,
+        weeklyOvertimeThreshold: 30,
+      },
+    },
+    todayIso: "2026-08-18",
+    payPeriodStartDate: "2026-08-17",
+    payPeriodEndDate: "2026-08-31",
+    drafts: [],
+  });
+
+  assert.equal(notifications[0].category, "weeklyOvertime");
+  assert.match(notifications[0].message, /01:00/);
+});
+
+test("period ending notification lists pending workdays two days before closing", () => {
+  const notifications = buildNotifications({
+    entries: [],
+    settings: {
+      dailyGoal: 420,
+      notifications: {
+        periodEnding: true,
+      },
+    },
+    todayIso: "2026-08-19",
+    payPeriodStartDate: "2026-08-17",
+    payPeriodEndDate: "2026-08-21",
+    drafts: [],
+  });
+
+  assert.equal(notifications[0].category, "periodEnding");
+  assert.match(notifications[0].message, /2 journées à compléter/);
+});
+
+test("an incomplete draft replaces the generic unsaved draft notification", () => {
+  const notifications = buildNotifications({
+    entries: [],
+    settings: {
+      dailyGoal: 420,
+      notifications: {
+        incompleteEntry: true,
+        unsavedDraft: true,
+      },
+    },
+    todayIso: "2026-08-19",
+    payPeriodStartDate: "2026-08-17",
+    payPeriodEndDate: "2026-08-31",
+    drafts: [{ workDate: "2026-08-19", dayType: "office", arrivalTime: "09:00", departureTime: "" }],
+  });
+
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].id, "incomplete-draft:2026-08-19");
+});
+
+test("a complete draft creates an unsaved draft notification", () => {
+  const notifications = buildNotifications({
+    entries: [],
+    settings: {
+      dailyGoal: 420,
+      notifications: {
+        incompleteEntry: true,
+        unsavedDraft: true,
+      },
+    },
+    todayIso: "2026-08-19",
+    payPeriodStartDate: "2026-08-17",
+    payPeriodEndDate: "2026-08-31",
+    drafts: [{ workDate: "2026-08-19", dayType: "office", arrivalTime: "09:00", departureTime: "17:00", lunchBreakMinutes: 60 }],
+  });
+
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].category, "draft");
 });
 
 test("weekday detection follows the existing calendar rule", () => {

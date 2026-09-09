@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "hours-static-v8";
+const STATIC_CACHE_NAME = "hours-static-v10";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
   "/icon.svg",
   "/ApH192x192.png",
   "/ApH512x512.png",
+  "/ApH180x180.png",
   "/ApH32x32.png",
   "/hours.png",
 ];
@@ -49,6 +50,23 @@ function getObsoleteCacheKeys(cacheKeys, activeCacheName = STATIC_CACHE_NAME) {
 async function serveStaticAsset(request) {
   const cache = await caches.open(STATIC_CACHE_NAME);
   const cachedResponse = await cache.match(request);
+  const isLocalDevelopment = ["localhost", "127.0.0.1", "::1"].includes(self.location.hostname);
+
+  if (isLocalDevelopment) {
+    try {
+      const response = await fetch(request);
+      if (response && response.status === 200 && response.type === "basic") {
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch (error) {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      throw error;
+    }
+  }
+
   if (cachedResponse) {
     return cachedResponse;
   }

@@ -63,6 +63,27 @@ async function initializeDatabase() {
         `);
 
         await client.query(`
+          CREATE TABLE IF NOT EXISTS mobile_auth_tokens (
+            token_hash TEXT PRIMARY KEY,
+            username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
+            expires_at_ms BIGINT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_used_at TIMESTAMPTZ,
+            revoked_at TIMESTAMPTZ
+          )
+        `);
+
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_username
+            ON mobile_auth_tokens (username)
+        `);
+
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_expires_at_ms
+            ON mobile_auth_tokens (expires_at_ms)
+        `);
+
+        await client.query(`
           CREATE TABLE IF NOT EXISTS clients (
             id BIGSERIAL PRIMARY KEY,
             username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
@@ -653,6 +674,59 @@ async function deleteExpiredSessions(nowMs) {
   await pool.query(`DELETE FROM sessions WHERE expires_at_ms <= $1`, [nowMs]);
 }
 
+async function createMobileAuthToken(token) {
+  await initializeDatabase();
+  await pool.query(
+    `
+      INSERT INTO mobile_auth_tokens (token_hash, username, expires_at_ms, created_at, last_used_at)
+      VALUES ($1, $2, $3, $4, $4)
+    `,
+    [token.token_hash, token.username, token.expires_at_ms, nowIsoString()]
+  );
+}
+
+async function getMobileAuthTokenByHash(tokenHash) {
+  await initializeDatabase();
+  const result = await pool.query(
+    `
+      SELECT token_hash, username, expires_at_ms, revoked_at
+      FROM mobile_auth_tokens
+      WHERE token_hash = $1
+    `,
+    [tokenHash]
+  );
+  return result.rows[0] || null;
+}
+
+async function touchMobileAuthToken(tokenHash) {
+  await initializeDatabase();
+  await pool.query(
+    `UPDATE mobile_auth_tokens SET last_used_at = $2 WHERE token_hash = $1`,
+    [tokenHash, nowIsoString()]
+  );
+}
+
+async function revokeMobileAuthToken(tokenHash) {
+  await initializeDatabase();
+  await pool.query(
+    `UPDATE mobile_auth_tokens SET revoked_at = $2 WHERE token_hash = $1 AND revoked_at IS NULL`,
+    [tokenHash, nowIsoString()]
+  );
+}
+
+async function revokeMobileAuthTokensByUsername(username) {
+  await initializeDatabase();
+  await pool.query(
+    `UPDATE mobile_auth_tokens SET revoked_at = $2 WHERE username = $1 AND revoked_at IS NULL`,
+    [username, nowIsoString()]
+  );
+}
+
+async function deleteExpiredMobileAuthTokens(nowMs) {
+  await initializeDatabase();
+  await pool.query(`DELETE FROM mobile_auth_tokens WHERE expires_at_ms <= $1`, [nowMs]);
+}
+
 async function healthCheck() {
   await initializeDatabase();
   const result = await pool.query("SELECT 1 AS ok");
@@ -690,5 +764,11 @@ module.exports = {
   getSessionByToken,
   deleteSession,
   deleteExpiredSessions,
+  createMobileAuthToken,
+  getMobileAuthTokenByHash,
+  touchMobileAuthToken,
+  revokeMobileAuthToken,
+  revokeMobileAuthTokensByUsername,
+  deleteExpiredMobileAuthTokens,
   healthCheck,
 };

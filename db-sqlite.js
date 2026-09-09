@@ -50,6 +50,22 @@ CREATE INDEX IF NOT EXISTS idx_sessions_username
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at_ms
   ON sessions (expires_at_ms);
+
+CREATE TABLE IF NOT EXISTS mobile_auth_tokens (
+  token_hash TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  expires_at_ms INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  revoked_at TEXT,
+  FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_username
+  ON mobile_auth_tokens (username);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_expires_at_ms
+  ON mobile_auth_tokens (expires_at_ms);
 `;
 
 const clientsSchemaSql = `
@@ -944,6 +960,45 @@ function deleteExpiredSessions(nowMs) {
   deleteExpiredSessionsStmt.run(nowMs);
 }
 
+function createMobileAuthToken(token) {
+  authDb.prepare(`
+    INSERT INTO mobile_auth_tokens (token_hash, username, expires_at_ms, created_at, last_used_at)
+    VALUES (@token_hash, @username, @expires_at_ms, datetime('now'), datetime('now'))
+  `).run(token);
+}
+
+function getMobileAuthTokenByHash(tokenHash) {
+  return authDb.prepare(`
+    SELECT token_hash, username, expires_at_ms, revoked_at
+    FROM mobile_auth_tokens
+    WHERE token_hash = ?
+  `).get(tokenHash) || null;
+}
+
+function touchMobileAuthToken(tokenHash) {
+  authDb.prepare(`UPDATE mobile_auth_tokens SET last_used_at = datetime('now') WHERE token_hash = ?`).run(tokenHash);
+}
+
+function revokeMobileAuthToken(tokenHash) {
+  authDb.prepare(`
+    UPDATE mobile_auth_tokens
+    SET revoked_at = datetime('now')
+    WHERE token_hash = ? AND revoked_at IS NULL
+  `).run(tokenHash);
+}
+
+function revokeMobileAuthTokensByUsername(username) {
+  authDb.prepare(`
+    UPDATE mobile_auth_tokens
+    SET revoked_at = datetime('now')
+    WHERE username = ? AND revoked_at IS NULL
+  `).run(username);
+}
+
+function deleteExpiredMobileAuthTokens(nowMs) {
+  authDb.prepare(`DELETE FROM mobile_auth_tokens WHERE expires_at_ms <= ?`).run(nowMs);
+}
+
 async function healthCheck() {
   const row = authDb.prepare("SELECT 1 AS ok").get();
   return {
@@ -980,5 +1035,11 @@ module.exports = {
   getSessionByToken,
   deleteSession,
   deleteExpiredSessions,
+  createMobileAuthToken,
+  getMobileAuthTokenByHash,
+  touchMobileAuthToken,
+  revokeMobileAuthToken,
+  revokeMobileAuthTokensByUsername,
+  deleteExpiredMobileAuthTokens,
   healthCheck,
 };

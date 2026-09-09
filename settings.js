@@ -2,6 +2,7 @@ const SETTING_KEYS = [
   "theme",
   "accentColor",
   "dailyGoal",
+  "weeklyGoal",
   "defaultPause",
   "defaultStartTime",
   "defaultEndTime",
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS = {
   theme: "light",
   accentColor: "amber",
   dailyGoal: 7 * 60,
+  weeklyGoal: 0,
   defaultPause: 60,
   defaultStartTime: "09:00",
   defaultEndTime: "17:00",
@@ -44,9 +46,12 @@ const DEFAULT_SETTINGS = {
   fontSize: "comfort",
   notifications: {
     missingEntry: true,
-    goalReached: true,
-    weeklySummary: false,
-    productNews: false,
+    incompleteEntry: true,
+    weeklyRisk: true,
+    weeklyOvertime: true,
+    weeklyOvertimeThreshold: 120,
+    periodEnding: true,
+    unsavedDraft: true,
   },
   exportFilenamePattern: "hours_{client}_{month}",
   exportSignature: "",
@@ -66,6 +71,9 @@ const THEMES = [
   "orange-sunset",
   "forest-green",
   "light-green",
+  "bordeaux-night",
+  "lavender-mist",
+  "obsidian-gold",
   "robot",
 ];
 
@@ -129,6 +137,11 @@ function normalizeDailyGoal(value) {
   return Math.max(0, Math.min(24 * 60, normalized));
 }
 
+function normalizeWeeklyGoal(value) {
+  const normalized = parseMinutesValue(value, DEFAULT_SETTINGS.weeklyGoal);
+  return Math.max(0, Math.min(7 * 24 * 60, normalized));
+}
+
 function normalizeDefaultPause(value) {
   const normalized = parseMinutesValue(value, DEFAULT_SETTINGS.defaultPause);
   return Math.max(0, Math.min(24 * 60, normalized));
@@ -139,9 +152,15 @@ function normalizeNotifications(value) {
     value && typeof value === "object" && !Array.isArray(value) ? value : DEFAULT_SETTINGS.notifications;
   return {
     missingEntry: normalizeBoolean(input.missingEntry, DEFAULT_SETTINGS.notifications.missingEntry),
-    goalReached: normalizeBoolean(input.goalReached, DEFAULT_SETTINGS.notifications.goalReached),
-    weeklySummary: normalizeBoolean(input.weeklySummary, DEFAULT_SETTINGS.notifications.weeklySummary),
-    productNews: normalizeBoolean(input.productNews, DEFAULT_SETTINGS.notifications.productNews),
+    incompleteEntry: normalizeBoolean(input.incompleteEntry, DEFAULT_SETTINGS.notifications.incompleteEntry),
+    weeklyRisk: normalizeBoolean(input.weeklyRisk, DEFAULT_SETTINGS.notifications.weeklyRisk),
+    weeklyOvertime: normalizeBoolean(input.weeklyOvertime, DEFAULT_SETTINGS.notifications.weeklyOvertime),
+    weeklyOvertimeThreshold: Math.max(
+      15,
+      Math.min(24 * 60, parseMinutesValue(input.weeklyOvertimeThreshold, DEFAULT_SETTINGS.notifications.weeklyOvertimeThreshold))
+    ),
+    periodEnding: normalizeBoolean(input.periodEnding, DEFAULT_SETTINGS.notifications.periodEnding),
+    unsavedDraft: normalizeBoolean(input.unsavedDraft, DEFAULT_SETTINGS.notifications.unsavedDraft),
   };
 }
 
@@ -189,6 +208,8 @@ function normalizeSettingValue(key, value) {
       return normalizeChoice(value, ACCENT_COLORS, DEFAULT_SETTINGS.accentColor);
     case "dailyGoal":
       return normalizeDailyGoal(value);
+    case "weeklyGoal":
+      return normalizeWeeklyGoal(value);
     case "defaultPause":
       return normalizeDefaultPause(value);
     case "defaultStartTime":

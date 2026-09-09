@@ -68,6 +68,7 @@
     contractType: root.querySelector('[data-onboarding-field="contractType"]'),
     firstDayOfWeek: root.querySelector('[data-onboarding-field="firstDayOfWeek"]'),
     dailyGoal: root.querySelector('[data-onboarding-field="dailyGoal"]'),
+    weeklyGoalHours: root.querySelector('[data-onboarding-field="weeklyGoalHours"]'),
     defaultStartTime: root.querySelector('[data-onboarding-field="defaultStartTime"]'),
     defaultEndTime: root.querySelector('[data-onboarding-field="defaultEndTime"]'),
     defaultPause: root.querySelector('[data-onboarding-field="defaultPause"]'),
@@ -114,6 +115,10 @@
     }
     if (fieldMap.dailyGoal) {
       fieldMap.dailyGoal.value = formatMinutes(settings.dailyGoal);
+    }
+    if (fieldMap.weeklyGoalHours) {
+      const weeklyGoalMinutes = Math.max(0, Number(settings.weeklyGoal || (settings.dailyGoal * 5)));
+      fieldMap.weeklyGoalHours.value = String(Math.round((weeklyGoalMinutes / 60) * 100) / 100);
     }
     if (fieldMap.defaultStartTime) {
       fieldMap.defaultStartTime.value = settings.defaultStartTime || "09:00";
@@ -253,6 +258,14 @@
     switch (key) {
       case "dailyGoal":
         return { dailyGoal: parseMinutes(value, settings.dailyGoal) };
+      case "weeklyGoalHours": {
+        const hours = Number(String(value).trim().replace(",", "."));
+        if (!Number.isFinite(hours)) {
+          return null;
+        }
+        const weeklyGoal = Math.max(60, Math.min(7 * 24 * 60, Math.round(hours * 60)));
+        return { weeklyGoal, dailyGoal: Math.round(weeklyGoal / 5) };
+      }
       case "defaultPause":
         return { defaultPause: parseMinutes(value, settings.defaultPause) };
       case "profileName":
@@ -333,7 +346,10 @@
       if (!patch) {
         return;
       }
-      if (key === "dailyGoal" || key === "defaultPause" || key === "defaultStartTime" || key === "defaultEndTime") {
+      if (key === "weeklyGoalHours" && patch && fieldMap.dailyGoal) {
+        fieldMap.dailyGoal.value = formatMinutes(patch.dailyGoal);
+      }
+      if (key === "dailyGoal" || key === "weeklyGoalHours" || key === "defaultPause" || key === "defaultStartTime" || key === "defaultEndTime") {
         updateLivePreview();
       }
       scheduleSave(() => patch);

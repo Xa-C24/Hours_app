@@ -5,6 +5,7 @@ const {
   DEFAULT_SETTINGS,
   normalizeSettings,
   normalizeSettingsPatch,
+  mergeSettings,
   formatMinutesAsHHMM,
 } = require("../settings");
 
@@ -13,6 +14,7 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
     theme: "unknown",
     accentColor: "steel",
     dailyGoal: "07:30",
+    weeklyGoal: 1500,
     defaultPause: "-15",
     defaultStartTime: "08:45",
     defaultEndTime: "99:00",
@@ -27,13 +29,14 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
     exportSignature: "  Alice Martin  ",
     notifications: {
       missingEntry: 0,
-      goalReached: "yes",
+      weeklyOvertimeThreshold: "invalid",
     },
   });
 
   assert.equal(result.theme, DEFAULT_SETTINGS.theme);
   assert.equal(result.accentColor, "steel");
   assert.equal(result.dailyGoal, 450);
+  assert.equal(result.weeklyGoal, 1500);
   assert.equal(result.defaultPause, 0);
   assert.equal(result.defaultStartTime, "08:45");
   assert.equal(result.defaultEndTime, DEFAULT_SETTINGS.defaultEndTime);
@@ -49,9 +52,12 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
   assert.equal(result.exportSignature, "Alice Martin");
   assert.deepEqual(result.notifications, {
     missingEntry: false,
-    goalReached: true,
-    weeklySummary: false,
-    productNews: false,
+    incompleteEntry: true,
+    weeklyRisk: true,
+    weeklyOvertime: true,
+    weeklyOvertimeThreshold: 120,
+    periodEnding: true,
+    unsavedDraft: true,
   });
   assert.deepEqual(result.onboarding, {
     status: "not_started",
@@ -64,20 +70,38 @@ test("normalizeSettings keeps defaults and sanitizes invalid values", () => {
 test("normalizeSettingsPatch only returns provided keys", () => {
   const result = normalizeSettingsPatch({
     defaultPause: "45",
+    weeklyGoal: 1500,
     notifications: {
-      weeklySummary: true,
+      weeklyOvertimeThreshold: 135,
     },
   });
 
   assert.deepEqual(result, {
     defaultPause: 45,
+    weeklyGoal: 1500,
     notifications: {
       missingEntry: true,
-      goalReached: true,
-      weeklySummary: true,
-      productNews: false,
+      incompleteEntry: true,
+      weeklyRisk: true,
+      weeklyOvertime: true,
+      weeklyOvertimeThreshold: 135,
+      periodEnding: true,
+      unsavedDraft: true,
     },
   });
+});
+
+test("mergeSettings preserves a partial notification preference", () => {
+  const result = normalizeSettings(
+    mergeSettings(DEFAULT_SETTINGS, {
+      notifications: {
+        weeklyOvertimeThreshold: 110,
+      },
+    })
+  );
+
+  assert.equal(result.notifications.weeklyOvertimeThreshold, 110);
+  assert.equal(result.notifications.missingEntry, true);
 });
 
 test("normalizeSettingsPatch sanitizes onboarding and profile fields", () => {
@@ -114,6 +138,18 @@ test("normalizeSettingsPatch sanitizes onboarding and profile fields", () => {
       completedAt: "2026-07-09T12:00:00.000Z",
       skippedAt: "",
     },
+  });
+});
+
+test("normalizeSettingsPatch accepts the extended theme palette", () => {
+  assert.deepEqual(normalizeSettingsPatch({ theme: "bordeaux-night" }), {
+    theme: "bordeaux-night",
+  });
+  assert.deepEqual(normalizeSettingsPatch({ theme: "lavender-mist" }), {
+    theme: "lavender-mist",
+  });
+  assert.deepEqual(normalizeSettingsPatch({ theme: "obsidian-gold" }), {
+    theme: "obsidian-gold",
   });
 });
 

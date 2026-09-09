@@ -22,10 +22,119 @@
     };
   }
 
+  function bindPayPeriodMonthAutoSubmit(monthInput, options = {}) {
+    const loadingStatus = options.loadingStatus || null;
+    const scrollRestoreApi = options.scrollRestoreApi || null;
+    const getScrollY = typeof options.getScrollY === "function" ? options.getScrollY : () => window.scrollY;
+    let isSubmitting = false;
+
+    if (!monthInput || typeof monthInput.addEventListener !== "function") {
+      return null;
+    }
+
+    const handlePayPeriodMonthChange = () => {
+      if (isSubmitting || !monthInput.value || !monthInput.checkValidity()) {
+        return;
+      }
+
+      const form = monthInput.closest("form");
+      if (!form || String(form.method || "").toLowerCase() !== "get") {
+        return;
+      }
+
+      isSubmitting = true;
+      form.setAttribute("aria-busy", "true");
+      if (loadingStatus) {
+        loadingStatus.hidden = false;
+      }
+
+      try {
+        if (scrollRestoreApi && typeof scrollRestoreApi.save === "function") {
+          scrollRestoreApi.save({
+            target:
+              scrollRestoreApi.targets && scrollRestoreApi.targets.payPeriod
+                ? scrollRestoreApi.targets.payPeriod
+                : "pay-period",
+            scrollY: getScrollY(),
+            savedAt: Date.now(),
+          });
+        }
+      } catch (error) {
+        // Continue with native navigation when session storage is unavailable.
+      }
+
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+        return;
+      }
+      form.submit();
+    };
+
+    monthInput.addEventListener("change", handlePayPeriodMonthChange);
+    return handlePayPeriodMonthChange;
+  }
+
+  function bindPayPeriodCalendarNavigationRestore(controls, options = {}) {
+    const scrollRestoreApi = options.scrollRestoreApi || null;
+    const getScrollY = typeof options.getScrollY === "function" ? options.getScrollY : () => window.scrollY;
+    const pageLifecycle = options.pageLifecycle || (typeof window !== "undefined" ? window : null);
+    let isNavigationPending = false;
+
+    const resetNavigationPending = () => {
+      isNavigationPending = false;
+    };
+
+    const savePayPeriodScrollRestore = () => {
+      if (!scrollRestoreApi || typeof scrollRestoreApi.save !== "function") {
+        return;
+      }
+      try {
+        scrollRestoreApi.save({
+          target:
+            scrollRestoreApi.targets && scrollRestoreApi.targets.payPeriod
+              ? scrollRestoreApi.targets.payPeriod
+              : "pay-period",
+          scrollY: getScrollY(),
+          savedAt: Date.now(),
+        });
+      } catch (error) {
+        // Keep the existing link navigation when session storage is unavailable.
+      }
+    };
+
+    Array.from(controls || []).forEach((control) => {
+      if (!control || typeof control.addEventListener !== "function") {
+        return;
+      }
+      control.addEventListener("click", (event) => {
+        if (isNavigationPending) {
+          event.preventDefault();
+          return;
+        }
+        isNavigationPending = true;
+        savePayPeriodScrollRestore();
+      }, true);
+      control.addEventListener("keydown", (event) => {
+        if (event.key !== " " && event.key !== "Spacebar") {
+          return;
+        }
+        event.preventDefault();
+        control.click();
+      });
+    });
+
+    if (pageLifecycle && typeof pageLifecycle.addEventListener === "function") {
+      // A bfcache restore resumes this script instance instead of recreating it.
+      pageLifecycle.addEventListener("pageshow", resetNavigationPending);
+    }
+  }
+
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
       createMonthCacheKey,
       createMonthCacheStore,
+      bindPayPeriodMonthAutoSubmit,
+      bindPayPeriodCalendarNavigationRestore,
     };
   }
 
@@ -61,6 +170,11 @@
   const dayDetailsModal = document.querySelector("[data-day-details-modal]");
   const dayDetailsContent = document.querySelector("[data-day-details-content]");
   const closeDayDetailsButtons = Array.from(document.querySelectorAll("[data-close-day-details-modal]"));
+  const weekSummaryModal = document.querySelector("[data-week-summary-modal]");
+  const weekSummaryContent = document.querySelector("[data-week-summary-content]");
+  const weekSummarySubtitle = document.querySelector("[data-week-summary-subtitle]");
+  const closeWeekSummaryButtons = Array.from(document.querySelectorAll("[data-close-week-summary-modal]"));
+  const boundWeekSummaryCards = new WeakSet();
   const entriesByDate = new Map((bootstrap.entries || []).map((entry) => [entry.work_date, entry]));
   const desktopDefaultPanel = "calendar";
   const DAY_TYPE_OPTIONS = [
@@ -76,6 +190,7 @@
   );
   let desktopActivePanel = desktopDefaultPanel;
   let lastFocusedElement = null;
+  let lastWeekSummaryFocusedElement = null;
 
   function activateMobileView(viewButton) {
     if (viewButton) {
@@ -169,6 +284,96 @@
       .replaceAll("'", "&#39;");
   }
 
+  function readWeekSummaryData() {
+    const node = document.getElementById("calendar-week-modal-data");
+    if (!node) {
+      return [];
+    }
+    try {
+      const payload = JSON.parse(node.textContent || "[]");
+      return Array.isArray(payload) ? payload : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  const weekSummaryData = readWeekSummaryData();
+
+  function formatWeekSummaryValue(value) {
+    if (value === null || value === undefined || value === "" || value === "undefined" || value === "null") {
+      return "—";
+    }
+    return String(value);
+  }
+
+  function formatWeekSummaryRange(startDate, endDate) {
+    const start = new Date(`${startDate}T12:00:00`);
+    const end = new Date(`${endDate}T12:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return `${formatWeekSummaryValue(startDate)} → ${formatWeekSummaryValue(endDate)}`;
+    }
+    const startLabel = start.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    const endLabel = end.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    return `${startLabel} → ${endLabel}`;
+  }
+
+  function buildWeekSummaryMarkup(week) {
+    const rows = (week.days || []).map((day) => {
+      const overtime = formatWeekSummaryValue(day.overtimeHHMM);
+      const hasOvertime = overtime !== "—" && overtime !== "00:00";
+      return `
+      <tr class="is-${escapeHtml(day.stateTone || "empty")}">
+        <th scope="row">${escapeHtml(formatWeekSummaryValue(day.weekdayLabel))}</th><td>${escapeHtml(formatWeekSummaryValue(day.dateLabel))}</td><td><span class="week-summary-type-pill">${escapeHtml(formatWeekSummaryValue(day.typeLabel))}</span></td>
+        <td class="week-summary-time">${escapeHtml(formatWeekSummaryValue(day.arrival))}</td><td class="week-summary-time">${escapeHtml(formatWeekSummaryValue(day.departure))}</td><td class="week-summary-time">${escapeHtml(formatWeekSummaryValue(day.pause))}</td>
+        <td class="week-summary-time week-summary-worked">${escapeHtml(formatWeekSummaryValue(day.workedHHMM))}</td><td class="week-summary-time${hasOvertime ? " is-overtime" : ""}">${hasOvertime ? "+" : ""}${escapeHtml(overtime)}</td><td class="week-summary-time">${escapeHtml(formatWeekSummaryValue(day.recoveredHHMM))}</td>
+      </tr>`;
+    }).join("");
+    const mobileRows = (week.days || []).map((day) => {
+      const overtime = formatWeekSummaryValue(day.overtimeHHMM);
+      const hasOvertime = overtime !== "—" && overtime !== "00:00";
+      return `
+      <article class="week-summary-day-card is-${escapeHtml(day.stateTone || "empty")}">
+        <div class="week-summary-day-card-head"><strong>${escapeHtml(formatWeekSummaryValue(day.weekdayLabel))} · ${escapeHtml(formatWeekSummaryValue(day.dateLabel))}</strong><span class="week-summary-type-pill">${escapeHtml(formatWeekSummaryValue(day.typeLabel))}</span></div>
+        <span class="week-summary-day-schedule">${escapeHtml(formatWeekSummaryValue(day.arrival))} → ${escapeHtml(formatWeekSummaryValue(day.departure))} <small>Pause ${escapeHtml(formatWeekSummaryValue(day.pause))}</small></span>
+        <div class="week-summary-day-metrics"><span>Heures <strong>${escapeHtml(formatWeekSummaryValue(day.workedHHMM))}</strong></span><span class="${hasOvertime ? "is-overtime" : ""}">Sup. <strong>${hasOvertime ? "+" : ""}${escapeHtml(overtime)}</strong></span><span>Récup. <strong>${escapeHtml(formatWeekSummaryValue(day.recoveredHHMM))}</strong></span></div>
+      </article>`;
+    }).join("");
+    return `
+      <div class="week-summary-table-wrap"><table class="week-summary-table"><thead><tr><th>Jour</th><th>Date</th><th>Type</th><th>Arrivée</th><th>Départ</th><th>Pause</th><th>Heures</th><th>Sup.</th><th>Récup.</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="week-summary-mobile-list">${mobileRows}</div>
+      <div class="week-summary-totals"><article class="is-total-worked"><span>Total heures</span><strong>${escapeHtml(formatWeekSummaryValue(week.totalWorkedHHMM))}</strong></article><article class="is-total-overtime"><span>Total heures sup.</span><strong>${escapeHtml(formatWeekSummaryValue(week.totalOvertimeHHMM))}</strong></article><article><span>Total récupération</span><strong>${escapeHtml(formatWeekSummaryValue(week.totalRecoveredHHMM))}</strong></article><article><span>Jours travaillés</span><strong>${escapeHtml(formatWeekSummaryValue(week.workedDayCount))}</strong></article></div>`;
+  }
+
+  function openWeekSummaryModal(index, trigger) {
+    const week = weekSummaryData[Number(index)];
+    if (!weekSummaryModal || !weekSummaryContent || !week) {
+      return;
+    }
+    lastWeekSummaryFocusedElement = trigger instanceof HTMLElement ? trigger : document.activeElement;
+    if (weekSummarySubtitle) {
+      weekSummarySubtitle.textContent = `Semaine ${formatWeekSummaryValue(week.weekNumber)} · ${formatWeekSummaryRange(week.startDate, week.endDate)}`;
+    }
+    weekSummaryContent.innerHTML = buildWeekSummaryMarkup(week);
+    weekSummaryModal.hidden = false;
+    weekSummaryModal.setAttribute("aria-hidden", "false");
+    const closeButton = weekSummaryModal.querySelector("[data-close-week-summary-modal]");
+    if (closeButton && typeof closeButton.focus === "function") {
+      window.setTimeout(() => closeButton.focus(), 30);
+    }
+  }
+
+  function closeWeekSummaryModal() {
+    if (!weekSummaryModal || weekSummaryModal.hidden) {
+      return;
+    }
+    weekSummaryModal.hidden = true;
+    weekSummaryModal.setAttribute("aria-hidden", "true");
+    weekSummaryContent.innerHTML = "";
+    if (lastWeekSummaryFocusedElement && typeof lastWeekSummaryFocusedElement.focus === "function") {
+      lastWeekSummaryFocusedElement.focus();
+    }
+  }
+
   function buildDayTypeOptionsMarkup(selectedValue) {
     return DAY_TYPE_OPTIONS.map((option) => {
       const isSelected = option.value === selectedValue;
@@ -201,8 +406,8 @@
     });
   }
 
-  function buildDayDetailsMarkup(isoDate) {
-    const entry = entriesByDate.get(isoDate) || null;
+	  function buildDayDetailsMarkup(isoDate) {
+	    const entry = entriesByDate.get(isoDate) || null;
     if (!entry) {
       return `
         <div class="day-details-empty">
@@ -215,9 +420,9 @@
       `;
     }
 
-    return `
-      <div class="day-details-shell">
-        <form class="day-details-form entry-form" action="/entries" method="post">
+	    return `
+	      <div class="day-details-shell">
+	        <form class="day-details-form entry-form" action="/entries" method="post" data-scroll-restore-target="pay-period">
           <input type="hidden" name="_csrf" value="${escapeHtml(bootstrap.csrfToken || "")}" />
           <input type="hidden" name="clientId" value="${escapeHtml(bootstrap.selectedClientId || "")}" />
           <input type="hidden" name="selectedMonth" value="${escapeHtml(bootstrap.selectedMonth || "")}" />
@@ -385,21 +590,92 @@
     }
   });
 
-  document.addEventListener("change", (event) => {
-    const dayTypeSelect = event.target instanceof HTMLElement ? event.target.closest("[data-day-details-day-type]") : null;
-    if (dayTypeSelect) {
-      syncDayDetailsWorkedFields();
-    }
-  });
+	  document.addEventListener("change", (event) => {
+	    const dayTypeSelect = event.target instanceof HTMLElement ? event.target.closest("[data-day-details-day-type]") : null;
+	    if (dayTypeSelect) {
+	      syncDayDetailsWorkedFields();
+	    }
+	  });
+
+	  document.addEventListener("submit", (event) => {
+	    const form = event.target instanceof HTMLFormElement ? event.target : null;
+	    if (!form) {
+	      return;
+	    }
+	    const restoreTarget = form.dataset.scrollRestoreTarget || "";
+	    if (!restoreTarget) {
+	      return;
+	    }
+	    const scrollRestoreApi = window.hoursScrollRestore || null;
+	    if (!scrollRestoreApi || typeof scrollRestoreApi.save !== "function") {
+	      return;
+	    }
+	    try {
+	      scrollRestoreApi.save({
+	        target: restoreTarget,
+	        scrollY: window.scrollY,
+	        savedAt: Date.now(),
+	      });
+	    } catch (error) {
+	      // Ignore unavailable storage.
+	    }
+	  });
 
   closeDayDetailsButtons.forEach((button) => {
     button.addEventListener("click", closeDayDetailsModal);
   });
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeDayDetailsModal();
+  closeWeekSummaryButtons.forEach((button) => {
+    button.addEventListener("click", closeWeekSummaryModal);
+  });
+
+  function bindWeekSummaryCards() {
+    const cards = Array.from(document.querySelectorAll(".calendar-week-total-card[data-week-summary-index]"));
+    cards.forEach((card) => {
+      if (boundWeekSummaryCards.has(card)) {
+        return;
+      }
+      boundWeekSummaryCards.add(card);
+      card.addEventListener("click", () => {
+        openWeekSummaryModal(card.dataset.weekSummaryIndex || "", card);
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        event.preventDefault();
+        openWeekSummaryModal(card.dataset.weekSummaryIndex || "", card);
+      });
+    });
+  }
+
+  bindWeekSummaryCards();
+  window.addEventListener("hours:calendar-rendered", bindWeekSummaryCards);
+
+	  document.addEventListener("keydown", (event) => {
+	    if (event.key === "Escape") {
+	      closeDayDetailsModal();
+	      closeWeekSummaryModal();
+	    }
+	  });
+
+  (() => {
+    const monthInput = document.getElementById("month");
+    const loadingStatus = document.getElementById("monthLoadingStatus");
+    if (!(monthInput instanceof HTMLInputElement)) {
+      return;
     }
+
+    bindPayPeriodMonthAutoSubmit(monthInput, {
+      loadingStatus: loadingStatus instanceof HTMLElement ? loadingStatus : null,
+      scrollRestoreApi: window.hoursScrollRestore || null,
+      getScrollY: () => window.scrollY,
+    });
+  })();
+
+  bindPayPeriodCalendarNavigationRestore(document.querySelectorAll(".calendar-nav-button"), {
+    scrollRestoreApi: window.hoursScrollRestore || null,
+    getScrollY: () => window.scrollY,
   });
 
   (() => {
@@ -871,22 +1147,6 @@
         openEntryForDate(createButton.dataset.mobileCalendarCreate || "");
       }
     });
-
-    if (monthInput instanceof HTMLInputElement) {
-      monthInput.addEventListener("change", async () => {
-        if (!compactQuery.matches) {
-          return;
-        }
-        if (!/^\d{4}-\d{2}$/.test(monthInput.value || "")) {
-          return;
-        }
-        try {
-          await setActiveMonth(monthInput.value, { preferredDate: state.selectedDate });
-        } catch (error) {
-          // Preserve current state on failure.
-        }
-      });
-    }
 
     if (typeof compactQuery.addEventListener === "function") {
       compactQuery.addEventListener("change", syncResponsiveCalendar);

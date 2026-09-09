@@ -32,6 +32,21 @@ CREATE INDEX IF NOT EXISTS idx_sessions_username
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at_ms
   ON sessions (expires_at_ms);
 
+CREATE TABLE IF NOT EXISTS mobile_auth_tokens (
+  token_hash TEXT PRIMARY KEY,
+  username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
+  expires_at_ms BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_username
+  ON mobile_auth_tokens (username);
+
+CREATE INDEX IF NOT EXISTS idx_mobile_auth_tokens_expires_at_ms
+  ON mobile_auth_tokens (expires_at_ms);
+
 CREATE TABLE IF NOT EXISTS clients (
   id BIGSERIAL PRIMARY KEY,
   username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,

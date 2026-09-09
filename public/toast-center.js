@@ -10,6 +10,12 @@
     warning: "alert",
     error: "alert",
   };
+  const TYPE_PRESENTATION = {
+    success: { icon: "✓", label: "Enregistré" },
+    info: { icon: "i", label: "Information" },
+    warning: { icon: "!", label: "Attention" },
+    error: { icon: "×", label: "Action requise" },
+  };
 
   function normalizeToastInput(input = {}) {
     const type = ["success", "error", "warning", "info"].includes(input.type) ? input.type : "info";
@@ -137,11 +143,14 @@
 
     const viewport = ensureViewport();
     const element = document.createElement("article");
+    const presentation = TYPE_PRESENTATION[toast.type] || TYPE_PRESENTATION.info;
     element.className = `toast-item is-${toast.type}`;
     element.setAttribute("role", toast.role);
     element.setAttribute("aria-live", toast.role === "alert" ? "assertive" : "polite");
     element.innerHTML = `
+      <span class="toast-status-icon" aria-hidden="true">${presentation.icon}</span>
       <div class="toast-content">
+        <span class="toast-kicker">${presentation.label}</span>
         <p class="toast-message"></p>
       </div>
       ${toast.dismissible ? '<button type="button" class="toast-close" aria-label="Fermer la notification">×</button>' : ""}
