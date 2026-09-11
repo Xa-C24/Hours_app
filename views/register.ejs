@@ -14,8 +14,8 @@
       (() => {
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
-        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
-        const allowedStyles = ["premium", "robot", "retro"];
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "medieval", "robot"];
+        const allowedStyles = ["premium", "robot", "retro", "medieval"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
           const theme = storedTheme === "futuristic-robot" ? "robot" : storedTheme;
@@ -47,7 +47,7 @@
               <option value="light-green">Celadon</option>
               <option value="bordeaux-night">Bordeaux nuit</option>
               <option value="lavender-mist">Lavande brume</option>
-              <option value="obsidian-gold">Obsidienne or</option>
+              <option value="obsidian-gold">Obsidienne or</option><option value="medieval">Moyen Âge</option>
             </select>
           </div>
           <div class="theme-picker">
@@ -56,7 +56,7 @@
               <option value="premium">Premium</option>
               <option value="robot">Robot</option>
               <option value="retro">SEGA'ai r</option>
-            </select>
+            <option value="medieval">Moyen Âge</option></select>
           </div>
         </div>
         <section class="login-card login-card-header-centered login-card-premium">

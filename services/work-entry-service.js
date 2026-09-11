@@ -1,3 +1,5 @@
+const { workedFraction } = require("../public/day-types");
+
 async function validateAndPrepareWorkEntry(input, dependencies) {
   const {
     username,
@@ -29,13 +31,14 @@ async function validateAndPrepareWorkEntry(input, dependencies) {
   const normalizedDayType = normalizeDayType(dayType) || defaultDayType;
   const isWorkedDay = isWorkedDayType(normalizedDayType);
   const errors = [];
+  if (dayType && !normalizeDayType(dayType)) errors.push("Le type de journée est invalide.");
 
   if (!client) errors.push("Selectionnez un client avant d'enregistrer une journée.");
   if (!isValidDate(workDate)) errors.push("La date est invalide.");
   if (isWorkedDay && !isValidTime(arrivalTime)) errors.push("L'heure d'arrivee est invalide (format attendu HH:MM).");
   if (isWorkedDay && !isValidTime(departureTime)) errors.push("L'heure de depart est invalide (format attendu HH:MM).");
 
-  const breakMinutes = isWorkedDay ? Number(lunchBreakMinutes) : 0;
+  const breakMinutes = isWorkedDay && workedFraction(normalizedDayType) !== 0.5 ? Number(lunchBreakMinutes) : 0;
   if (isWorkedDay && (!Number.isInteger(breakMinutes) || breakMinutes < 0)) {
     errors.push("La pause dejeuner doit etre un entier positif ou nul.");
   }

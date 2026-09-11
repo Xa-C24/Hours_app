@@ -1,4 +1,29 @@
 (() => {
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function getMotionMode() {
+    const mode = document.documentElement.getAttribute("data-animations");
+    if (mode === "off") return "off";
+    return mode === "reduced" || motionPreference.matches ? "reduced" : "subtle";
+  }
+  function refreshMotion() {
+    const mode = getMotionMode();
+    document.documentElement.setAttribute("data-motion", mode);
+    if (mode !== "subtle") {
+      document.querySelectorAll(".ripple-dot").forEach((dot) => dot.remove());
+      document.querySelectorAll(".is-pressed").forEach((element) => element.classList.remove("is-pressed"));
+      document.querySelectorAll(".login-card-premium, .page-header-premium, .premium-surface, .premium-mini-card").forEach((element) => {
+        ["--pointer-x", "--pointer-y", "--tilt-x", "--tilt-y"].forEach((key) => element.style.removeProperty(key));
+      });
+    }
+  }
+  window.hoursMotion = {
+    getMode: getMotionMode,
+    allowsEffects: () => getMotionMode() === "subtle",
+    scrollBehavior: () => getMotionMode() === "subtle" ? "smooth" : "instant",
+    refresh: refreshMotion,
+  };
+  motionPreference.addEventListener?.("change", refreshMotion);
+  refreshMotion();
   const THEME_KEY = "hours_theme";
   const STYLE_KEY = "hours_style";
   const ENTRY_FORM_COLLAPSED_KEY = "hours_entry_form_collapsed";
@@ -16,9 +41,40 @@
     "bordeaux-night",
     "lavender-mist",
     "obsidian-gold",
+    "medieval",
     "robot",
   ];
-  const STYLES = ["premium", "robot", "retro"];
+  const STYLES = ["premium", "robot", "retro", "medieval"];
+  const THEME_DESCRIPTIONS = {
+    light: "Ivoire : des tons crème et dorés, chaleureux et sobres.",
+    dark: "Nuit graphite : des tons gris et bleutés, pour une ambiance sombre.",
+    "deep-ocean-blue": "Bleu minuit : des bleus profonds et des touches cyan.",
+    "light-blue": "Brume bleue : une palette bleue douce et fraîche.",
+    "orange-sunset": "Sable cuivre : des tons orangés et cuivrés, plus chaleureux.",
+    "forest-green": "Sauge profonde : des verts soutenus, pour une ambiance végétale.",
+    "light-green": "Celadon : des verts doux et des touches lumineuses.",
+    "bordeaux-night": "Bordeaux nuit : des rouges profonds et des touches rosées.",
+    "lavender-mist": "Lavande brume : des violets doux et des nuances roses.",
+    "obsidian-gold": "Obsidienne or : des fonds sombres et des touches dorées.",
+    medieval: "Moyen Âge : pierre sombre, cuir, parchemin et bronze patiné, éclairés de reflets chauds.",
+    robot: "Robot : la palette futuriste historique.",
+  };
+  const STYLE_DESCRIPTIONS = {
+    medieval: "Moyen Âge : un registre de château, avec parchemin, bois sculpté, bronze et sceaux bordeaux.",
+    premium: "Premium : une présentation sobre, avec des formes arrondies.",
+    robot: "Robot : des polices futuristes, des panneaux sombres et des effets lumineux.",
+    retro: "SEGA : des polices pixel, des reliefs arcade et des fonds sombres teintés par le thème.",
+  };
+
+  function syncAppearanceDescriptions() {
+    const root = document.documentElement;
+    document.querySelectorAll("[data-appearance-theme-description]").forEach((element) => {
+      element.textContent = THEME_DESCRIPTIONS[root.getAttribute("data-theme")] || THEME_DESCRIPTIONS.light;
+    });
+    document.querySelectorAll("[data-appearance-style-description]").forEach((element) => {
+      element.textContent = STYLE_DESCRIPTIONS[root.getAttribute("data-style")] || STYLE_DESCRIPTIONS.premium;
+    });
+  }
 
   function normalizeTheme(theme) {
     if (theme === "futuristic-robot") {
@@ -47,6 +103,8 @@
     document.querySelectorAll("[data-theme-selector]").forEach((selector) => {
       selector.value = normalizedTheme;
     });
+    window.hoursSettingsStore?.refreshCustomSelects?.();
+    syncAppearanceDescriptions();
   }
 
   function applyStyle(style, persist = true) {
@@ -65,6 +123,8 @@
     document.querySelectorAll("[data-style-selector]").forEach((selector) => {
       selector.value = normalizedStyle;
     });
+    window.hoursSettingsStore?.refreshCustomSelects?.();
+    syncAppearanceDescriptions();
   }
 
   function initThemeSelectors() {
@@ -432,6 +492,7 @@
     const card = document.querySelector(".login-card-premium");
     if (card) {
       card.addEventListener("pointermove", (event) => {
+        if (!window.hoursMotion.allowsEffects()) return;
         const bounds = card.getBoundingClientRect();
         const ratioX = (event.clientX - bounds.left) / bounds.width;
         const ratioY = (event.clientY - bounds.top) / bounds.height;
@@ -453,7 +514,7 @@
 
     document.querySelectorAll("[data-ripple]").forEach((element) => {
       element.addEventListener("pointerdown", (event) => {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        if (!window.hoursMotion.allowsEffects()) {
           return;
         }
 
@@ -482,6 +543,7 @@
       .querySelectorAll(".page-header-premium, .premium-surface, .premium-mini-card")
       .forEach((surface) => {
         surface.addEventListener("pointermove", (event) => {
+          if (!window.hoursMotion.allowsEffects()) return;
           const bounds = surface.getBoundingClientRect();
           const ratioX = (event.clientX - bounds.left) / bounds.width;
           const ratioY = (event.clientY - bounds.top) / bounds.height;
@@ -503,7 +565,7 @@
 
     document.querySelectorAll(".home-premium-page [data-ripple]").forEach((element) => {
       element.addEventListener("pointerdown", (event) => {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        if (!window.hoursMotion.allowsEffects()) {
           return;
         }
 
@@ -528,8 +590,7 @@
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const shouldReduceMotion = () => prefersReducedMotion.matches;
+    const shouldReduceMotion = () => !window.hoursMotion.allowsEffects();
 
     const stagedGroups = [
       ".cockpit-dashboard > .premium-surface",
@@ -581,6 +642,8 @@
       });
     });
   }
+
+  window.addEventListener("hours:settings-changed", syncAppearanceDescriptions);
 
   document.addEventListener("DOMContentLoaded", () => {
     let storedTheme = "light";

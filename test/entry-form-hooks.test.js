@@ -108,7 +108,7 @@ test("month selection submits the existing GET form once and restores the pay pe
   assert.doesNotMatch(view, /<button type="submit" data-ripple>Afficher<\/button>/);
   assert.match(view, /id="monthLoadingStatus" class="month-loading-status" role="status" aria-live="polite" hidden>Chargement\.\.\.<\/span>/);
   assert.match(view, /<details class="export-menu">/);
-  assert.match(view, /<script src="\/workspace-tabs\.js\?v=week-summary-modal-v4"><\/script>/);
+  assert.match(view, /<script src="\/workspace-tabs\.js\?v=half-days-v1"><\/script>/);
   assert.match(script, /function bindPayPeriodMonthAutoSubmit\(monthInput, options = \{\}\)/);
   assert.match(script, /const form = monthInput\.closest\("form"\)/);
   assert.match(script, /String\(form\.method \|\| ""\)\.toLowerCase\(\) !== "get"/);
@@ -190,12 +190,12 @@ test("entry card halos render outside clipped card surfaces", () => {
   assert.match(style, /\.mobile-premium-shell \.entry-card\[data-entry-card\]\s*\{[\s\S]*?overflow: visible;/);
 });
 
-test("the entry day type custom menu floats without stretching the workday panel", () => {
+test("half-day entry uses native controls and retains custom menu styles elsewhere", () => {
   const view = fs.readFileSync(viewPath, "utf8");
   const style = fs.readFileSync(stylePath, "utf8");
   const store = fs.readFileSync(path.join(__dirname, "..", "public", "settings-store.js"), "utf8");
 
-  assert.match(view, /class="field form-field entry-day-type-field entry-day-type-card"[\s\S]*?<select class="form-select" id="dayType" name="dayType" required data-day-type-select>/);
+  assert.match(view, /class="field form-field entry-day-type-field entry-day-type-card"[\s\S]*?<select class="form-select" id="dayType" name="dayType" required data-day-type-select data-native-select="true">/);
   assert.match(style, /\.entry-day-type-field \.app-custom-select\.is-open\s*\{[\s\S]*?z-index: 30;/);
   assert.match(style, /\.entry-day-type-field \.app-custom-select-menu,[\s\S]*?\.entry-day-type-field \.app-custom-select-menu\.is-dropup\s*\{[\s\S]*?position: absolute;[\s\S]*?z-index: 31;[\s\S]*?max-height: min\(13rem, 35dvh, var\(--entry-day-type-menu-available-height, 13rem\)\);/);
   assert.match(style, /\.entry-day-type-field \.app-custom-select-menu\.is-dropup\s*\{[\s\S]*?bottom: calc\(100% \+ 0\.45rem\);/);

@@ -56,17 +56,11 @@ const AUTH_RATE_LIMITS = {
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const DAY_TYPE_OPTIONS = [
-  { value: "office", label: "Bureau", isWorkedDay: true },
-  { value: "remote", label: "Télétravail", isWorkedDay: true },
-  { value: "leave", label: "Congés", isWorkedDay: false },
-  { value: "rtt", label: "RTT", isWorkedDay: false },
-  { value: "sick_leave", label: "Arret", isWorkedDay: false },
-  { value: "holiday", label: "Férié", isWorkedDay: false },
-];
+const dayTypes = require("./public/day-types");
+const DAY_TYPE_OPTIONS = dayTypes.baseOptions;
 const DEFAULT_DAY_TYPE = "office";
 const DAY_TYPE_CONFIG_BY_VALUE = new Map(
-  DAY_TYPE_OPTIONS.map((option) => [option.value, option])
+  dayTypes.options.map((option) => [option.value, option])
 );
 const DAY_TYPE_FILTERS = [
   { value: "all", label: "Tous" },
@@ -461,7 +455,7 @@ function getTargetMinutesForDayType(dayType, dailyGoalMinutes = DAILY_TARGET_MIN
   const targetMinutes = Number.isFinite(normalizedDailyGoal) && normalizedDailyGoal >= 0
     ? Math.round(normalizedDailyGoal)
     : DAILY_TARGET_MINUTES;
-  return isWorkedDayType(dayType) ? targetMinutes : 0;
+  return Math.round(targetMinutes * dayTypes.workedFraction(dayType));
 }
 
 function pad2(value) {
@@ -671,7 +665,9 @@ function formatMinutesToHHMM(totalMinutes) {
 }
 
 async function getUserSettings(username) {
-  const storedSettings = await db.getSettings(username);
+  // Keep API consumers and lightweight test adapters compatible while older
+  // database adapters are being upgraded.
+  const storedSettings = typeof db.getSettings === "function" ? await db.getSettings(username) : {};
   return normalizeSettings(mergeSettings(DEFAULT_SETTINGS, storedSettings));
 }
 
@@ -1021,13 +1017,13 @@ async function getMonthData(username, clientId, month, dailyGoalMinutes = DAILY_
   const totalOvertimeMinutes = entries.reduce((sum, entry) => sum + entry.overtime_minutes, 0);
   const totalRecoveredMinutes = entries.reduce((sum, entry) => sum + entry.recovered_minutes, 0);
   const workedDayCount = entries.reduce(
-    (sum, entry) => sum + (entry.is_worked_day ? 1 : 0),
+    (sum, entry) => sum + dayTypes.workedFraction(entry.day_type),
     0
   );
   const dayTypeCounts = Object.fromEntries(
     DAY_TYPE_OPTIONS.map((option) => [
       option.value,
-      entries.reduce((sum, entry) => sum + (entry.day_type === option.value ? 1 : 0), 0),
+      entries.reduce((sum, entry) => sum + dayTypes.fraction(entry.day_type, option.value), 0),
     ])
   );
   const yearEntries = (
@@ -1041,7 +1037,7 @@ async function getMonthData(username, clientId, month, dailyGoalMinutes = DAILY_
   const yearDayTypeCounts = Object.fromEntries(
     DAY_TYPE_OPTIONS.map((option) => [
       option.value,
-      yearEntries.reduce((sum, dayType) => sum + (dayType === option.value ? 1 : 0), 0),
+      yearEntries.reduce((sum, dayType) => sum + dayTypes.fraction(dayType, option.value), 0),
     ])
   );
   return {
@@ -1146,7 +1142,7 @@ function getEntryStatusLabel(entry) {
     return `Recup ${entry.recovered_hhmm}`;
   }
   if (entry.under_target) {
-    return "Moins de 7h";
+    return "Sous l’objectif";
   }
   return "OK";
 }
@@ -1178,7 +1174,7 @@ function getCsvHistoryStatusLabel(entry) {
     return `Recup ${entry.recovered_hhmm}`;
   }
   if (entry.under_target) {
-    return "Moins de 7h";
+    return "Sous l’objectif";
   }
   return "OK";
 }
@@ -1442,7 +1438,7 @@ async function renderIndex(res, options = {}) {
     showClientModal: Boolean(options.showClientModal),
     showClientInfoModal: Boolean(options.showClientInfoModal),
     formData: mergedFormData,
-    dayTypeOptions: DAY_TYPE_OPTIONS.map((option) => ({
+    dayTypeOptions: dayTypes.options.map((option) => ({
       ...option,
       label: getCanonicalDayTypeLabel(option.value, normalizeDisplayLabel(option.label)),
     })),
@@ -2125,7 +2121,7 @@ app.get("/export.xlsx", async (req, res) => {
         })
       : await buildPeriodWorkbook({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
+          monthData: await getMonthData(req.authUser, client.id, month),
           userSettings,
           authUser: req.authUser,
         });
@@ -2163,7 +2159,7 @@ app.get("/export.pdf", async (req, res) => {
         })
       : await buildPeriodPdfBuffer({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
+          monthData: await getMonthData(req.authUser, client.id, month),
           userSettings,
           authUser: req.authUser,
         });

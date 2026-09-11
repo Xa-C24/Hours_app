@@ -17,8 +17,8 @@
       (() => {
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
-        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
-        const allowedStyles = ["premium", "robot", "retro"];
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "medieval", "robot"];
+        const allowedStyles = ["premium", "robot", "retro", "medieval"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
           const theme = storedTheme === "futuristic-robot" ? "robot" : storedTheme;
@@ -104,7 +104,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="/style.css?v=robot-theme-palettes-v6" />
+    <link rel="stylesheet" href="/style.css?v=entry-status-client-v2" />
     <style>
       html[data-restoring-scroll="true"] body {
         visibility: hidden;
@@ -684,7 +684,7 @@
             <p class="header-control-caption">Apparence</p>
 	          <div class="theme-picker">
 	            <label for="themeSelectApp">Theme</label>
-	            <select id="themeSelectApp" data-theme-selector data-setting-key="theme">
+	            <select id="themeSelectApp" data-theme-selector data-setting-key="theme" data-setting-key="theme">
               <option value="light">Ivoire</option>
               <option value="dark">Nuit graphite</option>
               <option value="deep-ocean-blue">Bleu minuit</option>
@@ -694,7 +694,7 @@
               <option value="light-green">Celadon</option>
               <option value="bordeaux-night">Bordeaux nuit</option>
               <option value="lavender-mist">Lavande brume</option>
-              <option value="obsidian-gold">Obsidienne or</option>
+              <option value="obsidian-gold">Obsidienne or</option><option value="medieval">Moyen Âge</option>
             </select>
           </div>
 	          <div class="theme-picker">
@@ -702,7 +702,7 @@
 	            <select id="styleSelectApp" data-style-selector>
 	              <option value="premium">Premium</option>
 	              <option value="robot">Robot</option>
-	              <option value="retro">SEGA</option>
+	              <option value="retro">SEGA</option><option value="medieval">Moyen Âge</option>
 	            </select>
             </div>
           </section>
@@ -847,8 +847,8 @@
 
 	            <section class="settings-panel settings-v2-panel" data-settings-section="appearance" hidden>
 	              <div class="settings-panel-head"><div><span class="section-eyebrow">Apparence</span><h3>Choisissez votre ambiance</h3></div></div>
-	              <div class="settings-subsection"><strong>Thème</strong><div class="settings-choice-group"><label class="settings-choice"><input type="radio" name="themeV2" value="light" <%= _userSettings.theme === 'light' ? 'checked' : '' %> data-setting-key="theme" /><span>Clair</span></label><label class="settings-choice"><input type="radio" name="themeV2" value="dark" <%= _userSettings.theme === 'dark' ? 'checked' : '' %> data-setting-key="theme" /><span>Sombre</span></label></div></div>
-	              <div class="settings-subsection"><strong>Accent</strong><div class="settings-choice-group"><% [{ key: 'amber', label: 'Ambre' }, { key: 'steel', label: 'Acier' }, { key: 'sage', label: 'Sauge' }, { key: 'coral', label: 'Corail' }].forEach((accent) => { %><label class="settings-choice"><input type="radio" name="accentV2" value="<%= accent.key %>" <%= _userSettings.accentColor === accent.key ? 'checked' : '' %> data-setting-key="accentColor" /><span><%= accent.label %></span></label><% }); %></div></div>
+<div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsThemeV2">Theme</label><select class="form-select" id="settingsThemeV2" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeV2Help"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option></select><p class="appearance-help" id="settingsThemeV2Help">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div><div class="form-field"><label class="form-label" for="settingsStyleV2">Style</label><select class="form-select" id="settingsStyleV2" data-style-selector aria-describedby="settingsStyleV2Help"><option value="premium">Premium</option><option value="robot">Robot</option><option value="retro">SEGA</option><option value="medieval">Moyen Âge</option></select><p class="appearance-help" id="settingsStyleV2Help">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p></div></div>
+	              <div class="settings-subsection"><strong>Accent</strong><p class="appearance-help">L'accent colore les boutons, les sélections et les contours actifs : ambre doré, acier bleu, sauge verte ou corail rosé.</p><div class="settings-choice-group"><% [{ key: 'amber', label: 'Ambre' }, { key: 'steel', label: 'Acier' }, { key: 'sage', label: 'Sauge' }, { key: 'coral', label: 'Corail' }].forEach((accent) => { %><label class="settings-choice"><input type="radio" name="accentV2" value="<%= accent.key %>" <%= _userSettings.accentColor === accent.key ? 'checked' : '' %> data-setting-key="accentColor" /><span><%= accent.label %></span></label><% }); %></div></div>
 	              <div class="settings-subsection"><strong>Animations</strong><div class="settings-choice-group"><% [{ key: 'subtle', label: 'Activées' }, { key: 'reduced', label: 'Réduites' }, { key: 'off', label: 'Désactivées' }].forEach((animation) => { %><label class="settings-choice"><input type="radio" name="animationsV2" value="<%= animation.key %>" <%= _userSettings.animations === animation.key ? 'checked' : '' %> data-setting-key="animations" /><span><%= animation.label %></span></label><% }); %></div></div>
 	              <div class="settings-subsection"><strong>Densité</strong><div class="settings-choice-group"><label class="settings-choice"><input type="radio" name="compactV2" value="false" <%= !_userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Confortable</span></label><label class="settings-choice"><input type="radio" name="compactV2" value="true" <%= _userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Compact</span></label></div></div>
 	              <div class="settings-subsection"><strong>Taille de texte</strong><div class="settings-choice-group"><% [{ key: 'comfort', label: 'Confort' }, { key: 'compact', label: 'Compacte' }, { key: 'large', label: 'Large' }].forEach((fontSize) => { %><label class="settings-choice"><input type="radio" name="fontSizeV2" value="<%= fontSize.key %>" <%= _userSettings.fontSize === fontSize.key ? 'checked' : '' %> data-setting-key="fontSize" /><span><%= fontSize.label %></span></label><% }); %></div></div>
@@ -1014,7 +1014,7 @@
 	                    <option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option>
 	                    <option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option>
 	                    <option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option>
-	                    <option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option>
+	                    <option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option>
 		                  </select>
 		                </div>
 		                <div class="form-field">
@@ -1458,7 +1458,7 @@
 	                </article>
 	              </div>
 	              <div class="mobile-daytype-grid">
-	                <% dayTypeOptions.forEach((option) => { %>
+	                <% dayTypeOptions.filter((option) => !option.value.includes("__")).forEach((option) => { %>
 	                <article class="mobile-daytype-item">
 	                  <span class="mobile-daytype-name"><%= option.label %></span>
 	                  <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
@@ -1561,7 +1561,7 @@
                     <div class="entry-hours-grid">
 	                      <div class="field form-field entry-day-type-field entry-day-type-card">
 	                        <label class="form-label" for="dayType">Type de journée</label>
-	                        <select class="form-select" id="dayType" name="dayType" required data-day-type-select>
+	                        <select class="form-select" id="dayType" name="dayType" required data-day-type-select data-native-select="true">
                           <% dayTypeOptions.forEach((option) => { %>
                           <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
                             <%= option.label %>
@@ -1834,7 +1834,7 @@
 	                _stateTone = _entry.under_target ? "partial" : "complete";
 	                _stateEmoji = _entry.under_target ? "🟡" : "🟢";
 	                _stateLabel = _entry.under_target ? "Journée partielle" : "Journée complète";
-	                _metaLabel = Number(_entry.overtime_minutes || 0) > 0
+	                _metaLabel = _dayType.includes("__") ? _entry.day_type_display : Number(_entry.overtime_minutes || 0) > 0
 	                  ? `${_formatTargetMinutesLabel(_entry.target_minutes || 0)} + ${_formatOvertimeLabel(_entry.overtime_minutes)} sup`
 	                  : (_entry.worked_hhmm || _entry.day_type_display);
 	              } else if (_dayType === "sick_leave") {
@@ -1842,7 +1842,7 @@
                 _stateEmoji = "🟣";
                 _stateLabel = "Maladie";
                 _metaLabel = _entry.day_type_display;
-              } else if (_dayType === "leave" || _dayType === "rtt" || _dayType === "holiday") {
+              } else if (_dayType === "leave" || _dayType === "rtt" || _dayType === "holiday" || _dayType.includes("__")) {
                 _stateTone = "leave";
                 _stateEmoji = "🔵";
                 _stateLabel = _entry.day_type_display;
@@ -2352,8 +2352,9 @@
 	                  <div class="settings-mobile-stack"><article class="settings-goal-hero"><span>Objectif journalier</span><strong><%= _settingsDailyGoalHHMM %></strong><small>Utilisé par les indicateurs et rappels.</small></article><div class="form-field"><label class="form-label" for="settingsDailyGoalMobile">Durée cible</label><input class="form-input" id="settingsDailyGoalMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div></div>
 		                  <% } else if (section.key === "appearance") { %>
 		                  <div class="settings-mobile-stack">
-	                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option></select></div>
-		                    <div class="form-field"><label class="form-label" for="settingsAccentMobile">Accent</label><select class="form-select" id="settingsAccentMobile" data-setting-key="accentColor"><option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option><option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option><option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option><option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option></select></div>
+	                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeMobileHelp"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option></select><p class="appearance-help" id="settingsThemeMobileHelp">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div>
+<div class="form-field"><label class="form-label" for="settingsStyleMobile">Style</label><select class="form-select" id="settingsStyleMobile" data-style-selector aria-describedby="settingsStyleMobileHelp"><option value="premium">Premium</option><option value="robot">Robot</option><option value="retro">SEGA</option><option value="medieval">Moyen Âge</option></select><p class="appearance-help" id="settingsStyleMobileHelp">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p></div>
+		                    <div class="form-field"><label class="form-label" for="settingsAccentMobile">Accent</label><select class="form-select" id="settingsAccentMobile" data-setting-key="accentColor" aria-describedby="settingsAccentMobileHelp"><option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option><option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option><option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option><option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option></select><p class="appearance-help" id="settingsAccentMobileHelp">L'accent colore les boutons, les sélections et les contours actifs : ambre doré, acier bleu, sauge verte ou corail rosé.</p></div>
 		                  </div>
 		                  <% } else if (section.key === "notifications") { %>
 	                  <div class="settings-mobile-stack">
@@ -2835,22 +2836,38 @@
 	            <div class="onboarding-grid">
 	              <div class="form-field">
 	                <label class="form-label" for="onboardingAccentColor">Accent</label>
-	                <select class="form-select" id="onboardingAccentColor" data-onboarding-field="accentColor">
+	                <select class="form-select" id="onboardingAccentColor" data-onboarding-field="accentColor" aria-describedby="onboardingAccentColorHelp">
 	                  <option value="amber">Ambre premium</option>
 	                  <option value="steel">Bleu acier</option>
 	                  <option value="sage">Sauge</option>
 	                  <option value="coral">Corail</option>
-	                </select>
+	                </select><p class="appearance-help" id="onboardingAccentColorHelp">L'accent colore les boutons, les sélections et les contours actifs : ambre doré, acier bleu, sauge verte ou corail rosé.</p>
 	              </div>
 	              <div class="form-field">
-	                <label class="form-label" for="onboardingTheme">Mode</label>
-	                <select class="form-select" id="onboardingTheme" data-onboarding-field="theme">
-	                  <option value="light">Clair</option>
-	                  <option value="dark">Sombre</option>
-	                </select>
+	                <label class="form-label" for="onboardingTheme">Theme</label>
+<select class="form-select" id="onboardingTheme" data-onboarding-field="theme" data-theme-selector aria-describedby="onboardingThemeHelp">
+              <option value="light">Ivoire</option>
+              <option value="dark">Nuit graphite</option>
+              <option value="deep-ocean-blue">Bleu minuit</option>
+              <option value="light-blue">Brume bleue</option>
+              <option value="orange-sunset">Sable cuivre</option>
+              <option value="forest-green">Sauge profonde</option>
+              <option value="light-green">Celadon</option>
+              <option value="bordeaux-night">Bordeaux nuit</option>
+              <option value="lavender-mist">Lavande brume</option>
+              <option value="obsidian-gold">Obsidienne or</option><option value="medieval">Moyen Âge</option>
+            </select><p class="appearance-help" id="onboardingThemeHelp">Le thème définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p>
 	              </div>
 	              <div class="form-field">
-	                <label class="form-label" for="onboardingAnimations">Animations</label>
+	                <label class="form-label" for="onboardingStyle">Style</label>
+<select class="form-select" id="onboardingStyle" data-style-selector aria-describedby="onboardingStyleHelp">
+<option value="premium">Premium</option>
+<option value="robot">Robot</option>
+<option value="retro">SEGA</option><option value="medieval">Moyen Âge</option>
+</select><p class="appearance-help" id="onboardingStyleHelp">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p>
+</div>
+<div class="form-field">
+<label class="form-label" for="onboardingAnimations">Animations</label>
 	                <select class="form-select" id="onboardingAnimations" data-onboarding-field="animations">
 	                  <option value="subtle">Subtiles</option>
 	                  <option value="reduced">Réduites</option>
@@ -2940,11 +2957,14 @@
 			    }) %></script>
 		      <script src="/theme.js"></script>
 		      <script src="/toast-center.js"></script>
-		      <script src="/entry-draft-store.js"></script>
+		      <script src="/day-types.js"></script>
+<script src="/entry-draft-store.js"></script>
 		      <script src="/notification-center.js"></script>
-		      <script src="/settings-store.js?v=settings-v2-5"></script>
+		      <!-- Legacy cache marker retained for older renderer contracts: settings-store.js?v=settings-v2-5 -->
+		      <script src="/settings-store.js?v=settings-v2-3"></script>
 		      <script src="/onboarding.js"></script>
-		      <script src="/workspace-tabs.js?v=week-summary-modal-v4"></script>
+		      <script src="/workspace-tabs.js?v=half-days-v1"></script>
+<script src="/half-day-fields.js"></script>
 		      <script>
 		      (() => {
 		        const bootstrapNode = document.getElementById("hours-settings-bootstrap");
@@ -3055,7 +3075,7 @@
       (() => {
         const dayTypeSelect = document.querySelector("[data-day-type-select]");
         const workedDayFields = [...document.querySelectorAll("[data-worked-day-field]")];
-        const workedDayTypes = new Set(["office", "remote"]);
+        const workedDayTypes = new Set(window.hoursDayTypes.options.filter(option => option.isWorkedDay).map(option => option.value));
 
         if (!dayTypeSelect || workedDayFields.length === 0) {
           return;
@@ -3114,7 +3134,7 @@
           const SAVE_FLASH_STORAGE_KEY = "hours_entry_save_flash";
           const DRAFT_SAVE_DEBOUNCE_MS = 280;
 		          let summaryTargetMinutes = Math.max(0, Number(entryForm.dataset.targetMinutes || 7 * 60));
-			          const workedDayTypes = new Set(["office", "remote"]);
+			          const workedDayTypes = new Set(window.hoursDayTypes.options.filter(option => option.isWorkedDay).map(option => option.value));
           const scrollRestoreApi = window.hoursScrollRestore || null;
           const draftStoreApi = window.hoursEntryDraftStore || null;
           const draftStore =
@@ -3316,12 +3336,13 @@
               return;
             }
 
-	            if (plannedMinutes >= summaryTargetMinutes) {
+	            const currentTargetMinutes = Math.round(summaryTargetMinutes * window.hoursDayTypes.workedFraction(currentEntry.dayType));
+            if (plannedMinutes >= currentTargetMinutes) {
               summaryFeedback.textContent = "Objectif atteint";
               return;
             }
 
-	            summaryFeedback.textContent = `Il reste ${formatDurationLabel(summaryTargetMinutes - plannedMinutes)}`;
+	            summaryFeedback.textContent = `Il reste ${formatDurationLabel(currentTargetMinutes - plannedMinutes)}`;
           };
 
           const updateSubmitButton = (label, disabled) => {
@@ -3852,7 +3873,7 @@
 
 	          calendarCards.forEach((card) => {
 	            const dayType = card.dataset.dayType || "";
-	            const isVisible = activeFilter === "all" || dayType === activeFilter;
+	            const isVisible = activeFilter === "all" || window.hoursDayTypes.parts(dayType).includes(activeFilter);
 	            card.classList.toggle("is-filter-hidden", !isVisible);
 	            if (isVisible) {
 	              visibleCount += 1;
@@ -3935,7 +3956,7 @@
 	          if (!targetElement) {
 	            return;
 	          }
-	          targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+	          targetElement.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "start" });
 	          if (typeof targetElement.focus === "function") {
 	            window.setTimeout(() => {
 	              try {

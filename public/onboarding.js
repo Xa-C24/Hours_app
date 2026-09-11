@@ -133,11 +133,12 @@
       fieldMap.accentColor.value = settings.accentColor || "amber";
     }
     if (fieldMap.theme) {
-      fieldMap.theme.value = settings.theme === "dark" ? "dark" : "light";
+      fieldMap.theme.value = settings.theme || "light";
     }
     if (fieldMap.animations) {
       fieldMap.animations.value = settings.animations || "subtle";
     }
+    settingsStore.refreshCustomSelects?.();
 
     setPreview(previewMap.profilePhoto, settings.profilePhoto || "", "Aperçu");
     setPreview(previewMap.companyLogo, settings.companyLogo || "", "Aperçu");
@@ -329,13 +330,13 @@
     if (actionType === "entry") {
       const dateInput = document.getElementById("date");
       if (dateInput) {
-        dateInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        dateInput.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "center" });
         window.setTimeout(() => dateInput.focus(), 160);
       }
       return;
     }
     if (actionType === "cockpit") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: window.hoursMotion?.scrollBehavior() || "instant" });
     }
   });
 

@@ -177,14 +177,7 @@
   const boundWeekSummaryCards = new WeakSet();
   const entriesByDate = new Map((bootstrap.entries || []).map((entry) => [entry.work_date, entry]));
   const desktopDefaultPanel = "calendar";
-  const DAY_TYPE_OPTIONS = [
-    { value: "office", label: "Bureau", isWorkedDay: true },
-    { value: "remote", label: "Teletravail", isWorkedDay: true },
-    { value: "leave", label: "Conges", isWorkedDay: false },
-    { value: "rtt", label: "RTT", isWorkedDay: false },
-    { value: "sick_leave", label: "Arret", isWorkedDay: false },
-    { value: "holiday", label: "Ferie", isWorkedDay: false },
-  ];
+  const DAY_TYPE_OPTIONS = window.hoursDayTypes.options;
   const WORKED_DAY_TYPES = new Set(
     DAY_TYPE_OPTIONS.filter((option) => option.isWorkedDay).map((option) => option.value)
   );
@@ -436,7 +429,7 @@
 
             <div class="field form-field">
               <label class="form-label" for="dayDetailsType">Type</label>
-              <select class="form-select" id="dayDetailsType" name="dayType" required data-day-details-day-type>
+              <select class="form-select" id="dayDetailsType" name="dayType" required data-day-details-day-type data-native-select="true">
                 ${buildDayTypeOptionsMarkup(entry.day_type || "office")}
               </select>
             </div>

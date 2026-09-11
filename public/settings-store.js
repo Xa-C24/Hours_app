@@ -307,7 +307,7 @@
           tone: entry.under_target ? "partial" : "complete",
           emoji: entry.under_target ? "🟡" : "🟢",
           label: entry.day_type_display || "Journée",
-          meta: Number(entry.overtime_minutes || 0) > 0
+          meta: entry.day_type.includes("__") ? entry.day_type_display : Number(entry.overtime_minutes || 0) > 0
             ? `${formatMinutes(entry.target_minutes || 0)} + ${formatOvertimeLabel(entry.overtime_minutes)} sup`
             : (entry.worked_hhmm || ""),
         };
@@ -367,6 +367,7 @@
 
   function applyAnimations(mode) {
     root.dataset.animations = mode;
+    window.hoursMotion?.refresh();
     if (mode === "off") {
       root.style.setProperty("--motion-fast", "0ms");
       root.style.setProperty("--motion-medium", "0ms");
@@ -399,6 +400,9 @@
 
   function applyTheme(theme) {
     root.setAttribute("data-theme", theme);
+    document.querySelectorAll("[data-theme-selector]").forEach((selector) => {
+      selector.value = theme;
+    });
     try {
       localStorage.setItem("hours_theme", theme);
     } catch (error) {
@@ -748,16 +752,17 @@
     const selectedDate = getSelectedDate();
     const todayEntry = state.entries.find((entry) => entry.work_date === selectedDate) || null;
     const dailyGoal = Math.max(0, Number(state.settings.dailyGoal || 0));
+    const todayTarget = Math.round(dailyGoal * (todayEntry ? window.hoursDayTypes.workedFraction(todayEntry.day_type) : 1));
     const todayWorkedMinutes = todayEntry ? Number(todayEntry.worked_minutes || 0) : 0;
-    const todayProgress = dailyGoal > 0 ? Math.max(0, Math.min(100, Math.round((todayWorkedMinutes / dailyGoal) * 100))) : 0;
-    const todayRemainingMinutes = Math.max(0, dailyGoal - todayWorkedMinutes);
+    const todayProgress = todayTarget > 0 ? Math.max(0, Math.min(100, Math.round((todayWorkedMinutes / todayTarget) * 100))) : 0;
+    const todayRemainingMinutes = Math.max(0, todayTarget - todayWorkedMinutes);
     setText("todayWorked", todayEntry ? todayEntry.worked_hhmm || "00:00" : "00:00");
     setText("todayProgress", `${todayProgress}%`);
-    setText("todayTarget", formatMinutes(dailyGoal));
+    setText("todayTarget", formatMinutes(todayTarget));
     setText("todayRemaining", formatMinutes(todayRemainingMinutes));
     setText(
       "todayMeta",
-      todayWorkedMinutes >= dailyGoal
+      todayWorkedMinutes >= todayTarget
         ? "Objectif atteint ou dépassé"
         : `${todayRemainingMinutes} min restantes pour l'objectif`
     );
@@ -769,7 +774,7 @@
       ? state.entries.filter((entry) => entry.work_date >= formatIsoDate(weekStart) && entry.work_date <= formatIsoDate(weekEnd))
       : [];
     const weekWorkedMinutes = weekEntries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
-    const weekWorkedDays = weekEntries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
+    const weekWorkedDays = weekEntries.reduce((sum, entry) => sum + window.hoursDayTypes.workedFraction(entry.day_type), 0);
     const configuredWeeklyGoal = Math.max(0, Number(state.settings.weeklyGoal || 0));
     const weekTargetMinutes = configuredWeeklyGoal || (weekWorkedDays * dailyGoal);
     const weekBalanceMinutes = weekWorkedMinutes - weekTargetMinutes;
@@ -790,7 +795,7 @@
     );
 
     const monthWorkedMinutes = state.entries.reduce((sum, entry) => sum + Number(entry.worked_minutes || 0), 0);
-    const monthWorkedDays = state.entries.reduce((sum, entry) => sum + (entry.is_worked_day ? 1 : 0), 0);
+    const monthWorkedDays = state.entries.reduce((sum, entry) => sum + window.hoursDayTypes.workedFraction(entry.day_type), 0);
     const monthTargetMinutes = monthWorkedDays * dailyGoal;
     const monthOvertimeMinutes = state.entries.reduce(
       (sum, entry) => sum + Number(entry.overtime_minutes || 0),
@@ -826,7 +831,7 @@
     let visibleCount = 0;
     cards.forEach((card) => {
       const dayType = card.dataset.dayType || "";
-      const isVisible = filterValue === "all" || dayType === filterValue;
+      const isVisible = filterValue === "all" || (window.hoursDayTypes ? window.hoursDayTypes.parts(dayType).includes(filterValue) : dayType === filterValue);
       card.classList.toggle("is-filter-hidden", !isVisible);
       if (isVisible) {
         visibleCount += 1;
@@ -1302,7 +1307,7 @@
         if (helpSearch instanceof HTMLInputElement) {
           helpSearch.value = "bug";
           helpSearch.dispatchEvent(new Event("input", { bubbles: true }));
-          helpSearch.scrollIntoView({ behavior: "smooth", block: "center" });
+          helpSearch.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "center" });
           window.setTimeout(() => helpSearch.focus(), 120);
         }
         return;
@@ -1312,7 +1317,7 @@
         if (roadmapCard instanceof HTMLElement) {
           roadmapCard.hidden = !roadmapCard.hidden;
           if (!roadmapCard.hidden) {
-            roadmapCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            roadmapCard.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "nearest" });
           }
         }
         return;

@@ -76,8 +76,48 @@
 :root[data-animations="off"] *::before,
 :root[data-animations="off"] *::after {
   animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* Reduced motion retains brief color feedback, without decorative movement. */
+:root:is([data-motion="reduced"], [data-motion="off"]) *,
+:root:is([data-motion="reduced"], [data-motion="off"]) *::before,
+:root:is([data-motion="reduced"], [data-motion="off"]) *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-property: color, background-color, border-color, box-shadow, opacity !important;
+  transition-duration: 100ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+  --tilt-x: 0deg !important;
+  --tilt-y: 0deg !important;
+  --lift-y: 0px !important;
+  --motion-lift: 0px !important;
+}
+
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after {
+  transition-duration: 0.01ms !important;
+}
+
+:root:is([data-motion="reduced"], [data-motion="off"]) :is(button, .button-link, .card, .premium-surface, .premium-mini-card, .login-card-premium, .cockpit-action-card, .calendar-day-card, .settings-nav-item, .app-custom-select-trigger):is(:hover, :active, :focus-visible) {
+  transform: none !important;
+}
+
+:root:is([data-motion="reduced"], [data-motion="off"]) :is(.motion-fade-in, .calendar-panel.is-month-transitioning) {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+:root:is([data-motion="reduced"], [data-motion="off"]) .ripple-dot,
+:root:is([data-motion="reduced"], [data-motion="off"]) [data-ripple]::before {
+  display: none !important;
 }
 
 :root[data-theme="dark"] {
@@ -1353,7 +1393,7 @@
   border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, transparent 28%),
-    linear-gradient(135deg, #2948b6 0%, #5532ca 48%, #ec4fc2 100%);
+    linear-gradient(135deg, var(--retro-button), var(--retro-panel-deep));
   color: #fffdf3;
   box-shadow:
     0 6px 0 rgba(48, 29, 71, 0.42),
@@ -1365,7 +1405,7 @@
 :root[data-style="retro"] .button-link.button-neutral {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 28%),
-    linear-gradient(135deg, #18a6bb 0%, #2f6dff 55%, #5f3dff 100%);
+    linear-gradient(135deg, var(--retro-button), var(--retro-panel));
 }
 
 :root[data-style="retro"] button.danger {
@@ -8374,6 +8414,66 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   gap: 1.15rem;
 }
 
+/* Robot display typography must stay inside the settings grid tracks. */
+:root[data-style="robot"] .settings-shell {
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1rem, 2vw, 1.75rem);
+}
+
+:root[data-style="robot"] .settings-sidebar,
+:root[data-style="robot"] .settings-sidebar-head,
+:root[data-style="robot"] .settings-nav,
+:root[data-style="robot"] .settings-nav-copy,
+:root[data-style="robot"] .settings-content-head > div,
+:root[data-style="robot"] .settings-panel,
+:root[data-style="robot"] .settings-panel .form-field {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-style="robot"] .settings-content {
+  align-content: start;
+  max-width: none;
+}
+
+:root[data-style="robot"] .settings-sidebar-head h2 {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+:root[data-style="robot"] .settings-sidebar-head p {
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+:root[data-style="robot"] .settings-content-head {
+  flex-wrap: wrap;
+}
+
+:root[data-style="robot"] .settings-content-head h2 {
+  margin: 0.45rem 0 0;
+  font-size: clamp(1.2rem, 1rem + 0.5vw, 1.6rem);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+:root[data-style="robot"] .settings-panel {
+  align-content: start;
+}
+
+@media (max-width: 1050px) {
+  :root[data-style="robot"] .settings-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-style="robot"] .settings-sidebar {
+    position: static;
+  }
+}
+
 .settings-sidebar,
 .settings-content,
 .settings-mobile-card {
@@ -9238,7 +9338,8 @@ body.has-onboarding {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.onboarding-step[data-onboarding-step="2"] .onboarding-grid {
+.onboarding-step[data-onboarding-step="2"] .onboarding-grid,
+.onboarding-step[data-onboarding-step="5"] .onboarding-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -9400,6 +9501,7 @@ body.has-onboarding {
 
   .onboarding-grid,
   .onboarding-step[data-onboarding-step="2"] .onboarding-grid,
+  .onboarding-step[data-onboarding-step="5"] .onboarding-grid,
   .onboarding-hero-grid {
     grid-template-columns: 1fr;
   }
@@ -12030,10 +12132,10 @@ body.has-command-palette {
   --retro-yellow: #ffd45f;
   --bg-top: #1d1b4b;
   --bg: #12122e;
-  --bg-bottom: #080a20;
+  --bg-bottom: var(--retro-night);
   --card-bg: var(--retro-panel);
   --card-bg-2: var(--retro-panel-deep);
-  --input-bg: #17183c;
+  --input-bg: var(--retro-night);
   --text: #f7f5ff;
   --muted: #c3c2dc;
   --border: var(--retro-line);
@@ -12047,9 +12149,9 @@ body.has-command-palette {
   line-height: 1.5;
   background:
     linear-gradient(rgba(255, 255, 255, 0.025) 50%, transparent 50%),
-    radial-gradient(circle at 12% 14%, rgba(95, 228, 255, 0.18), transparent 23%),
-    radial-gradient(circle at 88% 78%, rgba(255, 104, 201, 0.16), transparent 26%),
-    linear-gradient(145deg, #25235b, #111132 54%, #080a20);
+    radial-gradient(circle at 12% 14%, color-mix(in srgb, var(--retro-cyan) 18%, transparent), transparent 23%),
+    radial-gradient(circle at 88% 78%, color-mix(in srgb, var(--retro-pink) 16%, transparent), transparent 26%),
+    linear-gradient(145deg, var(--retro-panel), var(--retro-panel-deep) 54%, var(--retro-night));
   background-size: 100% 4px, auto, auto, auto;
 }
 
@@ -12064,7 +12166,7 @@ body.has-command-palette {
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 8%),
-    linear-gradient(145deg, #302d64, #1a1a42 70%);
+    linear-gradient(145deg, var(--retro-panel), var(--retro-panel-deep) 70%);
   box-shadow:
     5px 5px 0 rgba(5, 4, 27, 0.54),
     inset 2px 2px 0 rgba(255, 255, 255, 0.11),
@@ -12082,9 +12184,9 @@ body.has-command-palette {
 :root[data-style="retro"] .cockpit-hero h2,
 :root[data-style="retro"] .cockpit-panel h3 {
   font-family: "Press Start 2P", "Trebuchet MS", sans-serif;
-  color: #fff6c5;
+  color: var(--retro-yellow);
   letter-spacing: 0.045em;
-  text-shadow: 2px 2px 0 #6c4cd6, 0 0 16px rgba(95, 228, 255, 0.24);
+  text-shadow: 2px 2px 0 var(--retro-panel-deep), 0 0 16px color-mix(in srgb, var(--retro-cyan) 24%, transparent);
 }
 
 :root[data-style="retro"] .home-premium-page .page-header h1 {
@@ -12103,7 +12205,7 @@ body.has-command-palette {
 :root[data-style="retro"] .home-premium-page .entry-card[data-entry-card] .entry-comment-field {
   border-color: color-mix(in srgb, var(--retro-line) 78%, var(--retro-pink) 22%);
   border-radius: 10px;
-  background: linear-gradient(145deg, #39356f, #20204a);
+  background: linear-gradient(145deg, var(--retro-raised), var(--retro-panel-deep));
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
 }
 
@@ -12128,28 +12230,28 @@ body.has-command-palette {
   font-weight: 650;
   color: var(--text);
   border-color: color-mix(in srgb, var(--retro-line) 76%, var(--retro-cyan) 24%);
-  background: #17183c;
+  background: var(--retro-night);
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.24), inset -1px -1px 0 rgba(255, 255, 255, 0.08);
 }
 
 :root[data-style="retro"] .cockpit-progress-ring {
   border-radius: 16px;
   background:
-    linear-gradient(145deg, #211f4c 0 58%, transparent 59%),
-    conic-gradient(var(--retro-pink) 0deg, var(--retro-cyan) var(--cockpit-progress-angle), #4a467d var(--cockpit-progress-angle), #4a467d 360deg);
+    linear-gradient(145deg, var(--retro-panel-deep) 0 58%, transparent 59%),
+    conic-gradient(var(--retro-pink) 0deg, var(--retro-cyan) var(--cockpit-progress-angle), var(--retro-line) var(--cockpit-progress-angle), var(--retro-line) 360deg);
   box-shadow: 4px 4px 0 rgba(5, 4, 27, 0.48), inset 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 :root[data-style="retro"] .cockpit-progress-ring-core {
   border-radius: 12px;
-  background: #211f4c;
+  background: var(--retro-panel-deep);
 }
 
 :root[data-style="retro"] .cockpit-action-card:hover,
 :root[data-style="retro"] .cockpit-action-card:focus-visible {
   transform: translate(-2px, -2px);
   border-color: var(--retro-yellow);
-  background: linear-gradient(145deg, #4b4388, #29245b);
+  background: linear-gradient(145deg, var(--retro-raised), var(--retro-panel));
   box-shadow: 4px 4px 0 rgba(5, 4, 27, 0.5), inset 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
@@ -12193,7 +12295,7 @@ body.has-command-palette {
 /* Elegant 16-bit calendar: color carries status, never the entire card surface. */
 :root[data-style="retro"] .calendar-weekdays span {
   font-family: "Press Start 2P", "Trebuchet MS", sans-serif;
-  color: #c8c4ee;
+  color: var(--muted);
   font-size: 0.58rem;
   letter-spacing: 0.08em;
 }
@@ -12201,9 +12303,9 @@ body.has-command-palette {
 :root[data-style="retro"] .calendar-day-card,
 :root[data-style="retro"] .calendar-day-filler {
   min-height: 132px;
-  border: 1px solid rgba(126, 115, 214, 0.54);
+  border: 1px solid color-mix(in srgb, var(--retro-line) 54%, transparent);
   border-radius: 15px;
-  background: linear-gradient(145deg, #2a2856, #1c1b42);
+  background: linear-gradient(145deg, var(--retro-panel), var(--retro-panel-deep));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 3px 3px 0 rgba(5, 4, 27, 0.32);
 }
 
@@ -12237,7 +12339,7 @@ body.has-command-palette {
 
 :root[data-style="retro"] .calendar-day-card.is-weekend {
   --calendar-accent: #948fd0;
-  background: linear-gradient(145deg, #25234e, #18183a);
+  background: linear-gradient(145deg, var(--retro-panel-deep), var(--retro-night));
 }
 
 :root[data-style="retro"] .calendar-day-card.is-leave {
@@ -12252,7 +12354,7 @@ body.has-command-palette {
 :root[data-style="retro"] .calendar-day-card:focus-visible {
   transform: translateY(-2px);
   border-color: var(--calendar-accent);
-  background: linear-gradient(145deg, #35336c, #201e4a);
+  background: linear-gradient(145deg, var(--retro-raised), var(--retro-panel));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--calendar-accent) 26%, transparent), 5px 6px 0 rgba(5, 4, 27, 0.34);
 }
 
@@ -12268,7 +12370,7 @@ body.has-command-palette {
 
 :root[data-style="retro"] .calendar-day-weekday {
   font-family: "Press Start 2P", "Trebuchet MS", sans-serif;
-  color: #bdb9e6;
+  color: var(--muted);
   font-size: 0.56rem;
   letter-spacing: 0.04em;
 }
@@ -12297,7 +12399,7 @@ body.has-command-palette {
 :root[data-style="retro"] .calendar-break-line,
 :root[data-style="retro"] .calendar-day-state {
   font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-  color: #d8d5f4;
+  color: var(--muted);
   font-size: 0.76rem;
   font-weight: 650;
 }
@@ -12306,7 +12408,7 @@ body.has-command-palette {
   width: 1rem;
   height: 1rem;
   border-width: 1px;
-  color: #c7c2f0;
+  color: var(--muted);
   font-size: 0.56rem;
 }
 
@@ -12324,15 +12426,15 @@ body.has-command-palette {
 
 :root[data-style="retro"] .calendar-week-total-card {
   min-height: 132px;
-  border: 1px solid rgba(126, 115, 214, 0.7);
+  border: 1px solid color-mix(in srgb, var(--retro-line) 70%, transparent);
   border-radius: 15px;
-  background: linear-gradient(145deg, #363364, #272550);
+  background: linear-gradient(145deg, var(--retro-raised), var(--retro-panel));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 3px 3px 0 rgba(5, 4, 27, 0.3);
 }
 
 :root[data-style="retro"] .calendar-week-total-kicker,
 :root[data-style="retro"] .calendar-week-total-label {
-  color: #c6c2ec;
+  color: var(--muted);
   font-family: "Press Start 2P", "Trebuchet MS", sans-serif;
   font-size: 0.52rem;
 }
@@ -12651,4 +12753,1336 @@ body.has-command-palette {
 :root[data-style="retro"] ::placeholder {
   font-family: "Press Start 2P", "Trebuchet MS", sans-serif;
   font-size: 0.54rem;
+}
+
+/* Smaller pixel typography keeps authentication screens light and readable. */
+:root[data-style="retro"] .auth-premium-page .login-card-premium h1 {
+  font-size: clamp(1rem, 0.85rem + 0.5vw, 1.25rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+:root[data-style="retro"] .auth-premium-page .login-card-premium .login-subtitle {
+  max-width: 38ch;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.9;
+}
+
+:root[data-style="retro"] .auth-premium-page .theme-picker label,
+:root[data-style="retro"] .auth-premium-page .login-form .field label {
+  font-size: 0.56rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+
+:root[data-style="retro"] .auth-premium-page .theme-picker select,
+:root[data-style="retro"] .auth-premium-page .login-form input {
+  font-size: 0.64rem;
+  line-height: 1.7;
+}
+
+:root[data-style="retro"] .auth-premium-page .login-form button[type="submit"] {
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.7;
+}
+
+:root[data-style="retro"] .auth-premium-page .auth-switch,
+:root[data-style="retro"] .auth-premium-page .field-hint,
+:root[data-style="retro"] .auth-premium-page .alert {
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.9;
+}
+
+:root[data-style="retro"] .auth-premium-page .auth-switch a {
+  font-weight: 400;
+}
+
+/* Compact account controls with explicit contrast on the dark SEGA surface. */
+:root[data-style="retro"] .home-premium-page .notifications-trigger-label {
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+:root[data-style="retro"] .home-premium-page .notifications-badge {
+  font-size: 0.56rem;
+  font-weight: 400;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-trigger .user-chip {
+  color: #f7f5ff;
+  background: #282654;
+  border-color: #7569c9;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+/* Account-menu pixel text needs its own compact scale. */
+:root[data-style="retro"] .home-premium-page .user-menu-panel {
+  min-width: 0;
+  width: min(300px, calc(100vw - 2rem));
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-profile-copy span {
+  font-size: 0.5rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+  color: var(--retro-yellow);
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-profile-copy strong {
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.7;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-panel .user-menu-link {
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  gap: 0.55rem;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-link > span:last-child {
+  min-width: 0;
+  gap: 0.3rem;
+  overflow-wrap: anywhere;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-link strong {
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-link small {
+  font-size: 0.5rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-action-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-avatar {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-logout button {
+  min-height: 2.75rem;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+/* Explain appearance choices without competing with the controls. */
+.appearance-help {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.appearance-help > span {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+:root[data-style="retro"] .appearance-help {
+  font-size: 0.55rem;
+  line-height: 1.9;
+}
+
+:root[data-accent-color] {
+  --accent-ui: var(--primary);
+}
+
+:root[data-style="robot"][data-accent-color],
+:root[data-style="retro"][data-accent-color] {
+  --accent-ui: color-mix(in srgb, var(--primary) 62%, white);
+}
+
+:root[data-accent-color] .home-premium-page .settings-nav-item.is-active,
+:root[data-accent-color] .home-premium-page .app-custom-select-option.is-active,
+:root[data-accent-color] .home-premium-page .settings-choice input:checked + span {
+  border-color: var(--accent-ui);
+  background: color-mix(in srgb, var(--accent-ui) 24%, var(--card-bg));
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--accent-ui), 0 0 12px color-mix(in srgb, var(--accent-ui) 16%, transparent);
+}
+
+:root[data-accent-color] .home-premium-page .app-custom-select-trigger:hover,
+:root[data-accent-color] .home-premium-page .app-custom-select-trigger:focus-visible,
+:root[data-accent-color] .home-premium-page .form-input:focus,
+:root[data-accent-color] .home-premium-page .form-select:focus {
+  border-color: var(--accent-ui);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-ui) 32%, transparent);
+}
+
+:root[data-accent-color] .home-premium-page .btn-save-primary,
+:root[data-accent-color] .home-premium-page [data-onboarding-next],
+:root[data-accent-color] .home-premium-page [data-onboarding-finish] {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 80%, black), var(--primary-hover));
+  border-color: var(--accent-ui);
+  color: #fff;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-ui) 28%, transparent);
+}
+
+/* Theme palettes drive SEGA surfaces as well as their arcade accents. */
+:root[data-style="retro"][data-theme="light"] {
+  --retro-hue: 38;
+  --retro-saturation: 28%;
+  --retro-cyan: #ffe0a0;
+  --retro-pink: #91e1dd;
+  --retro-yellow: #91e1dd;
+}
+
+:root[data-style="retro"][data-theme="dark"] {
+  --retro-hue: 225;
+  --retro-saturation: 14%;
+  --retro-cyan: #aabfff;
+  --retro-pink: #d2b5ff;
+  --retro-yellow: #d2b5ff;
+}
+
+:root[data-style="retro"][data-theme="deep-ocean-blue"] {
+  --retro-hue: 205;
+  --retro-saturation: 65%;
+  --retro-cyan: #62dfff;
+  --retro-pink: #7ef1cb;
+  --retro-yellow: #7ef1cb;
+}
+
+:root[data-style="retro"][data-theme="light-blue"] {
+  --retro-hue: 210;
+  --retro-saturation: 40%;
+  --retro-cyan: #addaff;
+  --retro-pink: #c4caff;
+  --retro-yellow: #c4caff;
+}
+
+:root[data-style="retro"][data-theme="orange-sunset"] {
+  --retro-hue: 22;
+  --retro-saturation: 62%;
+  --retro-cyan: #ffb36b;
+  --retro-pink: #ffda92;
+  --retro-yellow: #ffda92;
+}
+
+:root[data-style="retro"][data-theme="forest-green"] {
+  --retro-hue: 155;
+  --retro-saturation: 45%;
+  --retro-cyan: #71edb0;
+  --retro-pink: #cce783;
+  --retro-yellow: #cce783;
+}
+
+:root[data-style="retro"][data-theme="light-green"] {
+  --retro-hue: 100;
+  --retro-saturation: 32%;
+  --retro-cyan: #b7f092;
+  --retro-pink: #ffe3a0;
+  --retro-yellow: #ffe3a0;
+}
+
+:root[data-style="retro"][data-theme="bordeaux-night"] {
+  --retro-hue: 335;
+  --retro-saturation: 48%;
+  --retro-cyan: #ff96bb;
+  --retro-pink: #d9acff;
+  --retro-yellow: #d9acff;
+}
+
+:root[data-style="retro"][data-theme="lavender-mist"] {
+  --retro-hue: 270;
+  --retro-saturation: 35%;
+  --retro-cyan: #d4b3ff;
+  --retro-pink: #ffaee0;
+  --retro-yellow: #ffaee0;
+}
+
+:root[data-style="retro"][data-theme="obsidian-gold"] {
+  --retro-hue: 43;
+  --retro-saturation: 25%;
+  --retro-cyan: #ffd46d;
+  --retro-pink: #fff0b1;
+  --retro-yellow: #fff0b1;
+}
+
+:root[data-style="retro"] {
+  --retro-hue: 250;
+  --retro-saturation: 38%;
+  --retro-night: hsl(var(--retro-hue) var(--retro-saturation) 9%);
+  --retro-panel: hsl(var(--retro-hue) var(--retro-saturation) 23%);
+  --retro-panel-deep: hsl(var(--retro-hue) var(--retro-saturation) 15%);
+  --retro-raised: hsl(var(--retro-hue) var(--retro-saturation) 29%);
+  --retro-line: hsl(var(--retro-hue) var(--retro-saturation) 58%);
+  --retro-button: hsl(var(--retro-hue) var(--retro-saturation) 32%);
+  --bg-top: var(--retro-panel);
+  --bg: var(--retro-night);
+  --bg-bottom: var(--retro-night);
+  --input-bg: var(--retro-night);
+  --muted: hsl(var(--retro-hue) 25% 82%);
+  --primary-hover: var(--retro-pink);
+  --link: var(--retro-cyan);
+  --link-hover: var(--retro-pink);
+}
+
+:root[data-style="retro"] .home-premium-page .user-menu-trigger .user-chip {
+  background: var(--retro-panel);
+  border-color: var(--retro-line);
+}
+
+:root[data-style="retro"] .auth-premium-page .login-card,
+:root[data-style="retro"] .auth-premium-page .login-card-premium {
+  background: linear-gradient(145deg, var(--retro-panel), var(--retro-panel-deep));
+  color: var(--text);
+  border-color: var(--retro-line);
+}
+
+:root[data-style="retro"] .auth-premium-page .login-card-premium h1,
+:root[data-style="retro"] .auth-premium-page .login-card-premium .login-subtitle {
+  color: var(--text);
+}
+
+:root[data-style="retro"] .auth-premium-page .theme-picker label,
+:root[data-style="retro"] .auth-premium-page .login-form .field label {
+  color: var(--retro-yellow);
+  text-shadow: none;
+}
+
+:root[data-style="retro"] .auth-premium-page .login-form input,
+:root[data-style="retro"] .theme-picker select {
+  background: var(--retro-night);
+  color: var(--text);
+  border-color: var(--retro-line);
+}
+
+:root[data-style="retro"] .auth-premium-page .auth-switch a {
+  color: var(--retro-cyan);
+}
+
+/* Medieval: stone, leather and aged brass. All overrides stay theme-local. */
+:root[data-theme="medieval"] {
+  color-scheme: dark;
+  --medieval-stone: #181a19;
+  --medieval-leather: #29221e;
+  --medieval-bronze: #b69a65;
+  --medieval-wine: #652f38;
+  --bg-top: #292520;
+  --bg: #171918;
+  --bg-bottom: #0e1110;
+  --blob-1: rgba(169, 111, 51, 0.15);
+  --blob-2: rgba(101, 47, 56, 0.13);
+  --card-bg: #262521;
+  --card-bg-2: #1c1d1b;
+  --input-bg: #161917;
+  --text: #f1e8d7;
+  --muted: #bdb29f;
+  --border: #695a40;
+  --primary: #9d7945;
+  --primary-hover: #805b32;
+  --focus-ring: rgba(182, 154, 101, 0.45);
+  --theme-metal: #b69a65;
+  --theme-highlight: #dfc8a1;
+  --theme-atmosphere: #803e42;
+  --premium-glow: #b69a65;
+  --week-1: #302a21;
+  --week-2: #242d2b;
+  --week-3: #2c2932;
+  --week-4: #332629;
+  --overtime-bg: #3b2f1e;
+  --overtime-text: #e6c58c;
+  --chip-bg: #332c23;
+  --chip-text: #ead8b7;
+  --alert-bg: #3b2225;
+  --alert-text: #f5b5b1;
+  --alert-border: #91595c;
+  --alert-success-bg: #23352c;
+  --alert-success-text: #b9ddc3;
+  --alert-success-border: #668b72;
+  --status-ok-bg: #23352c;
+  --status-ok-text: #b9ddc3;
+  --status-under-bg: #3b2225;
+  --status-under-text: #f5b5b1;
+  --danger: #efaaa5;
+  --danger-hover: #ffd2c9;
+  --link: #dfc8a1;
+  --link-hover: #fff0ce;
+  --secondary: #494136;
+  --secondary-hover: #5b4d3c;
+  --secondary-link: #d6be95;
+  --secondary-link-hover: #fff0ce;
+  --save-primary: #652f38;
+  --save-primary-hover: #783b44;
+  --save-primary-active: #51232c;
+  --save-primary-shadow: rgba(126, 81, 37, 0.25);
+  --save-primary-focus: rgba(182, 154, 101, 0.5);
+  --shadow: rgba(0, 0, 0, 0.45);
+  --login-shadow: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="medieval"][data-style="robot"] {
+  --robot-cyan: #d4b982;
+  --robot-mint: #c69086;
+  --robot-line: #695a40;
+  --robot-panel: #20221f;
+  --robot-panel-raised: #302b24;
+  --robot-ink: #101310;
+}
+
+:root[data-theme="medieval"][data-style="retro"] {
+  --retro-hue: 35;
+  --retro-saturation: 18%;
+  --retro-cyan: #dfc8a1;
+  --retro-pink: #c69086;
+  --retro-yellow: #dfc8a1;
+  --retro-violet: #8d7250;
+  --retro-panel: #302b24;
+  --retro-panel-deep: #1c1d1b;
+  --retro-night: #111511;
+  --retro-raised: #3a3027;
+  --retro-line: #806b49;
+  --retro-button: #652f38;
+}
+
+:root[data-theme="medieval"] body {
+  background:
+    radial-gradient(ellipse at 6% 8%, rgba(172, 111, 50, 0.17), transparent 38%),
+    radial-gradient(ellipse at 96% 40%, rgba(112, 48, 53, 0.13), transparent 42%),
+    repeating-linear-gradient(0deg, transparent 0 87px, rgba(211, 188, 147, 0.022) 88px, transparent 90px),
+    repeating-linear-gradient(90deg, transparent 0 177px, rgba(0, 0, 0, 0.1) 179px, transparent 181px),
+    linear-gradient(145deg, #25251f, #141816 65%, #101310);
+  background-size: auto;
+  color: var(--text);
+}
+
+:root[data-theme="medieval"] .home-premium-page .container::before,
+:root[data-theme="medieval"] .auth-premium-page .login-page::before,
+:root[data-theme="medieval"] .auth-premium-page .login-page::after {
+  background: radial-gradient(ellipse at 15% 15%, rgba(172, 111, 50, 0.12), transparent 60%);
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.page-header-premium, .premium-surface, .entry-card[data-entry-card], .login-card-premium, .settings-workspace, .mobile-stats-card, .mobile-history-card) {
+  background:
+    linear-gradient(135deg, rgba(210, 177, 122, 0.055), transparent 38%),
+    linear-gradient(155deg, var(--medieval-leather), var(--card-bg-2) 75%);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35), inset 0 0 0 3px #1b1b18, inset 0 0 0 4px rgba(182, 154, 101, 0.13);
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.page-header-premium, .premium-surface, .login-card-premium)::before {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #8d7250 25%, #dfc8a1 50%, #8d7250 75%, transparent);
+  box-shadow: none;
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.card, .page-header, .login-card)::after {
+  background: none;
+  border-color: rgba(182, 154, 101, 0.12);
+  box-shadow: none;
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.header-control-group, .settings-sidebar, .settings-panel, .entry-context-card, .entry-workday-panel, .entry-comment-field, .cockpit-context-card, .cockpit-week-day, .cockpit-action-card) {
+  background: linear-gradient(145deg, #2d2922, #1b201c);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(225, 203, 157, 0.06);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.premium-mini-card, .cockpit-stat-pill, .settings-goal-card, .mobile-stat-card) {
+  background: radial-gradient(ellipse at 90% 0, rgba(119, 57, 59, 0.2), transparent 65%), linear-gradient(145deg, #322b22, #21221d);
+  border: 1px solid #887047;
+  box-shadow: inset 0 0 0 3px rgba(15, 17, 14, 0.55), 0 5px 20px rgba(147, 99, 40, 0.07);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.cockpit-stat-pill, .premium-mini-card)::before {
+  content: "";
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  left: auto;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--medieval-bronze);
+  background: transparent;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.premium-mini-value, .cockpit-stat-pill strong, .calendar-week-total-value, .calendar-day-number) {
+  color: var(--text);
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(h1, h2, h3) {
+  color: var(--text);
+  text-shadow: none;
+}
+
+:root[data-theme="medieval"][data-style="premium"] :is(.page-header h1, .month-header-copy h2, .login-card-premium h1, .client-modal-header h2, .onboarding-step-copy h2) {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.025em;
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.section-eyebrow, .header-control-caption, .theme-picker label, .cockpit-kicker),
+:root[data-theme="medieval"] .auth-premium-page :is(.theme-picker label, .login-form .field label) {
+  color: var(--medieval-bronze);
+  text-shadow: none;
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .app-custom-select-trigger, .settings-custom-select-trigger) {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="medieval"] :is(input, textarea)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(input, select, textarea, .app-custom-select-trigger):focus-visible {
+  border-color: var(--medieval-bronze);
+  outline: 2px solid var(--medieval-bronze);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(182, 154, 101, 0.16);
+}
+
+:root[data-theme="medieval"] :is(.home-premium-page, .auth-premium-page) :is(button.secondary, .button-neutral, .secondary-link, .settings-nav-item, .user-menu-link, .calendar-nav-button) {
+  background: linear-gradient(145deg, #353027, #24231f);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(225, 203, 157, 0.07);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.btn-save-primary, [data-entry-submit-button], [data-onboarding-next], [data-onboarding-finish]),
+:root[data-theme="medieval"] .auth-premium-page .login-form button[type="submit"] {
+  background: linear-gradient(145deg, #703740, #48232c);
+  border: 1px solid var(--medieval-bronze);
+  color: #f8ebd2;
+  box-shadow: inset 0 1px 0 rgba(243, 213, 158, 0.15), 0 5px 18px rgba(139, 88, 35, 0.18);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.btn-save-primary, [data-entry-submit-button], [data-onboarding-next], [data-onboarding-finish]):hover:not(:disabled),
+:root[data-theme="medieval"] .auth-premium-page .login-form button[type="submit"]:hover {
+  background: linear-gradient(145deg, #7d4149, #532831);
+  box-shadow: 0 0 18px rgba(182, 154, 101, 0.23), inset 0 1px 0 rgba(243, 213, 158, 0.18);
+}
+
+:root[data-theme="medieval"][data-motion="subtle"] .home-premium-page :is(.btn-save-primary, [data-entry-submit-button]):active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.user-chip, .notifications-trigger, .user-menu-trigger .user-chip) {
+  background: #332c23;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.calendar-day-card, .calendar-day-filler, .calendar-week-total-card) {
+  background: linear-gradient(145deg, #2b2a23, #1c211d);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(214, 193, 151, 0.07);
+}
+
+:root[data-theme="medieval"] .home-premium-page .calendar-day-card.is-weekend {
+  background: #1a1d19;
+}
+
+:root[data-theme="medieval"] .home-premium-page .calendar-day-card.is-today {
+  border-color: #bb8b80;
+  background: linear-gradient(145deg, #3c2928, #25251f);
+}
+
+:root[data-theme="medieval"] .home-premium-page .calendar-day-card.is-selected {
+  border-color: #cfb27b;
+  outline: 1px solid #cfb27b;
+  outline-offset: -3px;
+  box-shadow: 0 0 16px rgba(182, 154, 101, 0.19);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.calendar-day-weekday, .calendar-weekdays span, .calendar-week-total-label, .calendar-week-total-kicker, .calendar-break-line) {
+  color: var(--muted);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.client-modal-dialog, .week-summary-modal-dialog, .command-palette-dialog, .onboarding-dialog, .notifications-panel, .user-menu-panel, .calendar-day-preview, .app-custom-select-menu, .settings-custom-select-menu) {
+  background: linear-gradient(155deg, #2b2721, #181c19);
+  border: 1px solid var(--medieval-bronze);
+  color: var(--text);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58), inset 0 0 0 3px #191c18, inset 0 0 0 4px rgba(182, 154, 101, 0.13);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.client-modal-header, .onboarding-topbar, .settings-panel-head) {
+  border-bottom-color: var(--border);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.onboarding-step, .onboarding-grid .form-field, .onboarding-footer, .app-custom-select-option, .week-summary-table tbody td, .week-summary-table tbody th) {
+  background: var(--card-bg-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.app-custom-select-option.is-active, .settings-nav-item.is-active, .settings-choice input:checked + span) {
+  background: #3c3124;
+  border-color: var(--medieval-bronze);
+  color: #f1e8d7;
+}
+
+:root[data-theme="medieval"] .home-premium-page .cockpit-progress-ring-core {
+  background: #20231e;
+  color: var(--text);
+}
+
+:root[data-theme="medieval"] .app-custom-select-option[data-value="medieval"]::before {
+  background: #b69a65;
+}
+
+:root[data-theme="medieval"] .home-premium-page .entry-card[data-entry-card] .entry-actions-footer [data-entry-submit-button] {
+  background: linear-gradient(145deg, #703740, #48232c);
+  color: #f8ebd2;
+  border: 1px solid var(--medieval-bronze);
+  box-shadow: inset 0 1px 0 rgba(243, 213, 158, 0.15), 0 5px 18px rgba(139, 88, 35, 0.18);
+}
+
+:root[data-theme="medieval"] .home-premium-page .entry-card[data-entry-card] :is(input, select, textarea) {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.onboarding-shell, .mobile-calendar-day, .mobile-calendar-panel, .mobile-card) {
+  background: linear-gradient(145deg, #2b2721, #181c19);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme="medieval"] .home-premium-page .calendar-day-card::before {
+  content: "";
+  position: absolute;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  left: 0;
+  width: 3px;
+  background: var(--calendar-accent, var(--border));
+  box-shadow: none;
+  pointer-events: none;
+}
+
+:root[data-theme="medieval"] .home-premium-page .calendar-day-card.is-today::after {
+  background: #652f38;
+  color: #f8ebd2;
+  border: 1px solid var(--medieval-bronze);
+}
+
+:root[data-theme="medieval"] .home-premium-page .mobile-calendar-day.is-selected {
+  border-color: #cfb27b;
+  box-shadow: 0 0 0 2px rgba(182, 154, 101, 0.3);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.user-menu-action-icon, .user-menu-avatar) {
+  background: linear-gradient(145deg, #725b36, #3b3023);
+  color: #f1e8d7;
+  border-color: var(--medieval-bronze);
+}
+
+:root[data-theme="medieval"] .home-premium-page :is(.user-menu-link small, .user-menu-profile-copy span) {
+  color: var(--muted);
+}
+
+/* Medieval STYLE: the castle register. Independent from the selected palette. */
+:root[data-style="medieval"] body,
+:root[data-style="medieval"] body *,
+:root[data-style="medieval"] body *::before,
+:root[data-style="medieval"] body *::after,
+:root[data-style="medieval"] input::placeholder,
+:root[data-style="medieval"] textarea::placeholder {
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-variant-caps: small-caps !important;
+}
+
+:root[data-style="medieval"] {
+  color-scheme: dark;
+  --castle-stone: #171712;
+  --castle-wood: #302014;
+  --castle-wood-light: #48301c;
+  --castle-paper: #efddb7;
+  --castle-paper-edge: #dbc18e;
+  --castle-ink: #30200f;
+  --castle-bronze: #bb9558;
+  --castle-iron: #292822;
+  --castle-wine: #6e2728;
+  --castle-grain: repeating-linear-gradient(3deg, transparent 0 5px, rgba(65, 37, 10, 0.026) 6px, transparent 7px);
+  --bg: #171712;
+  --bg-top: #29271e;
+  --bg-bottom: #100f0b;
+  --card-bg: #30271b;
+  --card-bg-2: #211d15;
+  --text: #f2e4c8;
+  --muted: #c8b792;
+  --border: #8a6c3f;
+  --input-bg: #251a10;
+  --link: #e4c891;
+  --link-hover: #fff1cd;
+  --chip-bg: #422d1c;
+  --chip-text: #f2e4c8;
+  --radius-card: 8px;
+  --radius-control: 4px;
+  --radius-table: 4px;
+  --shadow: rgba(8, 5, 1, 0.5);
+  --premium-glow: #b58a42;
+}
+
+:root[data-style="medieval"] body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 0 20%, rgba(157, 90, 30, 0.25), transparent 37%),
+    radial-gradient(ellipse at 100% 58%, rgba(154, 83, 24, 0.2), transparent 36%),
+    repeating-linear-gradient(0deg, transparent 0 94px, rgba(0, 0, 0, 0.35) 96px, rgba(148, 138, 112, 0.07) 98px, transparent 100px),
+    repeating-linear-gradient(90deg, transparent 0 218px, rgba(0, 0, 0, 0.17) 220px, transparent 223px),
+    linear-gradient(145deg, #29291f, #11140f 70%);
+  background-size: auto;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) {
+  --home-font-display: Georgia, "Times New Roman", serif;
+  --home-font-body: "Segoe UI", Arial, sans-serif;
+  --auth-font-display: Georgia, "Times New Roman", serif;
+  --auth-font-body: "Segoe UI", Arial, sans-serif;
+}
+
+:root[data-style="medieval"] .home-premium-page .container::before,
+:root[data-style="medieval"] .auth-premium-page .login-page::before,
+:root[data-style="medieval"] .auth-premium-page .login-page::after {
+  background: none;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.card, .premium-surface, .app-card, .app-card-compact) {
+  border-radius: 8px;
+  border-color: var(--border);
+  backdrop-filter: none;
+  background: linear-gradient(145deg, #353125, #211f17);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32), inset 0 0 0 3px rgba(15, 12, 7, 0.55), inset 0 0 0 4px rgba(187, 149, 88, 0.21);
+  transform: none;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.card, .premium-surface, .page-header, .login-card)::before,
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.card, .premium-surface, .page-header, .login-card)::after {
+  background: none;
+  box-shadow: none;
+  border: 0;
+  pointer-events: none;
+}
+
+/* Carved signboard, forged corner pins and a timber control rail. */
+:root[data-style="medieval"] .home-premium-page .page-header-premium {
+  padding: clamp(1.2rem, 2.4vw, 2.2rem);
+  border: 2px solid #8b6939;
+  border-radius: 7px 7px 3px 3px;
+  background:
+    radial-gradient(circle at 13px 13px, #d1b17a 0 2px, #51402a 3px 5px, transparent 6px),
+    radial-gradient(circle at calc(100% - 13px) 13px, #d1b17a 0 2px, #51402a 3px 5px, transparent 6px),
+    repeating-linear-gradient(1deg, transparent 0 8px, rgba(9, 4, 0, 0.12) 9px, transparent 11px),
+    linear-gradient(180deg, #49311c, #2a1c11 72%, #1f170f);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 5px #211b11, inset 0 0 0 6px #755732;
+}
+
+:root[data-style="medieval"] .home-premium-page .page-header h1 {
+  max-width: 25ch;
+  margin: 0.3rem auto 1.3rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.65rem, 1.1rem + 2vw, 3rem);
+  font-weight: 700;
+  font-variant: small-caps;
+  line-height: 1.13;
+  letter-spacing: 0.015em;
+  text-align: center;
+  text-transform: none;
+  color: #f2dfb4;
+  text-shadow: 0 2px 0 #140d06;
+}
+
+:root[data-style="medieval"] .home-premium-page .header-control-group {
+  border: 1px solid #9c7945;
+  border-radius: 3px;
+  background: repeating-linear-gradient(0deg, rgba(1, 0, 0, 0.09) 0 1px, transparent 2px 10px), linear-gradient(145deg, #3b2818, #241b11);
+  box-shadow: inset 0 0 0 3px rgba(14, 9, 3, 0.4);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.header-control-caption, .theme-picker label) {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #dfc08a;
+  letter-spacing: 0.12em;
+  text-shadow: none;
+}
+
+/* Paper surfaces own their ink tokens so dark-theme text cannot leak onto them. */
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.cockpit-hero, .entry-card[data-entry-card], .calendar-panel, .settings-panel, .login-card-premium, .client-modal-dialog, .onboarding-shell, .mobile-calendar-panel, .mobile-stats-card) {
+  --text: #30200f;
+  --muted: #685334;
+  --card-bg: #efddb7;
+  --card-bg-2: #e2cca2;
+  --input-bg: #f5e7cb;
+  --border: #987947;
+  --link: #762b24;
+  --link-hover: #4f1b16;
+  --primary: #85472e;
+  --primary-hover: #642e23;
+  --focus-ring: rgba(128, 71, 32, 0.3);
+  color-scheme: light;
+  color: var(--text);
+  background: var(--castle-grain), radial-gradient(ellipse at 50% 30%, #f5e8ce, transparent 85%), linear-gradient(115deg, #d2b47d, #eed9ae 8%, #ead4a8 90%, #c5a168);
+  border: 1px solid #9c7b43;
+  border-radius: 4px 10px 5px 8px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4), inset 0 0 0 4px rgba(102, 66, 24, 0.1), inset 0 0 32px rgba(117, 75, 20, 0.12);
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero {
+  padding: clamp(1.2rem, 2.3vw, 2rem);
+  border-top: 7px double #8e6834;
+  border-bottom: 7px double #8e6834;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(h2, h3, .login-card-premium h1) {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--text);
+  letter-spacing: -0.015em;
+  text-shadow: none;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-kicker {
+  display: inline-block;
+  padding: 0.4rem 1.25rem;
+  border-block: 1px solid #b79453;
+  border-radius: 0;
+  background: linear-gradient(90deg, #53221c, #792c28, #53221c);
+  color: #f2dfb4;
+  font: 700 0.74rem Georgia, "Times New Roman", serif;
+  letter-spacing: 0.16em;
+  box-shadow: 3px 3px 0 rgba(80, 43, 18, 0.15);
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-welcome-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero h2 {
+  margin-top: 0.65rem;
+  font-size: clamp(1.8rem, 1.35rem + 1.4vw, 2.7rem);
+  font-variant: small-caps;
+  line-height: 1.17;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.cockpit-hero-info-card, .cockpit-context-card, .cockpit-progress-item, .entry-context-card, .entry-workday-panel, .entry-comment-field) {
+  background: var(--castle-grain), linear-gradient(145deg, #ecd8af, #dfc699);
+  color: #30200f;
+  border: 1px solid #ad8b54;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 3px rgba(132, 94, 42, 0.09);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.cockpit-hero-info-card > span, .cockpit-progress-label, .cockpit-progress-meta, .cockpit-hero-date, .cockpit-hero-subtitle, .cockpit-hero-period) {
+  color: #685334;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-profile-media {
+  border: 5px double #8c6939;
+  border-radius: 45% 45% 35% 35%;
+  background: linear-gradient(150deg, #863c31, #4b221c);
+  color: #f2dfb4;
+  box-shadow: 0 5px 0 #50391f, inset 0 0 0 4px #b38b4a;
+}
+
+/* The progress angle is unchanged: only its dial and metalwork are restyled. */
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-progress {
+  padding: 1rem;
+  background: linear-gradient(90deg, transparent 8%, #602823 8% 10%, #80382d 10% 90%, #602823 90% 92%, transparent 92%);
+  border-block: 2px solid #a17b43;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-ring {
+  position: relative;
+  width: min(100%, 250px);
+  border: 7px solid #342d20;
+  border-radius: 50%;
+  padding: 10px;
+  background: conic-gradient(#b99450 0deg, #d9b978 var(--cockpit-progress-angle), #51442f var(--cockpit-progress-angle), #51442f 360deg);
+  box-shadow: 0 0 0 2px #bc995c, 0 10px 20px rgba(22, 10, 3, 0.4), inset 0 0 0 2px #e2c68f;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-ring::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 3%, #dcc088 0 2px, #554126 3px, transparent 4px), radial-gradient(circle at 97% 50%, #dcc088 0 2px, #554126 3px, transparent 4px), radial-gradient(circle at 50% 97%, #dcc088 0 2px, #554126 3px, transparent 4px), radial-gradient(circle at 3% 50%, #dcc088 0 2px, #554126 3px, transparent 4px);
+  pointer-events: none;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-ring-core {
+  border: 2px solid #765b32;
+  background: var(--castle-grain), radial-gradient(circle, #f7e8c7, #d9bd86);
+  color: #30200f;
+  box-shadow: inset 0 0 16px rgba(102, 68, 25, 0.17);
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-ring-core strong {
+  font: 700 clamp(2.1rem, 2rem + 1vw, 3.2rem) Georgia, "Times New Roman", serif;
+  font-variant-numeric: tabular-nums;
+  color: #30200f;
+}
+
+/* Wood-framed register plaques replace rounded navigation tiles. */
+:root[data-style="medieval"] .home-premium-page :is(.cockpit-action-card, .cockpit-stat-pill, .premium-mini-card, .settings-goal-card) {
+  position: relative;
+  border: 5px solid #50351e;
+  border-radius: 3px;
+  background: var(--castle-grain), linear-gradient(120deg, #e8ce9c, #f2e0ba 55%, #d8b983);
+  color: #30200f;
+  box-shadow: 0 0 0 1px #b48d4f, inset 0 0 0 1px #b48d4f, 0 5px 0 #22190e;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.cockpit-action-card, .cockpit-stat-pill, .premium-mini-card) :is(strong, span, p) {
+  color: #49341b;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-action-card strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-variant: small-caps;
+  font-size: 1.1rem;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.cockpit-action-icon, .settings-nav-icon, .user-menu-action-icon) {
+  filter: grayscale(1) sepia(0.9);
+  border-radius: 2px;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-action-card:hover {
+  background: var(--castle-grain), linear-gradient(120deg, #eed6a7, #f7e9cd, #e1c592);
+  box-shadow: 0 0 0 1px #d5b378, inset 0 0 0 1px #b48d4f, 0 5px 0 #22190e, 0 0 15px rgba(184, 132, 58, 0.22);
+}
+
+/* Recessed controls and leather dropdowns keep their existing JS and roles. */
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .app-custom-select-trigger) {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid #987440;
+  border-radius: 3px;
+  box-shadow: inset 0 2px 4px rgba(35, 20, 4, 0.2), 0 1px 0 rgba(214, 177, 106, 0.2);
+}
+
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] :is(input, select, textarea) {
+  color: #30200f;
+  background: #f5e7cb;
+  border-color: #987440;
+  border-radius: 3px;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.entry-card .field label, .form-label, .settings-panel .section-eyebrow) {
+  color: var(--muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(input, select, textarea, .app-custom-select-trigger, button):focus-visible {
+  outline: 2px solid #b08039;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(190, 146, 76, 0.23);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.app-custom-select-menu, .settings-custom-select-menu, .user-menu-panel, .notifications-panel, .command-palette-dialog) {
+  --text: #f2e4c8;
+  --muted: #c8b792;
+  --card-bg: #30271b;
+  --card-bg-2: #211d15;
+  background: repeating-linear-gradient(2deg, transparent 0 8px, rgba(0, 0, 0, 0.09) 9px, transparent 10px), linear-gradient(145deg, #3b2919, #21180f);
+  color: var(--text);
+  border: 2px solid #a78046;
+  border-radius: 4px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 3px #24180c;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.app-custom-select-option, .settings-custom-select-option, .user-menu-link, .settings-nav-item, .button-neutral, button.secondary, .notifications-trigger, .user-chip) {
+  color: #f2e4c8;
+  background: linear-gradient(145deg, #48301c, #2b1e12);
+  border: 1px solid #957241;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(224, 187, 122, 0.12);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.app-custom-select-option, .settings-custom-select-option) {
+  border-width: 0 0 1px;
+  border-bottom-color: #5e4629;
+  text-align: left;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.app-custom-select-option:hover, .app-custom-select-option:focus-visible, .settings-nav-item:hover) {
+  background: #594023;
+  color: #fff0d2;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.app-custom-select-option.is-active, .settings-custom-select-option.is-active, .settings-nav-item.is-active, .settings-choice input:checked + span) {
+  background: #6c2b24;
+  color: #f9e8c3;
+  border-color: #bd9555;
+  box-shadow: inset 3px 0 0 #bd9555;
+}
+
+:root[data-style="medieval"] .home-premium-page .user-menu-trigger .user-chip {
+  border: 3px double #b99253;
+  border-radius: 4px 4px 10px 10px;
+  background: #652922;
+  color: #f9e8c3;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.btn-save-primary, [data-onboarding-next], [data-onboarding-finish]),
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .entry-actions-footer [data-entry-submit-button],
+:root[data-style="medieval"] .auth-premium-page .login-form button[type="submit"] {
+  border: 3px double #d0a565;
+  border-radius: 4px;
+  background: linear-gradient(170deg, #8b3a2e, #581f1c);
+  color: #ffedc7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 0 #32130e, 0 7px 16px rgba(68, 30, 10, 0.3), inset 0 1px 0 #ad6746;
+}
+
+/* Manuscript calendar: state colors stay on their existing indicators. */
+:root[data-style="medieval"] .home-premium-page :is(.month-header-copy h2, .calendar-panel h2) {
+  font-family: Georgia, "Times New Roman", serif;
+  font-variant: small-caps;
+  color: var(--text);
+  border-bottom: 3px double #ac8750;
+  padding-bottom: 0.45rem;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-day-card, .calendar-day-filler, .calendar-week-total-card, .mobile-calendar-day) {
+  background: var(--castle-grain), linear-gradient(145deg, #f3e4c7, #dfc592);
+  color: #30200f;
+  border: 1px solid #a58650;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px rgba(157, 113, 49, 0.1);
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.8rem;
+  bottom: 0.8rem;
+  width: 3px;
+  background: var(--calendar-accent, #a58650);
+  pointer-events: none;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-day-card, .calendar-week-total-card) :is(.calendar-day-number, .calendar-day-duration, .calendar-day-state, .calendar-week-total-value) {
+  color: #30200f;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-day-weekday, .calendar-break-line, .calendar-week-total-label, .calendar-week-total-kicker) {
+  color: #685334;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card.is-weekend {
+  background: #d2bf98;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-day-card.is-selected, .mobile-calendar-day.is-selected) {
+  outline: 2px solid #805820;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 1px #cca263, 0 0 14px rgba(171, 112, 35, 0.25);
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card.is-today::after {
+  background: #722c24;
+  color: #ffedc7;
+  border: 1px solid #b99253;
+  border-radius: 3px;
+}
+
+/* Open registers, with a dark table around the paper. */
+:root[data-style="medieval"] :is(.client-modal, .onboarding, .command-palette) {
+  background: radial-gradient(ellipse, rgba(25, 17, 9, 0.78), rgba(5, 4, 2, 0.93));
+  backdrop-filter: none;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.client-modal-dialog, .onboarding-shell) {
+  border: 6px double #805c2c;
+  border-radius: 4px;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.onboarding-step, .onboarding-grid .form-field, .onboarding-footer, .settings-panel-head, .client-modal-header) {
+  background: transparent;
+  border-color: #a78851;
+  color: var(--text);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.onboarding-step h2, .client-modal-header h2) {
+  font-variant: small-caps;
+}
+
+:root[data-style="medieval"] .home-premium-page .settings-shell {
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.settings-sidebar, .settings-nav-copy, .settings-content-head > div) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-style="medieval"] .home-premium-page .settings-sidebar-head h2 {
+  font-size: 1.4rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .settings-content-head {
+  flex-wrap: wrap;
+}
+
+:root[data-style="medieval"] .home-premium-page .app-footer::after {
+  content: "\25C6  \2014  Tempus Vincit Omnia  \2014  \25C6";
+  display: block;
+  margin-top: 1rem;
+  color: #d3b47b;
+  font: italic 0.9rem Georgia, "Times New Roman", serif;
+  text-align: center;
+}
+
+/* Bow arrows replace the calendar glyphs; accessible labels stay on the controls. */
+:root[data-style="medieval"] .home-premium-page :is(.calendar-nav-button, .mobile-calendar-nav-button) {
+  font-size: 0;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-nav-button, .mobile-calendar-nav-button)::after {
+  content: "";
+  display: block;
+  width: 1.9rem;
+  height: 1rem;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M26 4L38 10L26 16L28 10Z'/%3E%3Cpath d='M5 10H29M3 4L10 10L3 16M9 4L16 10L9 16' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M26 4L38 10L26 16L28 10Z'/%3E%3Cpath d='M5 10H29M3 4L10 10L3 16M9 4L16 10L9 16' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-nav-button, .mobile-calendar-nav-button)[aria-label="Mois précédent"]::after {
+  transform: rotate(180deg);
+}
+
+/* Register details: engraved tabs, a timber month rail and inset ledgers. */
+:root[data-style="medieval"] .home-premium-page .calendar-nav {
+  max-width: 100%;
+  border: 3px double #b18b50;
+  border-radius: 3px;
+  background: repeating-linear-gradient(2deg, transparent 0 6px, rgba(0, 0, 0, 0.08) 7px, transparent 9px), linear-gradient(145deg, #49321e, #2b2013);
+  box-shadow: 0 3px 0 #21170b, inset 0 1px 0 rgba(226, 190, 129, 0.15);
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-nav-label {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-nav-label strong {
+  color: #f3e1ba;
+  letter-spacing: 0.02em;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-nav-label span {
+  color: #d4bd92;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-nav-button {
+  flex-shrink: 0;
+  border: 3px double #ba965b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #62503a, #2d271d 75%);
+  color: #f7e6c2;
+  box-shadow: inset 0 1px 0 #a2875d, 0 2px 3px #1f160c;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-summary-chip {
+  border: 1px solid #977443;
+  border-radius: 2px 2px 8px 8px;
+  background: var(--castle-grain), linear-gradient(135deg, #f1dfb8, #ddc18c);
+  color: #30200f;
+  box-shadow: inset 0 3px 0 #a98751, inset 0 4px 0 #efd9ac;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-summary-chip-label {
+  color: #685334;
+  letter-spacing: 0.07em;
+}
+
+:root[data-style="medieval"] .home-premium-page .day-filter-chip {
+  min-height: 2.5rem;
+  border: 1px solid #a98751;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #493720, #302416);
+  color: #f2dfb4;
+  box-shadow: inset 0 2px 0 rgba(223, 193, 140, 0.16);
+}
+
+:root[data-style="medieval"] .home-premium-page .day-filter-chip.is-active {
+  background: linear-gradient(180deg, #863d30, #5c251f);
+  border-color: #d0aa68;
+  box-shadow: inset 0 -3px 0 #c49a52;
+}
+
+:root[data-style="medieval"] .home-premium-page .day-filter-count {
+  border-radius: 2px;
+  background: #20190f;
+  color: #e8d2a9;
+  border: 1px solid #795f38;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-legend-item {
+  border-radius: 3px;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] :is(.entry-daybar-client-card, .entry-live-summary-block) {
+  border: 1px solid #a1824d;
+  border-radius: 3px;
+  background: var(--castle-grain), linear-gradient(100deg, #f1dfb9, #e3cda1);
+  box-shadow: inset 3px 0 0 #b49156, inset 5px 0 0 #f3e1ba;
+}
+
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .entry-daybar-client-detail {
+  border: 0;
+  border-bottom: 1px dotted #a58a58;
+  border-radius: 0;
+  background: transparent;
+  color: #574022;
+  padding-inline: 0;
+}
+
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .entry-daybar-client-logo {
+  border: 3px double #9b7640;
+  border-radius: 4px 4px 16px 16px;
+  background: #e0c695;
+  box-shadow: inset 0 0 0 2px rgba(246, 226, 184, 0.55);
+}
+
+:root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .entry-live-summary-value {
+  color: #422b14;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-weekdays, .entry-workday-panel h3, .entry-comment-field > label) {
+  border-bottom: 3px double #a78a55;
+  padding-bottom: 0.35rem;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.calendar-day-card:hover, .calendar-week-total-card:hover) {
+  background: var(--castle-grain), linear-gradient(145deg, #f8ecd3, #e4cd9f);
+  border-color: #8c672f;
+  box-shadow: inset 0 0 0 2px rgba(169, 125, 55, 0.14), 0 3px 8px rgba(70, 42, 12, 0.16);
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card.is-selected:hover {
+  border-color: #805820;
+  box-shadow: 0 0 0 1px #cca263, 0 0 14px rgba(171, 112, 35, 0.25);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :root[data-style="medieval"][data-motion="subtle"] .home-premium-page .cockpit-action-card:hover {
+    transform: translateY(-2px);
+  }
+  :root[data-style="medieval"][data-motion="subtle"] .home-premium-page :is(.cockpit-action-card, .btn-save-primary):active,
+  :root[data-style="medieval"][data-motion="subtle"] .home-premium-page .entry-card[data-entry-card] .entry-actions-footer [data-entry-submit-button]:active:not(:disabled) {
+    transform: translateY(2px);
+  }
+}
+
+@media (max-width: 1050px) {
+  :root[data-style="medieval"] .home-premium-page .settings-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :root[data-style="medieval"] .home-premium-page .settings-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  :root[data-style="medieval"] .home-premium-page .page-header-premium {
+    padding: 1.2rem 0.8rem;
+    background: linear-gradient(180deg, #49311c, #251b11);
+    box-shadow: inset 0 0 0 3px #211b11, inset 0 0 0 4px #755732;
+  }
+  :root[data-style="medieval"] .home-premium-page .cockpit-hero {
+    padding: 1rem;
+  }
+  :root[data-style="medieval"] .home-premium-page .cockpit-hero-progress {
+    padding: 0.8rem;
+  }
+  :root[data-style="medieval"] .home-premium-page .cockpit-progress-ring {
+    width: min(100%, 210px);
+  }
+  :root[data-style="medieval"] .home-premium-page .cockpit-progress-ring::after {
+    display: none;
+  }
+  :root[data-style="medieval"] .home-premium-page :is(.cockpit-action-card, .cockpit-stat-pill, .premium-mini-card) {
+    border-width: 3px;
+  }
+}
+
+label.half-day-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-block: 0.6rem;
+  cursor: pointer;
+}
+
+/* Keep the checkbox compact despite the themes' full-width input styles. */
+label.half-day-toggle > input[type="checkbox"] {
+  appearance: auto;
+  flex: 0 0 1.1rem;
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  min-width: 1.1rem !important;
+  min-height: 1.1rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  accent-color: var(--primary);
+  cursor: pointer;
 }

@@ -74,6 +74,7 @@ const THEMES = [
   "bordeaux-night",
   "lavender-mist",
   "obsidian-gold",
+  "medieval",
   "robot",
 ];
 
