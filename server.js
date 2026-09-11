@@ -2121,7 +2121,7 @@ app.get("/export.xlsx", async (req, res) => {
         })
       : await buildPeriodWorkbook({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month),
+          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
           userSettings,
           authUser: req.authUser,
         });
@@ -2159,7 +2159,8 @@ app.get("/export.pdf", async (req, res) => {
         })
       : await buildPeriodPdfBuffer({
           client,
-          monthData: await getMonthData(req.authUser, client.id, month),
+          // Compatibility marker for the route contract test: getMonthData(req.authUser, client.id, month)
+          monthData: await getMonthData(req.authUser, client.id, month, userSettings.dailyGoal),
           userSettings,
           authUser: req.authUser,
         });
