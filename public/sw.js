@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "hours-static-v11";
+const STATIC_CACHE_NAME = "hours-static-v13";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
   "/ApH512x512.png",
   "/ApH180x180.png",
   "/ApH32x32.png",
+  "/ApHfavicon.png",
   "/hours.png",
 ];
 

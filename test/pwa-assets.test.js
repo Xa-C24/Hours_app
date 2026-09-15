@@ -45,7 +45,7 @@ test("head declares iOS and desktop PWA integration tags", () => {
   assert.match(view, /<meta name="apple-mobile-web-app-capable" content="yes" \/>/);
   assert.match(view, /<meta name="apple-mobile-web-app-status-bar-style" content="default" \/>/);
   assert.match(view, /<meta name="apple-mobile-web-app-title" content="Hours" \/>/);
-  assert.match(view, /<link rel="icon" type="image\/png" sizes="32x32" href="\/ApH32x32\.png" \/>/);
+  assert.match(view, /<link rel="icon" type="image\/png" href="\/ApHfavicon\.png\?v=20260914" \/>/);
   assert.match(view, /<link rel="apple-touch-icon" sizes="180x180" href="\/ApH180x180\.png" \/>/);
   assert.match(view, /<link rel="manifest" href="\/manifest\.json" \/>/);
 });

@@ -11,7 +11,7 @@ const {
 const APP_ORIGIN = "https://hours.example";
 
 test("service worker precache list contains only explicit static assets", () => {
-  assert.equal(STATIC_CACHE_NAME, "hours-static-v11");
+  assert.equal(STATIC_CACHE_NAME, "hours-static-v13");
   assert.deepEqual(STATIC_ASSETS, [
     "/manifest.json",
     "/style.css",
@@ -30,6 +30,7 @@ test("service worker precache list contains only explicit static assets", () => 
     "/ApH512x512.png",
     "/ApH180x180.png",
     "/ApH32x32.png",
+    "/ApHfavicon.png",
     "/hours.png",
   ]);
 });

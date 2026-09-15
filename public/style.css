@@ -14062,6 +14062,124 @@ body.has-command-palette {
   }
 }
 
+.cockpit-label-medieval {
+  display: none;
+}
+
+:root[data-style="medieval"] .cockpit-label-default {
+  display: none;
+}
+
+:root[data-style="medieval"] .cockpit-label-medieval {
+  display: inline;
+}
+
+/* Illuminated register: ornamental details stay inside their own surfaces. */
+:root[data-style="medieval"] {
+  --castle-grain: repeating-linear-gradient(3deg, transparent 0 5px, rgba(65, 37, 10, 0.035) 6px, transparent 7px), repeating-linear-gradient(93deg, transparent 0 11px, rgba(65, 37, 10, 0.025) 12px, transparent 13px);
+}
+
+:root[data-style="medieval"] .home-premium-page .page-header h1::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 58px;
+  margin: 0 auto 0.6rem;
+  background: linear-gradient(90deg, transparent 43%, #e0bd73 43% 57%, transparent 57%), linear-gradient(transparent 30%, #e0bd73 30% 42%, transparent 42%), linear-gradient(125deg, #974039, #4e1d21);
+  clip-path: polygon(0 0, 100% 0, 94% 65%, 75% 84%, 50% 100%, 25% 84%, 6% 65%);
+  box-shadow: inset 0 0 0 4px #bb9558;
+}
+
+:root[data-style="medieval"] .home-premium-page .page-header h1::after {
+  content: "";
+  display: block;
+  width: min(80%, 260px);
+  height: 9px;
+  margin: 0.75rem auto 0;
+  background: linear-gradient(45deg, transparent 35%, #bb9558 36% 64%, transparent 65%) center / 9px 9px no-repeat, linear-gradient(#bb9558, #bb9558) left center / 44% 1px no-repeat, linear-gradient(#bb9558, #bb9558) right center / 44% 1px no-repeat;
+}
+
+:root[data-style="medieval"] :is(.home-premium-page, .auth-premium-page) :is(.cockpit-hero, .entry-card[data-entry-card], .calendar-panel, .settings-panel, .login-card-premium) {
+  background:
+    linear-gradient(#8e6834, #8e6834) 10px 10px / 26px 2px no-repeat,
+    linear-gradient(#8e6834, #8e6834) 10px 10px / 2px 26px no-repeat,
+    linear-gradient(#8e6834, #8e6834) calc(100% - 10px) 10px / 26px 2px no-repeat,
+    linear-gradient(#8e6834, #8e6834) calc(100% - 10px) 10px / 2px 26px no-repeat,
+    linear-gradient(#8e6834, #8e6834) 10px calc(100% - 10px) / 26px 2px no-repeat,
+    linear-gradient(#8e6834, #8e6834) 10px calc(100% - 10px) / 2px 26px no-repeat,
+    linear-gradient(#8e6834, #8e6834) calc(100% - 10px) calc(100% - 10px) / 26px 2px no-repeat,
+    linear-gradient(#8e6834, #8e6834) calc(100% - 10px) calc(100% - 10px) / 2px 26px no-repeat,
+    var(--castle-grain),
+    radial-gradient(ellipse at 50% 35%, #f8ecd3, transparent 80%),
+    linear-gradient(100deg, #c4a16a, #efddb7 7%, #ead3a7 93%, #bd975e);
+  box-shadow: 0 12px 24px #0005, inset 0 0 0 5px #70451e12, inset 0 0 35px #70451e26;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero h2::first-letter {
+  color: #762b24;
+  font-size: 1.5em;
+  font-weight: 700;
+  text-shadow: 1px 1px #e5c784;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-kicker {
+  padding: 0.6rem 1.7rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%, 9px 50%);
+  background: repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 4px), linear-gradient(90deg, #53221c, #792c28, #53221c);
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-progress {
+  border-bottom: 6px double #a17b43;
+  background: repeating-linear-gradient(0deg, #00000009 0 1px, transparent 1px 4px), linear-gradient(90deg, transparent 5%, #a17b43 5% 6%, #602823 6% 9%, #80382d 9% 91%, #602823 91% 94%, #a17b43 94% 95%, transparent 95%);
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-ring-core {
+  outline: 1px dashed #96723d;
+  outline-offset: -7px;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.month-header-copy h2, .settings-panel-head) {
+  border-bottom: 3px double #987947;
+  padding-bottom: 0.6rem;
+}
+
+:root[data-style="medieval"] .home-premium-page :is(.entry-workday-panel, .entry-comment-field) {
+  border-left: 4px double #8c3b30;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-weekdays {
+  padding-block: 0.6rem;
+  border-block: 3px double #987947;
+  letter-spacing: 0.08em;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card {
+  box-shadow: inset 3px 0 #8c3b3020, inset 0 -3px #70451e0d;
+}
+
+:root[data-style="medieval"] .home-premium-page .calendar-day-card.is-today .calendar-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.15rem;
+  border: 3px double #d7a86c;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #97493b, #632923);
+  color: #fff0cc;
+  box-shadow: 1px 2px 2px #44211144;
+}
+
+@media (max-width: 700px) {
+  :root[data-style="medieval"] .home-premium-page .page-header h1::before {
+    width: 34px;
+    height: 42px;
+  }
+  :root[data-style="medieval"] .home-premium-page .calendar-weekdays {
+    letter-spacing: normal;
+  }
+}
+
 label.half-day-toggle {
   display: flex;
   align-items: center;

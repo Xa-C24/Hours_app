@@ -73,9 +73,7 @@ const THEMES = [
   "light-green",
   "bordeaux-night",
   "lavender-mist",
-  "obsidian-gold",
-  "medieval",
-  "robot",
+  "obsidian-gold",  "robot",
 ];
 
 const ACCENT_COLORS = ["amber", "steel", "sage", "coral"];

@@ -40,9 +40,7 @@
     "light-green",
     "bordeaux-night",
     "lavender-mist",
-    "obsidian-gold",
-    "medieval",
-    "robot",
+    "obsidian-gold",    "robot",
   ];
   const STYLES = ["premium", "robot", "retro", "medieval"];
   const THEME_DESCRIPTIONS = {
@@ -56,7 +54,6 @@
     "bordeaux-night": "Bordeaux nuit : des rouges profonds et des touches rosées.",
     "lavender-mist": "Lavande brume : des violets doux et des nuances roses.",
     "obsidian-gold": "Obsidienne or : des fonds sombres et des touches dorées.",
-    medieval: "Moyen Âge : pierre sombre, cuir, parchemin et bronze patiné, éclairés de reflets chauds.",
     robot: "Robot : la palette futuriste historique.",
   };
   const STYLE_DESCRIPTIONS = {

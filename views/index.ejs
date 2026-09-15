@@ -8,8 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Hours" />
     <title>Hours App</title>
-    <link rel="icon" type="image/svg+xml" href="/ApH32x32.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/ApH32x32.png" />
+    <link rel="icon" type="image/png" href="/ApHfavicon.png?v=20260914" />
     <link rel="apple-touch-icon" sizes="180x180" href="/ApH180x180.png" />
     <link rel="manifest" href="/manifest.json" />
     <script type="module" src="/vendor/emoji-picker-element/index.js"></script>
@@ -17,7 +16,7 @@
       (() => {
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
-        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "medieval", "robot"];
+        const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
         const allowedStyles = ["premium", "robot", "retro", "medieval"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
@@ -104,7 +103,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="/style.css?v=entry-status-client-v2" />
+    <link rel="stylesheet" href="/style.css?v=entry-status-client-v2-medieval-illuminated-v1" />
     <style>
       html[data-restoring-scroll="true"] body {
         visibility: hidden;
@@ -694,7 +693,7 @@
               <option value="light-green">Celadon</option>
               <option value="bordeaux-night">Bordeaux nuit</option>
               <option value="lavender-mist">Lavande brume</option>
-              <option value="obsidian-gold">Obsidienne or</option><option value="medieval">Moyen Âge</option>
+              <option value="obsidian-gold">Obsidienne or</option>
             </select>
           </div>
 	          <div class="theme-picker">
@@ -847,7 +846,7 @@
 
 	            <section class="settings-panel settings-v2-panel" data-settings-section="appearance" hidden>
 	              <div class="settings-panel-head"><div><span class="section-eyebrow">Apparence</span><h3>Choisissez votre ambiance</h3></div></div>
-<div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsThemeV2">Theme</label><select class="form-select" id="settingsThemeV2" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeV2Help"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option></select><p class="appearance-help" id="settingsThemeV2Help">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div><div class="form-field"><label class="form-label" for="settingsStyleV2">Style</label><select class="form-select" id="settingsStyleV2" data-style-selector aria-describedby="settingsStyleV2Help"><option value="premium">Premium</option><option value="robot">Robot</option><option value="retro">SEGA</option><option value="medieval">Moyen Âge</option></select><p class="appearance-help" id="settingsStyleV2Help">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p></div></div>
+<div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsThemeV2">Theme</label><select class="form-select" id="settingsThemeV2" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeV2Help"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option></select><p class="appearance-help" id="settingsThemeV2Help">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div><div class="form-field"><label class="form-label" for="settingsStyleV2">Style</label><select class="form-select" id="settingsStyleV2" data-style-selector aria-describedby="settingsStyleV2Help"><option value="premium">Premium</option><option value="robot">Robot</option><option value="retro">SEGA</option><option value="medieval">Moyen Âge</option></select><p class="appearance-help" id="settingsStyleV2Help">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p></div></div>
 	              <div class="settings-subsection"><strong>Accent</strong><p class="appearance-help">L'accent colore les boutons, les sélections et les contours actifs : ambre doré, acier bleu, sauge verte ou corail rosé.</p><div class="settings-choice-group"><% [{ key: 'amber', label: 'Ambre' }, { key: 'steel', label: 'Acier' }, { key: 'sage', label: 'Sauge' }, { key: 'coral', label: 'Corail' }].forEach((accent) => { %><label class="settings-choice"><input type="radio" name="accentV2" value="<%= accent.key %>" <%= _userSettings.accentColor === accent.key ? 'checked' : '' %> data-setting-key="accentColor" /><span><%= accent.label %></span></label><% }); %></div></div>
 	              <div class="settings-subsection"><strong>Animations</strong><div class="settings-choice-group"><% [{ key: 'subtle', label: 'Activées' }, { key: 'reduced', label: 'Réduites' }, { key: 'off', label: 'Désactivées' }].forEach((animation) => { %><label class="settings-choice"><input type="radio" name="animationsV2" value="<%= animation.key %>" <%= _userSettings.animations === animation.key ? 'checked' : '' %> data-setting-key="animations" /><span><%= animation.label %></span></label><% }); %></div></div>
 	              <div class="settings-subsection"><strong>Densité</strong><div class="settings-choice-group"><label class="settings-choice"><input type="radio" name="compactV2" value="false" <%= !_userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Confortable</span></label><label class="settings-choice"><input type="radio" name="compactV2" value="true" <%= _userSettings.compactMode ? 'checked' : '' %> data-setting-key="compactMode" /><span>Compact</span></label></div></div>
@@ -1014,7 +1013,7 @@
 	                    <option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option>
 	                    <option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option>
 	                    <option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option>
-	                    <option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option>
+	                    <option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option>
 		                  </select>
 		                </div>
 		                <div class="form-field">
@@ -1311,7 +1310,7 @@
 	        <article class="cockpit-hero card premium-surface app-surface app-card">
 	          <div class="cockpit-hero-copy">
 	            <div class="cockpit-welcome-card">
-	              <span class="cockpit-kicker">Cockpit</span>
+	              <span class="cockpit-kicker"><span class="cockpit-label-default">Cockpit</span><span class="cockpit-label-medieval">Mirador</span></span>
 	              <h2 data-settings-cockpit-profile-name><%= _heroMessage %></h2>
 	            </div>
 	            <div class="cockpit-hero-info-grid">
@@ -2352,7 +2351,7 @@
 	                  <div class="settings-mobile-stack"><article class="settings-goal-hero"><span>Objectif journalier</span><strong><%= _settingsDailyGoalHHMM %></strong><small>Utilisé par les indicateurs et rappels.</small></article><div class="form-field"><label class="form-label" for="settingsDailyGoalMobile">Durée cible</label><input class="form-input" id="settingsDailyGoalMobile" type="time" step="60" value="<%= _settingsDailyGoalHHMM %>" data-setting-key="dailyGoal" /></div></div>
 		                  <% } else if (section.key === "appearance") { %>
 		                  <div class="settings-mobile-stack">
-	                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeMobileHelp"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option><option value="medieval" <%= _userSettings.theme === 'medieval' ? 'selected' : '' %>>Moyen Âge</option></select><p class="appearance-help" id="settingsThemeMobileHelp">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div>
+	                    <div class="form-field"><label class="form-label" for="settingsThemeMobile">Thème</label><select class="form-select" id="settingsThemeMobile" data-setting-key="theme" data-theme-selector aria-describedby="settingsThemeMobileHelp"><option value="light" <%= _userSettings.theme === 'light' ? 'selected' : '' %>>Ivoire</option><option value="dark" <%= _userSettings.theme === 'dark' ? 'selected' : '' %>>Nuit graphite</option><option value="deep-ocean-blue" <%= _userSettings.theme === 'deep-ocean-blue' ? 'selected' : '' %>>Bleu minuit</option><option value="light-blue" <%= _userSettings.theme === 'light-blue' ? 'selected' : '' %>>Brume bleue</option><option value="orange-sunset" <%= _userSettings.theme === 'orange-sunset' ? 'selected' : '' %>>Sable cuivre</option><option value="forest-green" <%= _userSettings.theme === 'forest-green' ? 'selected' : '' %>>Sauge profonde</option><option value="light-green" <%= _userSettings.theme === 'light-green' ? 'selected' : '' %>>Celadon</option><option value="bordeaux-night" <%= _userSettings.theme === 'bordeaux-night' ? 'selected' : '' %>>Bordeaux nuit</option><option value="lavender-mist" <%= _userSettings.theme === 'lavender-mist' ? 'selected' : '' %>>Lavande brume</option><option value="obsidian-gold" <%= _userSettings.theme === 'obsidian-gold' ? 'selected' : '' %>>Obsidienne or</option></select><p class="appearance-help" id="settingsThemeMobileHelp">Le theme définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p></div>
 <div class="form-field"><label class="form-label" for="settingsStyleMobile">Style</label><select class="form-select" id="settingsStyleMobile" data-style-selector aria-describedby="settingsStyleMobileHelp"><option value="premium">Premium</option><option value="robot">Robot</option><option value="retro">SEGA</option><option value="medieval">Moyen Âge</option></select><p class="appearance-help" id="settingsStyleMobileHelp">Le style définit les polices, les formes et les effets graphiques.<span data-appearance-style-description></span></p></div>
 		                    <div class="form-field"><label class="form-label" for="settingsAccentMobile">Accent</label><select class="form-select" id="settingsAccentMobile" data-setting-key="accentColor" aria-describedby="settingsAccentMobileHelp"><option value="amber" <%= _userSettings.accentColor === 'amber' ? 'selected' : '' %>>Ambre premium</option><option value="steel" <%= _userSettings.accentColor === 'steel' ? 'selected' : '' %>>Bleu acier</option><option value="sage" <%= _userSettings.accentColor === 'sage' ? 'selected' : '' %>>Sauge</option><option value="coral" <%= _userSettings.accentColor === 'coral' ? 'selected' : '' %>>Corail</option></select><p class="appearance-help" id="settingsAccentMobileHelp">L'accent colore les boutons, les sélections et les contours actifs : ambre doré, acier bleu, sauge verte ou corail rosé.</p></div>
 		                  </div>
@@ -2855,7 +2854,7 @@
               <option value="light-green">Celadon</option>
               <option value="bordeaux-night">Bordeaux nuit</option>
               <option value="lavender-mist">Lavande brume</option>
-              <option value="obsidian-gold">Obsidienne or</option><option value="medieval">Moyen Âge</option>
+              <option value="obsidian-gold">Obsidienne or</option>
             </select><p class="appearance-help" id="onboardingThemeHelp">Le thème définit les couleurs des fonds, des cartes et l'ambiance générale.<span data-appearance-theme-description></span></p>
 	              </div>
 	              <div class="form-field">
