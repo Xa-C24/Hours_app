@@ -6,15 +6,8 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is required for PostgreSQL mode.");
 }
 
-const usesLocalhost =
-  connectionString.includes("localhost") ||
-  connectionString.includes("127.0.0.1") ||
-  connectionString.includes("host.docker.internal");
-
-const pool = new Pool({
-  connectionString,
-  ssl: usesLocalhost ? false : { rejectUnauthorized: false },
-});
+const { postgresConnectionOptions } = require("./services/postgres-connection-options");
+const pool = new Pool(postgresConnectionOptions(connectionString));
 
 let initPromise = null;
 
@@ -165,6 +158,13 @@ async function initializeDatabase() {
             ON settings (username)
         `);
 
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS work_timers (
+            username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+            version INTEGER NOT NULL,
+            state_json TEXT NOT NULL
+          )
+        `);
         await client.query("COMMIT");
       } catch (error) {
         await client.query("ROLLBACK");
@@ -736,7 +736,25 @@ async function healthCheck() {
   };
 }
 
+async function getWorkTimer(username) {
+  await initializeDatabase();
+  const result = await pool.query("SELECT version, state_json FROM work_timers WHERE username = $1", [username]);
+  const row = result.rows[0];
+  return row ? { version: row.version, state: JSON.parse(row.state_json) } : { version: 0, state: null };
+}
+
+async function saveWorkTimer(username, version, state) {
+  await initializeDatabase();
+  const json = JSON.stringify(state);
+  const result = version === 0
+    ? await pool.query("INSERT INTO work_timers (username, version, state_json) VALUES ($1, 1, $2) ON CONFLICT(username) DO NOTHING RETURNING version", [username, json])
+    : await pool.query("UPDATE work_timers SET version = version + 1, state_json = $1 WHERE username = $2 AND version = $3 RETURNING version", [json, username, version]);
+  return result.rowCount === 1 ? { version: version + 1, state } : null;
+}
+
 module.exports = {
+  getWorkTimer,
+  saveWorkTimer,
   ensureUserDatabase,
   getAllClients,
   getArchivedClients,

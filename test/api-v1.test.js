@@ -213,6 +213,18 @@ test("API v1 CORS allows only the Capacitor iOS origin", async () => {
   });
 });
 
+test("work timer requires a session and rejects writes without CSRF", async () => {
+  await withApiServer(async (baseUrl) => {
+    const anonymous = await fetch(`${baseUrl}/work-timer`);
+    assert.equal(anonymous.status, 401);
+    const write = await fetch(`${baseUrl}/work-timer`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "play", version: 0, clientId: "1", date: "2026-09-25", timeZone: "Europe/Paris" }),
+    });
+    assert.equal(write.status, 403);
+  });
+});
+
 test("mobile login stores only a token hash and bearer logout revokes that token", async () => {
   await withApiServer(async (baseUrl) => {
     const login = await postJson(baseUrl, "/api/v1/auth/login", {

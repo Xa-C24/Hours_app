@@ -22,6 +22,12 @@ authDb.pragma("journal_mode = WAL");
 authDb.pragma("foreign_keys = ON");
 
 const authSchemaSql = `
+CREATE TABLE IF NOT EXISTS work_timers (
+  username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+  version INTEGER NOT NULL,
+  state_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL UNIQUE,
@@ -1007,7 +1013,22 @@ async function healthCheck() {
   };
 }
 
+function getWorkTimer(username) {
+  const row = authDb.prepare("SELECT version, state_json FROM work_timers WHERE username = ?").get(username);
+  return row ? { version: row.version, state: JSON.parse(row.state_json) } : { version: 0, state: null };
+}
+
+function saveWorkTimer(username, version, state) {
+  const json = JSON.stringify(state);
+  const result = version === 0
+    ? authDb.prepare("INSERT INTO work_timers (username, version, state_json) VALUES (?, 1, ?) ON CONFLICT(username) DO NOTHING").run(username, json)
+    : authDb.prepare("UPDATE work_timers SET version = version + 1, state_json = ? WHERE username = ? AND version = ?").run(json, username, version);
+  return result.changes === 1 ? { version: version + 1, state } : null;
+}
+
 module.exports = {
+  getWorkTimer,
+  saveWorkTimer,
   ensureUserDatabase,
   getAllClients,
   getArchivedClients,

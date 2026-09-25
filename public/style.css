@@ -1125,7 +1125,8 @@
 }
 
 :root[data-style="robot"] .home-premium-page .theme-picker {
-  min-width: 180px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 :root[data-style="robot"] .home-premium-page .theme-picker label,
@@ -7658,8 +7659,9 @@ tfoot tr.monthly-total-row th.salary-label-cell {
     will-change: transform;
   }
 
-  .mobile-premium-view {
+  .mobile-premium-track > .mobile-premium-view {
     display: flex;
+    flex-direction: column;
     flex: 0 0 100%;
     min-width: 100%;
     max-width: 100%;
@@ -7732,13 +7734,12 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   .mobile-premium-nav {
-    position: sticky;
-    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    position: relative;
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.45rem;
-    margin-top: 0.8rem;
+    margin: 0.8rem 0;
     padding: 0.55rem;
     border-radius: 28px;
     background:
@@ -7751,7 +7752,7 @@ tfoot tr.monthly-total-row th.salary-label-cell {
   }
 
   :root[data-display-mode="standalone"] .mobile-premium-nav {
-    bottom: max(0.7rem, calc(env(safe-area-inset-bottom) + 0.2rem));
+    bottom: auto;
   }
 
   .mobile-premium-nav-button {
@@ -12074,7 +12075,7 @@ body.has-command-palette {
 }
 
 :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-hours-grid {
-  grid-template-columns: minmax(150px, 1.1fr) repeat(2, minmax(125px, 0.9fr)) minmax(110px, 0.72fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
   gap: 0.65rem;
 }
 
@@ -12097,12 +12098,16 @@ body.has-command-palette {
 }
 
 @media (max-width: 900px) {
+  :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-daybar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-hours-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] {
     padding: 0.78rem;
     border-radius: 18px;
@@ -12232,6 +12237,22 @@ body.has-command-palette {
   border-color: color-mix(in srgb, var(--retro-line) 76%, var(--retro-cyan) 24%);
   background: var(--retro-night);
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.24), inset -1px -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root[data-style="retro"] .cockpit-hero-profile {
+  min-width: 0;
+  justify-self: end;
+}
+
+:root[data-style="retro"] .cockpit-profile-media {
+  max-width: 100%;
+  transform: none;
+}
+
+@media (max-width: 900px) {
+  :root[data-style="retro"] .cockpit-hero-profile {
+    justify-self: center;
+  }
 }
 
 :root[data-style="retro"] .cockpit-progress-ring {
@@ -13595,6 +13616,40 @@ body.has-command-palette {
   box-shadow: none;
 }
 
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-copy {
+  min-width: 0;
+  gap: 1.1rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-info-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-info-card {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-hero-profile {
+  min-width: 0;
+  justify-self: end;
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-legend {
+  width: 85%;
+  justify-self: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:root[data-style="medieval"] .home-premium-page .cockpit-progress-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 :root[data-style="medieval"] .home-premium-page .cockpit-hero h2 {
   margin-top: 0.65rem;
   font-size: clamp(1.8rem, 1.35rem + 1.4vw, 2.7rem);
@@ -13615,6 +13670,8 @@ body.has-command-palette {
 }
 
 :root[data-style="medieval"] .home-premium-page .cockpit-profile-media {
+  max-width: 100%;
+  transform: none;
   border: 5px double #8c6939;
   border-radius: 45% 45% 35% 35%;
   background: linear-gradient(150deg, #863c31, #4b221c);
@@ -14039,6 +14096,22 @@ body.has-command-palette {
   }
 }
 
+@media (max-width: 900px) {
+  :root[data-style="medieval"] .home-premium-page .cockpit-hero-profile {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  :root[data-style="medieval"] .home-premium-page .cockpit-progress-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :root[data-style="medieval"] .home-premium-page .cockpit-progress-item:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 700px) {
   :root[data-style="medieval"] .home-premium-page .page-header-premium {
     padding: 1.2rem 0.8rem;
@@ -14203,4 +14276,139 @@ label.half-day-toggle > input[type="checkbox"] {
   box-shadow: none !important;
   accent-color: var(--primary);
   cursor: pointer;
+}
+
+/* Live workday controls */
+.work-timer [data-timer-recover][hidden] { display: none; }
+.work-timer { margin: 16px 0; padding: 20px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 18px; background: var(--surface, transparent); text-align: center; }
+.work-timer-clock { display: block; margin: 8px 0; font-size: clamp(2rem, 6vw, 3.25rem); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.work-timer-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.work-timer-actions button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 84px; border: 1px solid currentColor; border-radius: 14px; font: inherit; font-weight: 650; cursor: pointer; }
+.work-timer-actions button > span:first-child { font-size: 1.65rem; line-height: 1; }
+.work-timer-actions [data-timer-action="play"] { color: #166534; background: #dcfce7; }
+.work-timer-actions [data-timer-action="pause"] { color: #854d0e; background: #fef9c3; }
+.work-timer-actions [data-timer-action="stop"] { color: #991b1b; background: #fee2e2; }
+.work-timer-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.work-timer-actions button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.timer-enabled:not(.timer-manual) .entry-time-field,
+.timer-enabled:not(.timer-manual) .entry-live-summary { display: none; }
+
+/* Medieval: keep the timer in a compact corner of the workday register. */
+:root[data-style="medieval"] .home-premium-page .work-timer {
+  width: min(100%, 360px);
+  box-sizing: border-box;
+  justify-self: end;
+  align-self: start;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid #ad8b54;
+  border-radius: 3px;
+  background: var(--castle-grain), linear-gradient(145deg, #ecd8af, #dfc699);
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer-clock {
+  margin: 0.3rem 0;
+  font-size: 1.65rem;
+  line-height: 1.15;
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer [data-timer-status] {
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer-actions {
+  gap: 0.4rem;
+  margin: 0.65rem 0;
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer-actions button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.4rem 0.25rem;
+  gap: 0.25rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer-actions button > span:first-child {
+  font-size: 1rem;
+}
+
+:root[data-style="medieval"] .home-premium-page .work-timer .entry-hours-note {
+  margin: 0.5rem 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+@media (min-width: 901px) {
+  :root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .timer-enabled:not(.timer-manual) .entry-workday-panel {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 1.25rem;
+    align-content: start;
+  }
+
+  :root[data-style="medieval"] .home-premium-page .timer-enabled:not(.timer-manual) .entry-workday-panel > .work-timer {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  :root[data-style="medieval"] .home-premium-page .timer-enabled:not(.timer-manual) .entry-workday-panel > :not(.work-timer) {
+    grid-column: 1;
+    align-self: start;
+  }
+
+  :root[data-style="medieval"] .home-premium-page .entry-card[data-entry-card] .timer-enabled:not(.timer-manual) .entry-hours-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Robot: let intrinsic control sizes shrink inside narrow grid tracks. */
+:root[data-style="robot"] .home-premium-page :is(.header-actions, .header-control-group, .theme-picker select, .cockpit-hero > *, .cockpit-progress-item, .cockpit-stat-pill, .cockpit-action-card) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+:root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] :is(.entry-daybar > *, .entry-hours-grid > *, .entry-workday-panel, .work-timer, .entry-form input, .entry-form select) {
+  min-width: 0;
+  max-width: 100%;
+}
+:root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-hours-panel-head {
+  flex-wrap: wrap;
+}
+:root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .timer-enabled:not(.timer-manual) .entry-time-field,
+:root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .timer-enabled:not(.timer-manual) .entry-live-summary {
+  display: none;
+}
+:root[data-style="robot"] .home-premium-page .work-timer-actions button {
+  min-width: 0;
+  padding: 0.65rem 0.3rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  letter-spacing: normal;
+}
+@media (max-width: 700px) {
+  :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-daybar-client-copy {
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.6rem;
+  }
+  :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-daybar-client-logo {
+    width: 3rem;
+    min-width: 3rem;
+    height: 3rem;
+    min-height: 3rem;
+  }
+  :root[data-style="robot"] .home-premium-page .entry-card[data-entry-card] .entry-actions-footer [data-entry-submit-button] {
+    min-width: 0;
+    width: 100%;
+    white-space: normal;
+  }
+  :root[data-style="robot"] .home-premium-page .work-timer {
+    padding: 0.65rem;
+  }
+  :root[data-style="robot"] .home-premium-page .work-timer-actions {
+    gap: 0.35rem;
+  }
 }

@@ -1303,6 +1303,21 @@
           }
         }
 	      %>
+        <nav class="mobile-premium-nav" data-mobile-nav data-main-workspace aria-label="Navigation mobile">
+          <% _mobileNavItems.forEach((item, index) => { %>
+	          <button
+	            type="button"
+	            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
+	            data-mobile-nav-button
+	            data-target-view="<%= item.key %>"
+	            aria-label="<%= item.label %>"
+	            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+	          >
+	            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
+	            <span class="mobile-premium-nav-label"><%= item.navLabel || item.label %></span>
+	          </button>
+	          <% }); %>
+	        </nav>
       <div class="mobile-premium-shell" data-mobile-shell data-main-workspace>
 	        <div class="mobile-premium-track" data-mobile-track>
 	          <div class="mobile-premium-view" data-mobile-view="dashboard" data-mobile-title="Dashboard">
@@ -1496,6 +1511,7 @@
 		              class="entry-form"
 	              id="entryFormPanel"
               data-entry-form
+              data-timer-user="<%= authUser || '' %>"
               data-default-day-type="<%= defaultEntryFormData.dayType %>"
 	              data-default-arrival-time="<%= defaultEntryFormData.arrivalTime %>"
 	              data-default-departure-time="<%= defaultEntryFormData.departureTime %>"
@@ -1554,9 +1570,22 @@
                         <span class="entry-hours-kicker">Horaire</span>
                         <h3>Journée de travail</h3>
                       </div>
-                      <span class="entry-hours-note">Arrivée, départ, pause</span>
+                      <span class="entry-hours-note">Démarrer · Pause · Terminer</span>
                     </div>
 
+                    <div class="work-timer" data-work-timer hidden>
+                      <span class="entry-hours-kicker">Temps travaillé</span>
+                      <strong class="work-timer-clock" data-timer-clock>00:00:00</strong>
+                      <p data-timer-status role="status">Prêt à démarrer</p>
+                      <div class="work-timer-actions">
+                        <button type="button" data-timer-action="play"><span aria-hidden="true">▶</span><span data-timer-play-label>Démarrer</span></button>
+                        <button type="button" data-timer-action="pause"><span aria-hidden="true">⏸</span>Pause</button>
+                        <button type="button" data-timer-action="stop"><span aria-hidden="true">⏹</span>Terminer</button>
+                      </div>
+                      <p class="entry-hours-note">Les pauses sont déduites. Terminer enregistre la journée, à la minute près. Suivi conservé sur votre compte et synchronisé entre vos onglets. Une connexion est nécessaire pour démarrer, mettre en pause ou terminer.</p>
+                      <button type="button" class="button-link button-neutral" data-timer-recover hidden>Récupérer l’ancien suivi de cet onglet</button>
+                      <button type="button" class="button-link button-neutral" data-timer-manual aria-expanded="false">Saisie manuelle / correction</button>
+                    </div>
                     <div class="entry-hours-grid">
 	                      <div class="field form-field entry-day-type-field entry-day-type-card">
 	                        <label class="form-label" for="dayType">Type de journée</label>
@@ -2421,21 +2450,7 @@
             <% }); %>
           </div>
         </div>
-        <nav class="mobile-premium-nav" data-mobile-nav aria-label="Navigation mobile">
-          <% _mobileNavItems.forEach((item, index) => { %>
-	          <button
-	            type="button"
-	            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
-	            data-mobile-nav-button
-	            data-target-view="<%= item.key %>"
-	            aria-label="<%= item.label %>"
-	            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-	          >
-	            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
-	            <span class="mobile-premium-nav-label"><%= item.navLabel || item.label %></span>
-	          </button>
-	          <% }); %>
-	        </nav>
+
       </div>
       <% } else { %>
       <section class="card premium-surface client-empty-card" data-main-workspace>
@@ -3138,11 +3153,11 @@
           const draftStoreApi = window.hoursEntryDraftStore || null;
           const draftStore =
             draftStoreApi && typeof draftStoreApi.createEntryDraftStore === "function"
-              ? draftStoreApi.createEntryDraftStore(window.localStorage)
+              ? draftStoreApi.createEntryDraftStore(window.localStorage, entryForm.dataset.timerUser)
               : null;
           const createDraftStorageKey =
             draftStoreApi && typeof draftStoreApi.createDraftStorageKey === "function"
-              ? draftStoreApi.createDraftStorageKey
+              ? (clientId, workDate) => draftStoreApi.createDraftStorageKey(clientId, workDate, entryForm.dataset.timerUser)
               : (clientId, workDate) => `hours:draft:${String(clientId || "").trim()}:${String(workDate || "").trim()}`;
           const isMeaningfulDraft =
             draftStoreApi && typeof draftStoreApi.isMeaningfulDraft === "function"
@@ -3425,8 +3440,13 @@
               clearDraftFor(draftPayload.clientId, draftPayload.workDate);
               return;
             }
-	            draftStore.set(draftPayload);
-	            setDraftStatus("Brouillon sauvegarde");
+	            try {
+	              draftStore.set(draftPayload);
+	            } catch (error) {
+	              setDraftStatus("Brouillon non sauvegardé : stockage indisponible. Gardez cette page ouverte.");
+	              return;
+	            }
+	            setDraftStatus("Brouillon sauvegardé sur cet appareil");
 	            updateDraftUi();
               emitDraftChange();
 	          };
@@ -3717,6 +3737,9 @@
 	            }
 
             state.isSaving = true;
+            // Preserve the draft until the next page confirms the server response.
+            if (draftSaveTimeoutId) window.clearTimeout(draftSaveTimeoutId);
+            persistDraftNow();
             state.statusText = "Enregistrement de la journée...";
             state.statusVariant = "is-loading";
             renderStatus();
@@ -3739,19 +3762,22 @@
 	                JSON.stringify({
                   clientId: clientIdInput.value,
                   workDate: submittedEntry.workDate,
+                  entry: submittedEntry,
                   savedAt: Date.now(),
 	                })
 	              );
 	            } catch (error) {
 	              // Ignore storage issues.
 	            }
-			            persistEntryInCache({ ...submittedEntry, isExisting: true });
-	            setFormState({
-	              entry: { ...submittedEntry, isExisting: true },
-	              statusText: "Entrée existante pour ce jour",
-	              statusVariant: "is-success",
-              resolvedKey: getRequestKey(clientIdInput.value, submittedEntry.workDate),
-            });
+          });
+
+          window.addEventListener("pageshow", (event) => {
+            if (!event.persisted) return;
+            state.isSaving = false;
+            state.statusText = "Vérifiez la journée avant de relancer un enregistrement.";
+            state.statusVariant = "";
+            updateSubmitButton(submitButton.dataset.defaultLabel || "Enregistrer", false);
+            renderStatus();
           });
 
 	          state.currentEntry = readEntryFromForm();
@@ -3773,8 +3799,19 @@
 	              const rawSaveFlash = sessionStorage.getItem(SAVE_FLASH_STORAGE_KEY);
               if (rawSaveFlash) {
                 const saveFlash = JSON.parse(rawSaveFlash);
+                const savedEntry = bootstrapEntries.find((entry) => entry.work_date === saveFlash?.workDate);
+                const submitted = saveFlash?.entry;
+                const saveConfirmed = Boolean(savedEntry && submitted &&
+                  savedEntry.day_type === submitted.dayType &&
+                  String(savedEntry.comment_text || "").trim() === String(submitted.commentText || "").trim() &&
+                  (!savedEntry.is_worked_day || (
+                    savedEntry.arrival_time_display === submitted.arrivalTime &&
+                    savedEntry.departure_time_display === submitted.departureTime &&
+                    Number(savedEntry.lunch_break_minutes_display) === Number(submitted.lunchBreakMinutes)
+                  )));
 	                if (
 	                  saveFlash &&
+	                  saveConfirmed &&
 	                  saveFlash.clientId === clientIdInput.value &&
 	                  saveFlash.workDate === dateInput.value &&
 	                  Date.now() - Number(saveFlash.savedAt || 0) < 15000 &&
@@ -4140,7 +4177,10 @@
 		          const activeKey = activeView ? activeView.dataset.mobileView || "" : "";
 		          views.forEach((view) => {
 		            view.classList.toggle("is-active", view === activeView);
-		            view.setAttribute("aria-hidden", String(view !== activeView));
+		            const isInactive = mobileQuery.matches && view !== activeView;
+		            view.inert = isInactive;
+		            if (mobileQuery.matches) view.setAttribute("aria-hidden", String(isInactive));
+		            else view.removeAttribute("aria-hidden");
 		          });
 		          navButtons.forEach((button) => {
 		            const isActive = button.dataset.targetView === activeKey;
@@ -4163,7 +4203,16 @@
 		          if (!activeView) {
 		            return;
 		          }
-		          shell.style.height = `${Math.ceil(activeView.scrollHeight)}px`;
+		          // The navigation and dots are inside the clipped shell too.
+		          const navigationHeight = Array.from(shell.children)
+		            .filter((child) => child !== track)
+		            .reduce((height, child) => {
+		              const style = window.getComputedStyle(child);
+		              return height + child.getBoundingClientRect().height
+		                + (parseFloat(style.marginTop) || 0)
+		                + (parseFloat(style.marginBottom) || 0);
+		            }, 0);
+		          shell.style.height = `${Math.ceil(activeView.scrollHeight + navigationHeight)}px`;
 		        };
 
 		        const observeActiveView = () => {
@@ -4931,5 +4980,6 @@
       })();
       <% } %>
     </script>
+    <script src="/work-timer.js"></script>
   </body>
 </html>

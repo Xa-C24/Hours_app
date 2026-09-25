@@ -1529,6 +1529,9 @@ function requireAuth(req, res, next) {
 async function renderCsrfFailure(req, res) {
   const message = buildSecurityErrorMessage("Action");
   const statusCode = 403;
+  if (req.path === "/work-timer" || req.path === "/work-timer/") {
+    return res.status(statusCode).set("Cache-Control", "no-store").json({ error: "Session de sécurité expirée. Rechargez la page avant de réessayer." });
+  }
   if (req.path === "/login") {
     res.status(statusCode);
     renderLogin(res, {
@@ -1849,6 +1852,7 @@ app.post("/logout", async (req, res) => {
   return res.redirect("/login");
 });
 
+app.use("/work-timer", require("./routes/work-timer").createWorkTimerRouter(db));
 app.use(requireAuth);
 
 app.get("/", async (req, res) => {

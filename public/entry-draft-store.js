@@ -10,10 +10,11 @@
     "commentText",
   ];
 
-  function createDraftStorageKey(clientId, workDate) {
+  function createDraftStorageKey(clientId, workDate, owner = "") {
     const safeClientId = String(clientId || "").trim();
     const safeWorkDate = String(workDate || "").trim();
-    return `${DRAFT_STORAGE_PREFIX}:${safeClientId}:${safeWorkDate}`;
+    const prefix = owner ? `${DRAFT_STORAGE_PREFIX}:v2:${encodeURIComponent(owner)}` : DRAFT_STORAGE_PREFIX;
+    return `${prefix}:${safeClientId}:${safeWorkDate}`;
   }
 
   function normalizeDraftPayload(payload = {}) {
@@ -38,13 +39,14 @@
     return !serverEntry && Boolean(draftEntry);
   }
 
-  function createEntryDraftStore(storage) {
+  function createEntryDraftStore(storage, owner = "") {
+    const scopedKey = (clientId, workDate) => createDraftStorageKey(clientId, workDate, owner);
     return {
       key(clientId, workDate) {
-        return createDraftStorageKey(clientId, workDate);
+        return scopedKey(clientId, workDate);
       },
       get(clientId, workDate) {
-        const key = createDraftStorageKey(clientId, workDate);
+        const key = scopedKey(clientId, workDate);
         try {
           const rawValue = storage.getItem(key);
           if (!rawValue) {
@@ -67,11 +69,11 @@
         if (!draft.clientId || !draft.workDate) {
           return null;
         }
-        storage.setItem(createDraftStorageKey(draft.clientId, draft.workDate), JSON.stringify(draft));
+        storage.setItem(scopedKey(draft.clientId, draft.workDate), JSON.stringify(draft));
         return draft;
       },
       remove(clientId, workDate) {
-        storage.removeItem(createDraftStorageKey(clientId, workDate));
+        storage.removeItem(scopedKey(clientId, workDate));
       },
     };
   }

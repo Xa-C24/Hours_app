@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "hours-static-v13";
+const STATIC_CACHE_NAME = "hours-static-v15";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   "/entry-draft-store.js",
   "/day-types.js",
   "/half-day-fields.js",
+  "/work-timer.js",
   "/notification-center.js",
   "/settings-store.js",
   "/onboarding.js",
