@@ -2,6 +2,12 @@
 node_modules/
 node_modules/async/
 
+# Profils temporaires tests mobile / navigateur
+tmp/mobile-qa/
+
+# Fichiers temporaires / profils QA
+tmp/
+
 # Runtime data
 data/*.db
 data/*.db-shm
