@@ -1342,6 +1342,11 @@
 			              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
 			              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
 	            </div>
+                <div id="cockpit-timer-controls" class="cockpit-timer-controls" hidden>
+                  <span data-cockpit-timer-context></span>
+                  <strong data-cockpit-timer-clock>00:00:00</strong>
+                  <p data-cockpit-timer-status role="status"></p>
+                </div>
 	          </div>
 	          <div class="cockpit-hero-profile">
 	            <div class="cockpit-profile-media<%= _userSettings.profilePhoto ? ' has-image' : '' %>" data-cockpit-profile-media>

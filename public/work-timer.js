@@ -29,6 +29,12 @@
   const key = `hours:timer:v1:${form.dataset.timerUser}`;
   const status = panel.querySelector("[data-timer-status]");
   const buttons = [...panel.querySelectorAll("[data-timer-action]")];
+  const playLabel = panel.querySelector("[data-timer-play-label]");
+  const cockpitControls = document.getElementById("cockpit-timer-controls");
+  if (cockpitControls) {
+    cockpitControls.appendChild(panel.querySelector(".work-timer-actions"));
+    cockpitControls.hidden = false;
+  }
   const recoveryButton = panel.querySelector("[data-timer-recover]");
   let state = null;
   let legacy = null;
@@ -101,7 +107,7 @@
       recoveryButton.hidden = !ready || Boolean(state) || !legacy;
       recoveryButton.disabled = busy;
     }
-    panel.querySelector("[data-timer-play-label]").textContent = own && running && state.pausedAt !== null ? "Reprendre" : "Démarrer";
+    playLabel.textContent = own && running && state.pausedAt !== null ? "Reprendre" : "Démarrer";
     const seconds = own ? Math.floor(totals(state, serverTime()).workedMs / 1000) : 0;
     panel.querySelector("[data-timer-clock]").textContent = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
     status.textContent = running && !own ? `Un suivi est en cours pour le client ${state.clientId}, le ${state.date}. Revenez sur cette journée pour le terminer.` :
@@ -110,6 +116,11 @@
       today ? "Prêt à démarrer" : "Le suivi est disponible pour aujourd’hui. Utilisez la saisie manuelle pour une autre date.";
     if (!ready) status.textContent = "Chargement du suivi serveur…";
     if (networkError) status.textContent = networkError;
+    if (cockpitControls) {
+      cockpitControls.querySelector("[data-cockpit-timer-context]").textContent = `Suivi de la saisie du ${field("date").value.split("-").reverse().join("/")}`;
+      cockpitControls.querySelector("[data-cockpit-timer-clock]").textContent = panel.querySelector("[data-timer-clock]").textContent;
+      cockpitControls.querySelector("[data-cockpit-timer-status]").textContent = status.textContent;
+    }
     if (!supported || !today) manual(true);
   }
   function fill() {
@@ -128,6 +139,7 @@
     }
     if (!await request(action)) return;
     if (action === "stop" && matches()) {
+      if (cockpitControls) document.querySelector('[data-dashboard-action="entry"]')?.click();
       fill();
       manual(true);
       const parts = new Intl.DateTimeFormat("en-CA", { timeZone: state.timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(state.end);
