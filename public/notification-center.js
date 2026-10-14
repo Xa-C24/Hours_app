@@ -56,9 +56,9 @@
     return parsed ? parsed.getDay() : null;
   }
 
-  function isPastExpectedWorkday(isoDate, todayIso) {
+  function isPastExpectedWorkday(isoDate, todayIso, workingDays = [1, 2, 3, 4, 5]) {
     const day = getWeekdayIndex(isoDate);
-    return Boolean(day !== null && day !== 0 && day !== 6 && isoDate < todayIso);
+    return Boolean(day !== null && workingDays.includes(day) && isoDate < todayIso);
   }
 
   function isWorkedDayRecord(record) {
@@ -160,7 +160,7 @@
         const effectiveEnd = endDate < todayDate ? endDate : todayDate;
         for (let cursor = new Date(effectiveEnd); cursor >= startDate; cursor.setDate(cursor.getDate() - 1)) {
           const isoDate = formatIsoDate(cursor);
-          if (!isPastExpectedWorkday(isoDate, todayIso) || entriesByDate.has(isoDate)) {
+          if (!isPastExpectedWorkday(isoDate, todayIso, settings.workingDays) || entriesByDate.has(isoDate)) {
             continue;
           }
           notifications.push({
@@ -203,7 +203,7 @@
       if (weekday !== null && todayDate) {
         const weekStart = getWeekStart(todayDate);
         const weekFriday = new Date(weekStart);
-        weekFriday.setDate(weekStart.getDate() + 4);
+        weekFriday.setDate(weekStart.getDate() + 6);
         const periodStart = parseIsoDate(payPeriodStartDate);
         const periodEnd = parseIsoDate(payPeriodEndDate);
         for (let cursor = new Date(weekStart); cursor <= weekFriday; cursor.setDate(cursor.getDate() + 1)) {
@@ -212,6 +212,7 @@
             continue;
           }
           const entry = entriesByDate.get(isoDate);
+          if (!(settings.workingDays || [1, 2, 3, 4, 5]).includes(cursor.getDay())) continue;
           if (!entry || isWorkedDayRecord(entry)) {
             weekTargetMinutes += dailyGoal;
             if (cursor <= todayDate) {
@@ -297,7 +298,7 @@
           latestPastDay.setDate(latestPastDay.getDate() - 1);
           for (let cursor = new Date(startDate); cursor <= latestPastDay && cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
             const isoDate = formatIsoDate(cursor);
-            if (!isPastExpectedWorkday(isoDate, todayIso)) {
+            if (!isPastExpectedWorkday(isoDate, todayIso, settings.workingDays)) {
               continue;
             }
             const entry = entriesByDate.get(isoDate);

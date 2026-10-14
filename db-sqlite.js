@@ -570,6 +570,7 @@ function getUserStore(username) {
   `);
 
   const store = {
+    database: userDb,
     getAllClientsStmt: userDb.prepare(`
       SELECT
         id,
@@ -1026,7 +1027,57 @@ function saveWorkTimer(username, version, state) {
   return result.changes === 1 ? { version: version + 1, state } : null;
 }
 
+function readAccountSnapshot(database) {
+  const { fields } = require("./services/account-backup");
+  const data = {};
+  for (const [table, columns] of Object.entries(fields)) {
+    data[table] = database.prepare(`SELECT ${columns.join(",")} FROM ${table} ORDER BY ${table === "clients" ? "id" : table === "work_entries" ? "client_id,work_date" : "client_id,pay_period_month"}`).all();
+  }
+  data.settings = Object.fromEntries(database.prepare("SELECT key,value FROM settings ORDER BY key").all().map(row=>[row.key,JSON.parse(row.value)]));
+  return data;
+}
+function getAccountSnapshot(username) {
+  const database = getUserStore(username).database;
+  return database.transaction(()=>readAccountSnapshot(database))();
+}
+function restoreAccountSnapshot(username, data, expectedDigest, preserve) {
+  const { fields, digest } = require("./services/account-backup");
+  const database = getUserStore(username).database;
+  return database.transaction(() => {
+    const timer = getWorkTimer(username).state;
+    if (timer && timer.end === null) { const error=new Error("Arrêtez le chronomètre avant la restauration."); error.status=409; throw error; }
+    const before = readAccountSnapshot(database);
+    if (digest(before) !== expectedDigest) { const error = new Error("Les données ont changé. Recommencez l’aperçu."); error.status = 409; throw error; }
+    preserve(before);
+    database.prepare("DELETE FROM work_entries").run();
+    database.prepare("DELETE FROM pay_period_salaries").run();
+    database.prepare("DELETE FROM clients").run();
+    database.prepare("DELETE FROM settings").run();
+    const ids = new Map();
+    for (const [table, columns] of Object.entries(fields)) {
+      const cols = columns.filter(c=>c !== "id");
+      const insert = database.prepare(`INSERT INTO ${table} (${cols.join(",")}) VALUES (${cols.map(()=>"?").join(",")})`);
+      for (const row of data[table]) {
+        const result = insert.run(...cols.map(c=>c === "client_id" ? ids.get(row.client_id) : row[c]));
+        if (table === "clients") ids.set(row.id,Number(result.lastInsertRowid));
+      }
+    }
+    const setting = database.prepare("INSERT INTO settings (key,value,updated_at) VALUES (?,?,datetime('now'))");
+    for (const [key,value] of Object.entries(data.settings)) setting.run(key,JSON.stringify(value));
+    const after = readAccountSnapshot(database);
+    require("./services/account-backup").verifyRestored(after,data,ids);
+    return after;
+  }).immediate();
+}
+
 module.exports = {
+  getAccountSnapshot,
+  restoreAccountSnapshot,
+  getLastWorkedEntry(username, clientId, beforeDate) {
+    return getUserStore(username).database.prepare(`SELECT day_type, arrival_time, departure_time, lunch_break_minutes
+      FROM work_entries WHERE client_id = ? AND work_date < ? AND worked_minutes > 0
+      ORDER BY work_date DESC LIMIT 1`).get(clientId, beforeDate) || null;
+  },
   getWorkTimer,
   saveWorkTimer,
   ensureUserDatabase,

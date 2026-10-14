@@ -11821,6 +11821,35 @@ body.has-command-palette {
   min-height: 2.86rem;
 }
 
+@media (max-width: 700px) {
+  :root .home-premium-page .work-timer {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  :root .home-premium-page .work-timer > .entry-hours-note {
+    display: none;
+  }
+
+  :root .home-premium-page .entry-actions-footer {
+    justify-content: stretch;
+    padding-top: 0.65rem;
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  :root .home-premium-page .entry-actions-footer [data-entry-submit-button] {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+  }
+
+  :root .home-premium-page .entry-hours-panel-head .entry-hours-note {
+    max-width: 8rem;
+    text-align: right;
+  }
+}
+
 @media (max-width: 900px) {
   .home-premium-page .entry-card[data-entry-card] .entry-hours-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14096,6 +14125,218 @@ body.has-command-palette {
   }
 }
 
+/* Phone carousel behavior, tablet content flow, and compact view controls. */
+@media (max-width: 700px) {
+  :root .mobile-premium-shell {
+    overflow: hidden;
+    transition: height 0.18s ease;
+    overscroll-behavior-x: contain;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  :root .mobile-premium-track {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    transition: transform 0.18s ease;
+    will-change: transform;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view {
+    display: flex;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    flex-direction: column;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view[data-mobile-view="dashboard"] {
+    order: 1;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view[data-mobile-view="entry"] {
+    order: 0;
+  }
+
+  :root .mobile-premium-nav {
+    position: sticky;
+    top: max(0.4rem, env(safe-area-inset-top));
+    margin: 0.35rem 0 0.8rem;
+    padding: 0.35rem;
+    border-radius: 18px;
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--shadow) 12%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  :root .mobile-premium-nav-button {
+    min-height: 2.8rem;
+    border-radius: 13px;
+  }
+
+  :root .mobile-premium-nav-label {
+    font-size: 0.58rem;
+    letter-spacing: 0;
+  }
+
+  .home-premium-page .mobile-premium-track > .mobile-premium-view[data-mobile-view="dashboard"] .mobile-stats-card,
+  .home-premium-page .cockpit-profile-media,
+  .home-premium-page .cockpit-hero-progress .cockpit-progress-item:last-child,
+  .home-premium-page .cockpit-week-summary .cockpit-stat-pill-month-overtime,
+  .home-premium-page .cockpit-week-summary .cockpit-stat-pill-period,
+  .home-premium-page .cockpit-week-daylabel,
+  .home-premium-page .mobile-history-empty-card {
+    display: none !important;
+  }
+
+  .home-premium-page .cockpit-hero-info-grid,
+  .home-premium-page .cockpit-progress-legend,
+  .home-premium-page .cockpit-week-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-premium-page .entry-daybar-meta {
+    display: none;
+  }
+
+  .home-premium-page .entry-actions-footer {
+    position: static;
+    padding-top: 0.65rem;
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .home-premium-page .entry-actions-footer [data-entry-submit-button] {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+  }
+
+  .home-premium-page .entry-hours-note {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .home-premium-page .work-timer {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .home-premium-page .work-timer > .entry-hours-note {
+    display: none;
+  }
+
+  .home-premium-page .entry-hours-panel-head .entry-hours-note {
+    max-width: 8rem;
+    text-align: right;
+  }
+
+  .home-premium-page .entry-quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    margin: 0 0 0.65rem;
+  }
+
+  .home-premium-page .entry-quick-actions button {
+    min-height: 2.75rem;
+    padding-inline: 0.45rem;
+    font-size: 0.76rem;
+  }
+
+  .home-premium-page .entry-quick-actions small {
+    grid-column: 1 / -1;
+  }
+
+  .home-premium-page .mobile-calendar-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-premium-page .entry-actions-footer {
+    position: sticky;
+    bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 4;
+    padding: 0.6rem;
+    margin: 0 -0.6rem;
+    background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+    backdrop-filter: blur(10px);
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1050px) {
+  :root .mobile-premium-shell,
+  :root .mobile-premium-track {
+    display: contents;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view {
+    display: contents;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view[hidden] {
+    display: none !important;
+  }
+
+  :root .mobile-premium-track > .mobile-premium-view:not([hidden]) {
+    display: contents;
+  }
+
+  :root .mobile-premium-nav,
+  :root .mobile-premium-status,
+  :root .mobile-premium-view-settings {
+    display: none !important;
+  }
+
+  .home-premium-page .premium-summary-grid.cockpit-dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .home-premium-page .cockpit-hero {
+    grid-column: 1 / -1;
+  }
+
+  .home-premium-page .cockpit-quick-actions,
+  .home-premium-page .cockpit-week-activity {
+    grid-column: span 1;
+  }
+
+  .home-premium-page .cockpit-week-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-premium-page .cockpit-hero-progress .cockpit-progress-item:last-child,
+  .home-premium-page .cockpit-week-summary .cockpit-stat-pill-period,
+  .home-premium-page .cockpit-week-daylabel,
+  .home-premium-page .mobile-stats-card {
+    display: none !important;
+  }
+
+  .home-premium-page .entry-daybar-meta {
+    display: none;
+  }
+
+  .home-premium-page .mobile-calendar-details-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 375px) {
+  .home-premium-page .cockpit-hero-info-grid,
+  .home-premium-page .cockpit-progress-legend,
+  .home-premium-page .cockpit-week-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-premium-page .entry-quick-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-premium-page .mobile-premium-nav-label {
+    font-size: 0.52rem;
+  }
+}
 @media (max-width: 900px) {
   :root[data-style="medieval"] .home-premium-page .cockpit-hero-profile {
     justify-self: center;
@@ -14439,3 +14680,96 @@ label.half-day-toggle > input[type="checkbox"] {
     gap: 0.35rem;
   }
 }
+
+/* Timehours appearance controls on the login screen. */
+.auth-premium-page .login-topbar:has(.login-appearance-select) {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, var(--theme-metal) 25%);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow) 18%, transparent), inset 0 1px 0 #ffffff24;
+  backdrop-filter: blur(18px);
+}
+.auth-premium-page .login-topbar:has(.login-appearance-select) .theme-picker {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+.auth-premium-page .login-topbar:has(.login-appearance-select) label {
+  display: block;
+  margin: 0 0 0.55rem 0.3rem;
+  color: var(--text);
+  font-family: var(--auth-font-body);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.auth-premium-page .login-appearance-select .app-custom-select-trigger {
+  min-height: 48px;
+  padding: 0.8rem;
+  border-radius: 14px;
+  font-family: var(--auth-font-body);
+  font-size: 0.9rem;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.auth-premium-page .login-appearance-select .app-custom-select-menu {
+  border-radius: 18px;
+  background: var(--card-bg);
+  max-height: min(22rem, 46dvh);
+}
+.auth-premium-page .login-appearance-select .app-custom-select-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  border-radius: 11px;
+  font-family: var(--auth-font-body);
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.auth-premium-page .login-appearance-select .app-custom-select-option.is-active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary) 18%, var(--card-bg));
+}
+.auth-premium-page .login-appearance-select .app-custom-select-option.is-active::after {
+  content: "✓";
+  margin-left: auto;
+  font-weight: 800;
+}
+.auth-premium-page .login-appearance-select .app-custom-select-option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -3px;
+}
+.auth-premium-page .login-appearance-select .app-custom-select-caret {
+  margin-left: auto;
+  transition: transform 0.18s ease;
+}
+.auth-premium-page .login-appearance-select.is-open .app-custom-select-caret {
+  transform: rotate(180deg);
+}
+@media (max-width: 380px) {
+  .auth-premium-page .login-topbar:has(.login-appearance-select) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.entry-quick-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: .8rem 0; }
+.entry-quick-actions small { color: var(--muted); }
+.working-days { border: 1px solid var(--border); border-radius: 14px; padding: 1rem; margin: 1rem 0; }
+.working-days label { display: inline-flex; align-items: center; gap: .3rem; margin: .4rem .7rem .4rem 0; }
+.missing-days-summary { padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--primary); border-radius: 16px; background: var(--card-bg); }
+.navigation-highlight { outline: 3px solid var(--primary); outline-offset: 5px; scroll-margin-top: 24px; }
+.account-backup { margin-bottom: 1rem; }
+.account-backup pre { white-space: pre-wrap; font-family: inherit; line-height: 1.7; padding: 1rem; background: var(--input-bg); border-radius: 14px; }
+.account-backup input[type="file"] { display: block; max-width: 100%; margin-top: .5rem; }
+.account-backup [data-backup-confirm] { display: block; margin: .5rem 0; }
+.account-backup li { margin: .5rem 0; overflow-wrap: anywhere; }

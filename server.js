@@ -1854,6 +1854,7 @@ app.post("/logout", async (req, res) => {
 
 app.use("/work-timer", require("./routes/work-timer").createWorkTimerRouter(db));
 app.use(requireAuth);
+app.use("/account-backup", require("./routes/account-backup").createAccountBackupRouter(db));
 
 app.get("/", async (req, res) => {
   await renderIndex(res, {
@@ -1896,6 +1897,15 @@ app.get("/api/entries/by-date", async (req, res) => {
       commentText: entry.comment_text || "",
     },
   });
+});
+
+app.get("/api/entries/last-worked", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const clientId = normalizeClientId(req.query.clientId);
+  const beforeDate = req.query.beforeDate;
+  if (!clientId || !isValidDate(beforeDate)) return res.status(400).json({ error: "Date ou client invalide." });
+  if (!await db.getClientById(req.authUser, clientId)) return res.status(404).json({ error: "Client introuvable." });
+  res.json({ entry: await db.getLastWorkedEntry(req.authUser, clientId, beforeDate) });
 });
 
 app.get("/api/entries/month", async (req, res) => {

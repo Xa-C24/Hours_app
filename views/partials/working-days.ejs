@@ -1,0 +1,5 @@
+<fieldset class="working-days"><legend>Jours habituellement travaillés</legend>
+<p>Les alertes d’oubli ignorent les autres jours et les congés déjà saisis.</p>
+<% [[1,'Lun'],[2,'Mar'],[3,'Mer'],[4,'Jeu'],[5,'Ven'],[6,'Sam'],[0,'Dim']].forEach(([day,label]) => { %>
+<label><input type="checkbox" value="<%= day %>" data-setting-key="workingDays" <%= (settings.workingDays || [1,2,3,4,5]).includes(day) ? 'checked' : '' %> /> <%= label %></label>
+<% }); %></fieldset>

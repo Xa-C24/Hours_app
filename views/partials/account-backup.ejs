@@ -1,0 +1,15 @@
+<section class="card premium-surface account-backup" data-account-backup>
+  <h2>Sauvegarde du compte</h2>
+  <p>Clients actifs et archivés, journées, salaires et réglages. Les mots de passe, sessions, brouillons locaux et chronomètres ne sont pas inclus.</p>
+  <p data-backup-status role="status">Dernière sauvegarde : chargement…</p>
+  <div class="entry-quick-actions"><button type="button" data-backup-create>Créer une sauvegarde</button>
+  <label class="button-link button-neutral">Préparer une restauration <input type="file" accept="application/json,.json" data-backup-file /></label></div>
+  <p>Les copies conservées sur le serveur ne protègent pas contre la perte de son disque. Téléchargez-en une sur un support distinct.</p>
+  <ul data-backup-list></ul>
+  <div data-backup-preview hidden>
+    <p data-backup-warning></p><pre data-backup-summary></pre>
+    <label>Pour confirmer le remplacement, saisissez RESTAURER <input type="text" autocomplete="off" data-backup-confirm /></label>
+    <button type="button" data-backup-restore disabled>Restaurer le compte</button>
+    <button type="button" class="secondary" data-backup-cancel>Annuler</button>
+  </div>
+</section>

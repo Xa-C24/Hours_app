@@ -39,3 +39,6 @@ Thumbs.db
 
 # Deploy
 .render/
+
+# Private account backups and rollback snapshots
+data/account-backups/

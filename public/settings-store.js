@@ -318,8 +318,8 @@
       return { tone: "leave", emoji: "🔵", label: entry.day_type_display || "Absence", meta: "" };
     }
     const parsedDate = parseIsoDate(isoDate);
-    if (parsedDate && (parsedDate.getDay() === 0 || parsedDate.getDay() === 6)) {
-      return { tone: "weekend", emoji: "⚫", label: "Week-end", meta: "" };
+    if (parsedDate && !(state.settings.workingDays || [1,2,3,4,5]).includes(parsedDate.getDay())) {
+      return { tone: "weekend", emoji: "⚫", label: [0,6].includes(parsedDate.getDay()) ? "Week-end" : "Jour non travaillé", meta: "" };
     }
     if (todayIso && isoDate < todayIso) {
       return { tone: "missing", emoji: "🔴", label: "Aucune saisie", meta: "" };
@@ -508,6 +508,10 @@
     document.querySelectorAll("[data-setting-key]").forEach((element) => {
       const key = element.dataset.settingKey || "";
       const subkey = element.dataset.settingSubkey || "";
+      if (key === "workingDays") {
+        element.checked = (state.settings.workingDays || [1, 2, 3, 4, 5]).includes(Number(element.value));
+        return;
+      }
       if (key === "notifications" && subkey && element instanceof HTMLInputElement) {
         const notificationValue = state.settings.notifications && state.settings.notifications[subkey];
         if (element.type === "checkbox") {
@@ -1159,6 +1163,10 @@
   function buildPatchFromControl(element) {
     const key = element.dataset.settingKey || "";
     const subkey = element.dataset.settingSubkey || "";
+    if (key === "workingDays") {
+      const group = element.closest(".working-days");
+      return group ? { workingDays: Array.from(group.querySelectorAll('input[data-setting-key="workingDays"]:checked'), input => Number(input.value)).sort() } : null;
+    }
     if (!key) {
       return null;
     }

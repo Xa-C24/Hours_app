@@ -3,6 +3,7 @@ const SETTING_KEYS = [
   "accentColor",
   "dailyGoal",
   "weeklyGoal",
+  "workingDays",
   "defaultPause",
   "defaultStartTime",
   "defaultEndTime",
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS = {
   accentColor: "amber",
   dailyGoal: 7 * 60,
   weeklyGoal: 0,
+  workingDays: [1, 2, 3, 4, 5],
   defaultPause: 60,
   defaultStartTime: "09:00",
   defaultEndTime: "17:00",
@@ -209,6 +211,10 @@ function normalizeSettingValue(key, value) {
       return normalizeDailyGoal(value);
     case "weeklyGoal":
       return normalizeWeeklyGoal(value);
+    case "workingDays":
+      return Array.isArray(value)
+        ? [...new Set(value.filter(day => Number.isInteger(day) && day >= 0 && day <= 6))].sort()
+        : [...DEFAULT_SETTINGS.workingDays];
     case "defaultPause":
       return normalizeDefaultPause(value);
     case "defaultStartTime":

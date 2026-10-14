@@ -191,6 +191,11 @@
     }
   }
 
+  function selectMobileView(viewName, fallbackButton) {
+    const selected = window.hoursNavigation?.showView?.(viewName) || false;
+    if (!selected) activateMobileView(fallbackButton);
+  }
+
   function setDesktopPanel(targetKey, { focusSelector = "" } = {}) {
     desktopActivePanel = targetKey;
     workspaceTabs.forEach((button) => {
@@ -244,11 +249,12 @@
   }
 
   function openEntryForDate(isoDate) {
+    window.hoursNavigation?.reveal("entry");
     const dateInput = document.getElementById("date");
     if (desktopQuery.matches) {
       setDesktopPanel("entry", { focusSelector: "#date" });
     } else {
-      activateMobileView(entryViewButton);
+      selectMobileView("entry", entryViewButton);
     }
     if (dateInput && isoDate) {
       dateInput.value = isoDate;
@@ -553,15 +559,18 @@
 
   document.querySelectorAll("[data-dashboard-action]").forEach((button) => {
     button.addEventListener("click", () => {
+      const action = button.dataset.dashboardAction || "";
       if (!desktopQuery.matches) {
+        if (action === "entry") selectMobileView("entry", entryViewButton);
+        if (action === "calendar") selectMobileView("calendar", calendarViewButton);
+        if (action === "history") selectMobileView("history", archiveViewButton);
         return;
       }
-      const action = button.dataset.dashboardAction || "";
       if (action === "entry") {
-        setDesktopPanel("entry", { focusSelector: "#date" });
+        setDesktopPanel("entry");
       }
       if (action === "calendar") {
-        setDesktopPanel("calendar", { focusSelector: "#month" });
+        setDesktopPanel("calendar");
       }
       if (action === "history") {
         setDesktopPanel("history");
@@ -895,9 +904,9 @@
           tone = "neutral";
           label = entry.day_type_display || "Aucune saisie";
         }
-      } else if (isWeekend) {
+      } else if (!(window.hoursSettingsStore?.getSettings().workingDays || [1,2,3,4,5]).includes(currentDate.getDay())) {
         tone = "weekend";
-        label = "Week-end";
+        label = isWeekend ? "Week-end" : "Jour non travaillé";
       } else if (isoDate < todayIso) {
         tone = "missing";
         label = "Journée oubliée";

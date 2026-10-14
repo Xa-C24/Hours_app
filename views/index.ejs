@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -573,8 +573,8 @@
 	      const _settingsWeeklyGoalHours = String(Math.round((_settingsWeeklyGoalMinutes / 60) * 100) / 100);
 	      const _settingsMonthlyGoalHours = Math.round((_settingsDailyGoalMinutes * 20) / 60);
 	      const _mobileNavItems = [
-	        { key: "dashboard", label: "Dashboard", navLabel: "Accueil", icon: "◈" },
 	        { key: "entry", label: "Saisie", navLabel: "Saisie", icon: "✎" },
+	        { key: "dashboard", label: "Dashboard", navLabel: "Accueil", icon: "◈" },
 	        { key: "calendar", label: "Calendrier", navLabel: "Agenda", icon: "▦" },
 	        { key: "history", label: "Archives", navLabel: "Archives", icon: "🗂" },
 	        { key: "settings", label: "Réglages", navLabel: "Réglages", icon: "⚙" },
@@ -834,6 +834,7 @@
 
 	            <section class="settings-panel settings-v2-panel" data-settings-section="work" data-settings-form="work" hidden>
 	              <div class="settings-panel-head"><div><span class="section-eyebrow">Travail</span><h3>Votre rythme habituel</h3></div></div>
+<%- include("partials/working-days", { settings: _userSettings }) %>
 	              <div class="settings-subsection"><strong>Horaires habituels</strong><div class="settings-grid"><div class="form-field"><label class="form-label" for="settingsDefaultStartTimeV2">Arrivée</label><input class="form-input" id="settingsDefaultStartTimeV2" type="time" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div><div class="form-field"><label class="form-label" for="settingsDefaultEndTimeV2">Départ</label><input class="form-input" id="settingsDefaultEndTimeV2" type="time" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" /></div><div class="form-field"><label class="form-label" for="settingsDefaultBreakV2">Pause (minutes)</label><input class="form-input" id="settingsDefaultBreakV2" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div></div></div>
 	              <div class="settings-panel-actions"><button type="button" class="primary btn-save-primary" data-settings-save-section="work" data-ripple>Enregistrer</button></div>
 	            </section>
@@ -867,6 +868,7 @@
 	            </section>
 
 	            <section class="settings-panel settings-v2-panel" data-settings-section="account" hidden>
+<p><a class="button-link button-neutral" href="/?backup=1">Sauvegarder ou restaurer mon compte</a></p>
 	              <div class="settings-panel-head"><div><span class="section-eyebrow">Compte & données</span><h3>Votre session locale</h3></div></div>
 	              <div class="settings-info-list"><article class="settings-info-item"><strong>Compte actif</strong><span><%= _userSettings.profileName || authUser || "Utilisateur" %></span></article><article class="settings-info-item"><strong>Session</strong><span>Session locale active sur ce navigateur.</span></article></div>
 	              <div class="settings-note"><strong>Préférences</strong><span>Réinitialisez uniquement les réglages enregistrés dans votre espace.</span></div><div class="settings-panel-actions"><button type="button" class="button-link button-neutral" data-settings-reset data-ripple>Réinitialiser les préférences</button></div>
@@ -1307,11 +1309,11 @@
           <% _mobileNavItems.forEach((item, index) => { %>
 	          <button
 	            type="button"
-	            class="mobile-premium-nav-button<%= index === 0 ? ' is-active' : '' %>"
+	            class="mobile-premium-nav-button<%= item.key === 'entry' ? ' is-active' : '' %>"
 	            data-mobile-nav-button
 	            data-target-view="<%= item.key %>"
 	            aria-label="<%= item.label %>"
-	            aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
+	            aria-pressed="<%= item.key === 'entry' ? 'true' : 'false' %>"
 	          >
 	            <span class="mobile-premium-nav-icon" aria-hidden="true"><%= item.icon %></span>
 	            <span class="mobile-premium-nav-label"><%= item.navLabel || item.label %></span>
@@ -1447,48 +1449,8 @@
 		          </div>
 			        </article>
 
-			        <section class="card premium-surface mobile-stats-card app-surface app-card" aria-label="Synthèse du mois">
-	              <div class="entry-card-top">
-	                <div class="section-heading">
-	                  <p class="section-eyebrow">Stats</p>
-	                  <h2>Lecture rapide du mois</h2>
-	                </div>
-	              </div>
-	              <div class="mobile-stats-grid">
-	                <article class="mobile-stat-tile">
-	                  <span class="mobile-stat-label">Total période</span>
-	                  <strong class="mobile-stat-value"><%= totalHHMM %></strong>
-	                  <span class="mobile-stat-meta">Vue active sur <%= _payPeriodLabel || selectedMonth %></span>
-	                </article>
-	                <article class="mobile-stat-tile">
-	                  <span class="mobile-stat-label">Moyenne / jour travaillé</span>
-	                  <strong class="mobile-stat-value"><%= _monthAverageHHMM %></strong>
-	                  <span class="mobile-stat-meta"><%= _workedDayCount %> jour<%= _workedDayCount > 1 ? "s" : "" %> productif<%= _workedDayCount > 1 ? "s" : "" %></span>
-	                </article>
-	                <article class="mobile-stat-tile">
-	                  <span class="mobile-stat-label">Heures sup</span>
-	                  <strong class="mobile-stat-value"><%= totalOvertimeHHMM %></strong>
-	                  <span class="mobile-stat-meta">Récupération cumulée <%= totalRecoveredHHMM %></span>
-	                </article>
-	                <article class="mobile-stat-tile">
-	                  <span class="mobile-stat-label">Salaire net</span>
-	                  <strong class="mobile-stat-value"><%= salaryAmountDisplay %></strong>
-	                  <span class="mobile-stat-meta"><%= hourlyRateDisplay || "Taux horaire indisponible" %></span>
-	                </article>
-	              </div>
-	              <div class="mobile-daytype-grid">
-	                <% dayTypeOptions.filter((option) => !option.value.includes("__")).forEach((option) => { %>
-	                <article class="mobile-daytype-item">
-	                  <span class="mobile-daytype-name"><%= option.label %></span>
-	                  <strong class="mobile-daytype-count"><%= dayTypeCounts[option.value] || 0 %></strong>
-	                </article>
-	                <% }); %>
-	              </div>
-	            </section>
-		
-			      
 				      </section>
-	              
+
 	            <div class="between-sections-spacer" aria-hidden="true"></div>
 	          </div>
 	          <div class="mobile-premium-view" data-mobile-view="entry" data-mobile-title="Saisie" data-workspace-panel="entry" hidden>
@@ -1530,7 +1492,12 @@
 			          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
 			          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
 
-              <div class="entry-shell">
+              <div class="entry-quick-actions">
+  <button type="button" class="secondary" data-entry-prefill="usual">Horaires habituels</button>
+  <button type="button" class="secondary" data-entry-prefill="last">Reprendre la dernière journée</button>
+  <small>Préremplir, puis vérifier avant d’enregistrer.</small>
+</div>
+<div class="entry-shell">
                 <div class="entry-daybar entry-context-grid">
 	                  <div class="field form-field entry-daybar-date entry-context-card">
 	                    <label class="form-label" for="date">Date selectionnee</label>
@@ -1886,10 +1853,10 @@
                 _stateLabel = _entry.day_type_display;
                 _metaLabel = _entry.day_type_display;
               }
-            } else if (_isInPeriod && _isWeekend) {
+            } else if (_isInPeriod && !(_userSettings.workingDays || [1,2,3,4,5]).includes(_currentDate.getDay())) {
               _stateTone = "weekend";
               _stateEmoji = "⚫";
-              _stateLabel = "Week-end";
+              _stateLabel = _isWeekend ? "Week-end" : "Jour non travaillé";
             } else if (_isInPeriod && _calendarTodayDate && _isoDate < _calendarTodayDate) {
               _stateTone = "missing";
               _stateEmoji = "🔴";
@@ -1965,7 +1932,8 @@
                 <label for="month">Choisir un mois</label>
                 <div class="month-form-controls">
 	                  <input id="month" name="month" type="month" required value="<%= selectedMonth %>" aria-describedby="monthLoadingStatus" />
-	                  <span id="monthLoadingStatus" class="month-loading-status" role="status" aria-live="polite" hidden>Chargement...</span>
+	                  <a class="button-link button-neutral" href="/?clientId=<%= encodeURIComponent(_selectedClientId) %>&today=1" data-go-today>Aujourd’hui</a>
+<span id="monthLoadingStatus" class="month-loading-status" role="status" aria-live="polite" hidden>Chargement...</span>
 	                  <details class="export-menu">
 	                    <summary class="button-link export-menu-trigger" data-ripple>Exporter <span aria-hidden="true">▾</span></summary>
 	                    <div class="export-menu-panel">
@@ -1997,6 +1965,7 @@
         </div>
 
         <div id="payPeriodPanel" class="pay-period-panel" data-pay-period-panel>
+<div class="missing-days-summary" data-missing-days hidden></div>
           <div class="day-filter-bar" data-day-filter-bar>
             <% dayTypeFilters.forEach((filter, index) => { %>
             <button
@@ -2188,13 +2157,13 @@
             </div>
             <p class="calendar-empty-filter" data-calendar-empty hidden>Aucune journée ne correspond à ce filtre.</p>
 
-	            
           </div>
         </div>
       </section>
             <div class="between-sections-spacer" aria-hidden="true"></div>
           </div>
 		          <div class="mobile-premium-view" data-mobile-view="history" data-mobile-title="Archives" data-workspace-panel="history" hidden>
+<%- include("partials/account-backup") %>
 	      <% if (archivedClients && archivedClients.length > 0) { %>
 	      <section class="card premium-surface archived-clients-card app-surface app-card" data-archived-clients-card>
 	        <div class="entry-card-top">
@@ -2378,7 +2347,7 @@
 	                  <% } else if (section.key === "work") { %>
 	                  <div class="settings-mobile-stack">
 	                    <div class="form-field"><label class="form-label" for="settingsDefaultBreakMobile">Pause par défaut</label><input class="form-input" id="settingsDefaultBreakMobile" type="number" min="0" value="<%= Number(_userSettings.defaultPause || 0) %>" data-setting-key="defaultPause" /></div>
-		                    <div class="form-field"><label class="form-label" for="settingsDefaultStartTimeMobile">Début habituel</label><input class="form-input" id="settingsDefaultStartTimeMobile" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div>
+		                    <div class="form-field"><%- include("partials/working-days", { settings: _userSettings }) %><label class="form-label" for="settingsDefaultStartTimeMobile">Début habituel</label><input class="form-input" id="settingsDefaultStartTimeMobile" type="time" step="60" value="<%= _userSettings.defaultStartTime || '09:00' %>" data-setting-key="defaultStartTime" /></div>
 		                    <div class="form-field"><label class="form-label" for="settingsDefaultEndTimeMobile">Fin habituelle</label><input class="form-input" id="settingsDefaultEndTimeMobile" type="time" step="60" value="<%= _userSettings.defaultEndTime || '17:00' %>" data-setting-key="defaultEndTime" /></div>
 		                  </div>
 	                  <% } else if (section.key === "goals") { %>
@@ -2441,21 +2410,6 @@
 	            </section>
 	          </div>
 	        </div>
-        <div class="mobile-premium-status" data-mobile-status>
-          <div class="mobile-premium-dots" aria-label="Indicateurs de vue">
-            <% _mobileNavItems.forEach((item, index) => { %>
-            <button
-              type="button"
-              class="mobile-premium-dot<%= index === 0 ? ' is-active' : '' %>"
-              data-mobile-dot
-              data-target-view="<%= item.key %>"
-              aria-label="<%= item.label %>"
-              aria-pressed="<%= index === 0 ? 'true' : 'false' %>"
-            ></button>
-            <% }); %>
-          </div>
-        </div>
-
       </div>
       <% } else { %>
       <section class="card premium-surface client-empty-card" data-main-workspace>
@@ -2975,6 +2929,8 @@
 			      },
 			    }) %></script>
 		      <script src="/theme.js"></script>
+<script src="/daily-tools.js"></script>
+<script src="/account-backup.js"></script>
 		      <script src="/toast-center.js"></script>
 		      <script src="/day-types.js"></script>
 <script src="/entry-draft-store.js"></script>
@@ -3718,7 +3674,41 @@
 	            }
 	          };
 
-	          dateInput.addEventListener("input", watchSelectedDate);
+	          entryForm.querySelectorAll("[data-entry-prefill]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    if (state.isLoading || state.isSaving) return;
+    if ((state.isDirty || state.currentEntry?.isExisting || originalWorkDateInput.value) && !window.confirm("Remplacer les horaires affichés ? L’enregistrement restera manuel.")) return;
+    const selectedDate = dateInput.value;
+    const selectedClient = clientIdInput.value;
+    const before = JSON.stringify(readEntryFromForm());
+    button.disabled = true;
+    try {
+      let values;
+      if (button.dataset.entryPrefill === "last") {
+        const response = await fetch(`/api/entries/last-worked?clientId=${encodeURIComponent(selectedClient)}&beforeDate=${encodeURIComponent(selectedDate)}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Impossible de charger la dernière journée.");
+        values = (await response.json()).entry;
+        if (!values) throw new Error("Aucune journée travaillée avant cette date pour ce client.");
+      } else {
+        const settings = window.hoursSettingsStore?.getSettings() || {};
+        values = { day_type: defaultFormValues.dayType, arrival_time: settings.defaultStartTime || defaultFormValues.arrivalTime,
+          departure_time: settings.defaultEndTime || defaultFormValues.departureTime,
+          lunch_break_minutes: settings.defaultPause ?? defaultFormValues.lunchBreakMinutes };
+      }
+      if (selectedDate !== dateInput.value || selectedClient !== clientIdInput.value || before !== JSON.stringify(readEntryFromForm()) || state.isLoading || state.isSaving) return;
+      dayTypeSelect.value = values.day_type;
+      arrivalInput.value = values.arrival_time;
+      departureInput.value = values.departure_time;
+      lunchInput.value = values.lunch_break_minutes;
+      dayTypeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      window.hoursSettingsStore?.refreshCustomSelects?.();
+      markUnsavedIfNeeded();
+      emitToast({ type: "info", message: "Horaires préremplis : vérifiez puis enregistrez." });
+    } catch (error) { emitToast({ type: "error", message: error.message }); }
+    finally { button.disabled = false; }
+  });
+});
+dateInput.addEventListener("input", watchSelectedDate);
 	          dateInput.addEventListener("change", watchSelectedDate);
 	          [dayTypeSelect, arrivalInput, departureInput, lunchInput].forEach((field) => {
 	            field.addEventListener("input", markUnsavedIfNeeded);
@@ -3993,11 +3983,12 @@
 	          }
 	        };
 
-	        const focusDesktopTarget = (targetElement) => {
+	        const focusDesktopTarget = (targetElement, scrollTarget = targetElement) => {
 	          if (!targetElement) {
 	            return;
 	          }
-	          targetElement.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "start" });
+	          window.hoursNavigation?.highlight(scrollTarget);
+	          scrollTarget.scrollIntoView({ behavior: window.hoursMotion?.scrollBehavior() || "instant", block: "start" });
 	          if (typeof targetElement.focus === "function") {
 	            window.setTimeout(() => {
 	              try {
@@ -4012,6 +4003,15 @@
 	        actionButtons.forEach((button) => {
 	          button.addEventListener("click", () => {
 	            const action = button.dataset.dashboardAction || "";
+	            const section = action === "entry"
+	              ? document.querySelector("[data-entry-card]")
+	              : action === "calendar" ? document.querySelector("[data-pay-period-card]")
+	              : action === "history" ? historyCard : null;
+	            if (section?.classList.contains("is-collapsed")) {
+	              const toggleSelector = action === "entry" ? "[data-entry-toggle]"
+	                : action === "calendar" ? "[data-pay-period-toggle]" : "[data-archived-clients-toggle]";
+	              section.querySelector(toggleSelector)?.click();
+	            }
 	            if (mobileQuery.matches) {
 	              if (action === "entry" || action === "calendar" || action === "history") {
 	                activateMobileView(action);
@@ -4020,15 +4020,15 @@
 	            }
 
 	            if (action === "entry") {
-	              focusDesktopTarget(dateInput);
+	              focusDesktopTarget(dateInput, section || dateInput);
 	              return;
 	            }
 	            if (action === "calendar") {
-	              focusDesktopTarget(monthInput);
+	              focusDesktopTarget(monthInput, section || monthInput);
 	              return;
 	            }
 	            if (action === "history") {
-	              focusDesktopTarget(historySearchInput || historyCard);
+	              focusDesktopTarget(historySearchInput || historyCard, historyCard || historySearchInput);
 	            }
 	          });
 	        });
@@ -4095,12 +4095,9 @@
 	        const track = document.querySelector("[data-mobile-track]");
 		        const allViews = Array.from(document.querySelectorAll("[data-mobile-view]"));
 		        const navButtons = Array.from(document.querySelectorAll("[data-mobile-nav-button]"));
-		        const dots = Array.from(document.querySelectorAll("[data-mobile-dot]"));
 		        const monthInput = document.getElementById("month");
 		        const clientIdInput = document.querySelector('input[name="clientId"]');
-		        const mobileQuery = window.matchMedia("(max-width: 1050px)");
-		        const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
-		        const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+	        const mobileQuery = window.matchMedia("(max-width: 1050px)");
 
 		        if (!shell || !track || allViews.length === 0 || navButtons.length === 0) {
 		          return;
@@ -4119,50 +4116,36 @@
 		          const clientValue = clientIdInput ? clientIdInput.value || "" : "";
 		          return `hours_mobile_panel:${clientValue}:${monthValue}`;
 	        };
+	        const getInitialStateKey = () => `${getStorageKey()}:entry-first-v1`;
 
 	        const findViewIndex = (viewName) => {
 	          const nextIndex = views.findIndex((view) => view.dataset.mobileView === viewName);
 	          return nextIndex >= 0 ? nextIndex : 0;
 	        };
 
-		        const state = {
-		          index: 0,
-		          startX: 0,
-		          startY: 0,
-		          deltaX: 0,
-		          deltaY: 0,
-		          isTouching: false,
-		          lockedAxis: "",
-		        };
-		        let activeViewObserver = null;
-		        const swipeIgnoreSelector = [
-		          "input",
-		          "textarea",
-		          "select",
-		          "button",
-		          "a",
-		          "summary",
-		          "[role='button']",
-		          ".calendar-board-scroll",
-		          ".table-wrapper",
-		          ".archived-history",
-		          ".settings-mobile-nav",
-		        ].join(", ");
+		        const entryViewIndex = views.findIndex((view) => view.dataset.mobileView === "entry");
+	        const defaultViewIndex = Math.max(0, entryViewIndex);
+	        const state = { index: defaultViewIndex };
+	        const phoneQuery = window.matchMedia("(max-width: 700px)");
+	        let activeViewObserver = null;
+	        const swipeIgnoreSelector = ["input", "textarea", "select", "button", "a", "summary", "[role='button']", ".calendar-board-scroll", ".table-wrapper", ".archived-history", ".settings-mobile-nav", ".work-timer"].join(", ");
 
 		        const clampIndex = (nextIndex) => Math.max(0, Math.min(nextIndex, views.length - 1));
-		        const prefersReducedMotion = () => reducedMotionQuery.matches;
-		        const isSwipeEnabled = () => mobileQuery.matches && coarsePointerQuery.matches;
 		        const getActiveView = () => views[state.index] || views[0] || null;
 
-		        const readSavedIndex = () => {
+	        const readSavedIndex = () => {
 		          try {
+	            if (!sessionStorage.getItem(getInitialStateKey())) {
+	              sessionStorage.setItem(getInitialStateKey(), "1");
+	              return defaultViewIndex;
+	            }
 		            const rawValue = sessionStorage.getItem(getStorageKey());
 		            if (!rawValue) {
-	              return 0;
+	              return defaultViewIndex;
 	            }
 	            return clampIndex(findViewIndex(rawValue));
 	          } catch (error) {
-	            return 0;
+	            return defaultViewIndex;
 	          }
 	        };
 
@@ -4177,12 +4160,30 @@
 	          }
 	        };
 
-		        const syncActiveState = () => {
+	        const syncShellHeight = () => {
+	          if (!mobileQuery.matches || !phoneQuery.matches) { shell.style.height = ""; return; }
+	          const activeView = getActiveView();
+	          if (activeView) shell.style.height = `${Math.ceil(activeView.scrollHeight)}px`;
+	        };
+	        const observeActiveView = () => {
+	          activeViewObserver?.disconnect();
+	          const activeView = getActiveView();
+	          if (!activeView || typeof ResizeObserver !== "function") return;
+	          activeViewObserver = new ResizeObserver(() => window.requestAnimationFrame(syncShellHeight));
+	          activeViewObserver.observe(activeView);
+	        };
+	        const applyTransform = (delta = 0, animate = true) => {
+	          track.style.transitionDuration = animate ? "180ms" : "0ms";
+	          track.style.transform = `translate3d(calc(${state.index * -100}% + ${delta}px), 0, 0)`;
+	        };
+	        const syncActiveState = () => {
 		          const activeView = getActiveView();
 		          const activeKey = activeView ? activeView.dataset.mobileView || "" : "";
-		          views.forEach((view) => {
-		            view.classList.toggle("is-active", view === activeView);
-		            const isInactive = mobileQuery.matches && view !== activeView;
+          views.forEach((view) => {
+	            const isInactive = mobileQuery.matches && phoneQuery.matches && view !== activeView;
+	            view.hidden = isInactive;
+	            view.classList.toggle("is-active", !isInactive);
+	            view.classList.toggle("is-workspace-active", !mobileQuery.matches && (view === activeView || view.dataset.mobileView === "calendar"));
 		            view.inert = isInactive;
 		            if (mobileQuery.matches) view.setAttribute("aria-hidden", String(isInactive));
 		            else view.removeAttribute("aria-hidden");
@@ -4192,156 +4193,78 @@
 		            button.classList.toggle("is-active", isActive);
 		            button.setAttribute("aria-pressed", String(isActive));
 		          });
-		          dots.forEach((dot) => {
-		            const isActive = dot.dataset.targetView === activeKey;
-		            dot.classList.toggle("is-active", isActive);
-		            dot.setAttribute("aria-pressed", String(isActive));
-		          });
 		        };
 
-		        const syncShellHeight = () => {
-		          if (!mobileQuery.matches) {
-		            shell.style.height = "";
-		            return;
-		          }
-		          const activeView = getActiveView();
-		          if (!activeView) {
-		            return;
-		          }
-		          // The navigation and dots are inside the clipped shell too.
-		          const navigationHeight = Array.from(shell.children)
-		            .filter((child) => child !== track)
-		            .reduce((height, child) => {
-		              const style = window.getComputedStyle(child);
-		              return height + child.getBoundingClientRect().height
-		                + (parseFloat(style.marginTop) || 0)
-		                + (parseFloat(style.marginBottom) || 0);
-		            }, 0);
-		          shell.style.height = `${Math.ceil(activeView.scrollHeight + navigationHeight)}px`;
-		        };
-
-		        const observeActiveView = () => {
-		          if (activeViewObserver) {
-		            activeViewObserver.disconnect();
-		          }
-		          if (typeof ResizeObserver !== "function") {
-		            syncShellHeight();
-		            return;
-		          }
-		          const activeView = getActiveView();
-		          if (!activeView) {
-		            return;
-		          }
-		          activeViewObserver = new ResizeObserver(() => {
-		            window.requestAnimationFrame(syncShellHeight);
-		          });
-		          activeViewObserver.observe(activeView);
-		        };
-
-		        const applyTransform = (percentOffset = 0, animate = true) => {
-		          track.style.transitionDuration = animate && !prefersReducedMotion() ? "180ms" : "0ms";
-		          track.style.transform = `translate3d(calc(${state.index * -100}% + ${percentOffset}%), 0, 0)`;
-		        };
-
-		        const setIndex = (nextIndex, { animate = true, persist = true } = {}) => {
+	        const setIndex = (nextIndex, { persist = true } = {}) => {
 		          state.index = clampIndex(nextIndex);
-		          applyTransform(0, animate);
 		          syncActiveState();
-		          observeActiveView();
-		          window.requestAnimationFrame(syncShellHeight);
 		          if (persist) {
 		            persistIndex(state.index);
 		          }
 		        };
 
 	        const handleTargetSelection = (targetView) => {
-	          setIndex(findViewIndex(targetView), { animate: true, persist: true });
+	          setIndex(findViewIndex(targetView), { persist: true });
+	          applyTransform(0, true);
 	        };
-
-		        const resetTouchState = () => {
-		          state.isTouching = false;
-		          state.lockedAxis = "";
-		          state.deltaX = 0;
-		          state.deltaY = 0;
-		        };
-
-		        const handleTouchStart = (event) => {
-		          if (!isSwipeEnabled() || !event.touches || event.touches.length !== 1) {
-		            return;
-		          }
-		          if (event.target && event.target.closest(swipeIgnoreSelector)) {
-		            return;
-		          }
-	          const touch = event.touches[0];
-	          state.isTouching = true;
-	          state.startX = touch.clientX;
-	          state.startY = touch.clientY;
-	          state.deltaX = 0;
-	          state.deltaY = 0;
-	          state.lockedAxis = "";
+	        const touch = { active: false, startX: 0, startY: 0, deltaX: 0, deltaY: 0, axis: "" };
+	        const handleTouchStart = (event) => {
+	          if (!mobileQuery.matches || !phoneQuery.matches || event.touches?.length !== 1) return;
+	          if (event.target instanceof Element && event.target.closest(swipeIgnoreSelector)) return;
+	          const point = event.touches[0];
+	          touch.active = true; touch.startX = point.clientX; touch.startY = point.clientY;
+	          touch.deltaX = 0; touch.deltaY = 0; touch.axis = "";
 	          track.style.transitionDuration = "0ms";
-		        };
-
-		        const handleTouchMove = (event) => {
-		          if (!isSwipeEnabled() || !state.isTouching || !event.touches || event.touches.length !== 1) {
-		            return;
-		          }
-		          const touch = event.touches[0];
-		          state.deltaX = touch.clientX - state.startX;
-	          state.deltaY = touch.clientY - state.startY;
-
-	          if (!state.lockedAxis) {
-	            if (Math.abs(state.deltaX) < 10 && Math.abs(state.deltaY) < 10) {
-	              return;
-	            }
-	            state.lockedAxis = Math.abs(state.deltaX) > Math.abs(state.deltaY) ? "x" : "y";
+	        };
+	        const handleTouchMove = (event) => {
+	          if (!touch.active || event.touches?.length !== 1) return;
+	          const point = event.touches[0];
+	          touch.deltaX = point.clientX - touch.startX; touch.deltaY = point.clientY - touch.startY;
+	          if (!touch.axis && (Math.abs(touch.deltaX) > 8 || Math.abs(touch.deltaY) > 8)) {
+	            touch.axis = Math.abs(touch.deltaX) > Math.abs(touch.deltaY) * 1.15 ? "x" : "y";
 	          }
-
-		          if (state.lockedAxis !== "x") {
-		            return;
-		          }
-
-		          event.preventDefault();
-		          const width = shell.clientWidth || 1;
-		          const isAtFirstView = state.index === 0 && state.deltaX > 0;
-		          const isAtLastView = state.index === views.length - 1 && state.deltaX < 0;
-		          const dragResistance = isAtFirstView || isAtLastView ? 0.35 : 1;
-		          const dragPercent = Math.max(-18, Math.min(18, ((state.deltaX * dragResistance) / width) * 100));
-		          applyTransform(dragPercent, false);
-		        };
-
-		        const handleTouchEnd = () => {
-		          if (!isSwipeEnabled() || !state.isTouching) {
-		            resetTouchState();
-		            return;
-		          }
-
-		          const shouldAdvance =
-		            state.lockedAxis === "x" &&
-		            Math.abs(state.deltaX) >= 64 &&
-		            Math.abs(state.deltaX) > Math.abs(state.deltaY) * 1.2;
-		          if (shouldAdvance) {
-		            const direction = state.deltaX < 0 ? 1 : -1;
-		            setIndex(state.index + direction, { animate: true, persist: true });
-		          } else {
-		            setIndex(state.index, { animate: true, persist: false });
-	          }
-	          resetTouchState();
+	          if (touch.axis !== "x") return;
+	          event.preventDefault();
+	          const atEdge = (state.index === 0 && touch.deltaX > 0) || (state.index === views.length - 1 && touch.deltaX < 0);
+	          applyTransform(Math.max(-96, Math.min(96, touch.deltaX * (atEdge ? 0.3 : 1))), false);
+	        };
+	        const handleTouchEnd = () => {
+	          if (!touch.active) return;
+	          const advance = touch.axis === "x" && Math.abs(touch.deltaX) >= Math.max(48, shell.clientWidth * 0.16)
+	            && Math.abs(touch.deltaX) > Math.abs(touch.deltaY) * 1.2;
+	          if (advance) setIndex(state.index + (touch.deltaX < 0 ? 1 : -1));
+	          applyTransform(0, true);
+	          touch.active = false; touch.axis = "";
+	        };
+	        const handleSwipeScroll = (event) => {
+	          const view = event.target instanceof Element ? event.target.closest("[data-mobile-view]") : null;
+	          if (!mobileQuery.matches || !phoneQuery.matches || !view) return;
+	          const nextIndex = views.indexOf(view);
+	          if (nextIndex < 0 || nextIndex === state.index) return;
+	          setIndex(nextIndex, { persist: true });
+	          applyTransform(0, true);
 	        };
 
-		        const syncForViewport = () => {
-		          if (!mobileQuery.matches) {
-		            track.style.transform = "";
-		            track.style.transitionDuration = "";
-		            shell.style.height = "";
-		            syncActiveState();
-		            if (activeViewObserver) {
-		              activeViewObserver.disconnect();
-		            }
-		            return;
-		          }
-		          setIndex(readSavedIndex(), { animate: false, persist: false });
-		        };
+	        const syncForViewport = () => {
+	          if (!mobileQuery.matches) {
+	            state.index = findViewIndex("calendar");
+	            track.style.transform = "";
+	            shell.style.height = "";
+	            syncActiveState();
+	            return;
+	          }
+	          const savedIndex = readSavedIndex();
+	          setIndex(savedIndex, { persist: false });
+	          applyTransform(0, false);
+	        };
+	        window.hoursMobileNavigation = {
+	          show(viewName) {
+	            if (!mobileQuery.matches || !phoneQuery.matches) return false;
+	            setIndex(findViewIndex(viewName), { persist: true });
+	            applyTransform(0, true);
+	            return true;
+	          },
+	        };
 
 	        navButtons.forEach((button) => {
 	          button.addEventListener("click", () => {
@@ -4349,16 +4272,11 @@
 	          });
 	        });
 
-	        dots.forEach((dot) => {
-	          dot.addEventListener("click", () => {
-	            handleTargetSelection(dot.dataset.targetView || "");
-	          });
-	        });
-
 	        track.addEventListener("touchstart", handleTouchStart, { passive: true });
 	        track.addEventListener("touchmove", handleTouchMove, { passive: false });
 	        track.addEventListener("touchend", handleTouchEnd);
 	        track.addEventListener("touchcancel", handleTouchEnd);
+	        track.addEventListener("scroll", handleSwipeScroll, true);
 	        window.addEventListener("resize", syncForViewport);
 	        if (typeof mobileQuery.addEventListener === "function") {
 	          mobileQuery.addEventListener("change", syncForViewport);

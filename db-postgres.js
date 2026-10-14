@@ -752,7 +752,69 @@ async function saveWorkTimer(username, version, state) {
   return result.rowCount === 1 ? { version: version + 1, state } : null;
 }
 
+async function readAccountSnapshot(connection, username) {
+  const { fields, canonicalRow } = require("./services/account-backup");
+  const data = {};
+  for (const [table, columns] of Object.entries(fields)) {
+    const result = await connection.query(`SELECT ${columns.join(",")} FROM ${table} WHERE username=$1 ORDER BY ${table === "clients" ? "id" : table === "work_entries" ? "client_id,work_date" : "client_id,pay_period_month"}`, [username]);
+    data[table] = result.rows.map(canonicalRow);
+  }
+  const result = await connection.query("SELECT key,value FROM settings WHERE username=$1 ORDER BY key",[username]);
+  data.settings = Object.fromEntries(result.rows.map(row=>[row.key,row.value]));
+  return data;
+}
+async function getAccountSnapshot(username) {
+  await initializeDatabase();
+  const connection = await pool.connect();
+  try {
+    await connection.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    const data = await readAccountSnapshot(connection,username);
+    await connection.query("COMMIT");
+    return data;
+  } catch(error) { await connection.query("ROLLBACK"); throw error; }
+  finally { connection.release(); }
+}
+async function restoreAccountSnapshot(username, data, expectedDigest, preserve) {
+  await initializeDatabase();
+  const { fields, digest } = require("./services/account-backup");
+  const connection = await pool.connect();
+  try {
+    await connection.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+    await connection.query("SELECT username FROM users WHERE username=$1 FOR UPDATE",[username]);
+    const timerRow = (await connection.query("SELECT state_json FROM work_timers WHERE username=$1 FOR UPDATE",[username])).rows[0];
+    const timer = timerRow ? JSON.parse(timerRow.state_json) : null;
+    if (timer && timer.end === null) { const error=new Error("Arrêtez le chronomètre avant la restauration."); error.status=409; throw error; }
+    const before = await readAccountSnapshot(connection,username);
+    if (digest(before) !== expectedDigest) { const error = new Error("Les données ont changé. Recommencez l’aperçu."); error.status=409; throw error; }
+    preserve(before);
+    for (const table of ["work_entries","pay_period_salaries","clients","settings"]) await connection.query(`DELETE FROM ${table} WHERE username=$1`,[username]);
+    const ids = new Map();
+    for (const [table, columns] of Object.entries(fields)) {
+      const cols = columns.filter(c=>c !== "id");
+      for (const row of data[table]) {
+        const result = await connection.query(`INSERT INTO ${table} (username,${cols.join(",")}) VALUES ($1,${cols.map((_,i)=>`$${i+2}`).join(",")}) RETURNING id`,[username,...cols.map(c=>c === "client_id" ? ids.get(row.client_id) : row[c])]);
+        if (table === "clients") ids.set(row.id,Number(result.rows[0].id));
+      }
+    }
+    for (const [key,value] of Object.entries(data.settings)) await connection.query("INSERT INTO settings (username,key,value) VALUES ($1,$2,$3::jsonb)",[username,key,JSON.stringify(value)]);
+    const after = await readAccountSnapshot(connection,username);
+    require("./services/account-backup").verifyRestored(after,data,ids);
+    await connection.query("COMMIT");
+    return after;
+  } catch(error) { await connection.query("ROLLBACK"); throw error; }
+  finally { connection.release(); }
+}
+
 module.exports = {
+  getAccountSnapshot,
+  restoreAccountSnapshot,
+  async getLastWorkedEntry(username, clientId, beforeDate) {
+    await initializeDatabase();
+    const result = await pool.query(`SELECT day_type, arrival_time, departure_time, lunch_break_minutes
+      FROM work_entries WHERE username = $1 AND client_id = $2 AND work_date < $3 AND worked_minutes > 0
+      ORDER BY work_date DESC LIMIT 1`, [username, clientId, beforeDate]);
+    return result.rows[0] || null;
+  },
   getWorkTimer,
   saveWorkTimer,
   ensureUserDatabase,
