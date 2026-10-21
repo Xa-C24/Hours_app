@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   recovery_code_salt TEXT,
   recovery_code_hash TEXT,
+  recovery_code_expires_at_ms INTEGER,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -170,12 +171,16 @@ function ensureUsersRecoveryColumns(database) {
   const columns = getTableColumns(database, "users");
   const hasRecoverySaltColumn = columns.some((column) => column.name === "recovery_code_salt");
   const hasRecoveryHashColumn = columns.some((column) => column.name === "recovery_code_hash");
+  const hasRecoveryExpiryColumn = columns.some((column) => column.name === "recovery_code_expires_at_ms");
 
   if (!hasRecoverySaltColumn) {
     database.prepare("ALTER TABLE users ADD COLUMN recovery_code_salt TEXT").run();
   }
   if (!hasRecoveryHashColumn) {
     database.prepare("ALTER TABLE users ADD COLUMN recovery_code_hash TEXT").run();
+  }
+  if (!hasRecoveryExpiryColumn) {
+    database.prepare("ALTER TABLE users ADD COLUMN recovery_code_expires_at_ms INTEGER").run();
   }
 }
 
@@ -430,7 +435,8 @@ const getUserByUsernameStmt = authDb.prepare(`
     password_salt,
     password_hash,
     recovery_code_salt,
-    recovery_code_hash
+    recovery_code_hash,
+    recovery_code_expires_at_ms
   FROM users
   WHERE username = ?
 `);
@@ -442,6 +448,7 @@ const createUserStmt = authDb.prepare(`
     password_hash,
     recovery_code_salt,
     recovery_code_hash,
+    recovery_code_expires_at_ms,
     created_at,
     updated_at
   )
@@ -451,6 +458,7 @@ const createUserStmt = authDb.prepare(`
     @password_hash,
     @recovery_code_salt,
     @recovery_code_hash,
+    @recovery_code_expires_at_ms,
     datetime('now'),
     datetime('now')
   )
@@ -472,8 +480,12 @@ const updateUserPasswordAndRecoveryCodeStmt = authDb.prepare(`
     password_hash = @password_hash,
     recovery_code_salt = @recovery_code_salt,
     recovery_code_hash = @recovery_code_hash,
+    recovery_code_expires_at_ms = @recovery_code_expires_at_ms,
     updated_at = datetime('now')
   WHERE username = @username
+    AND recovery_code_salt = @previous_recovery_code_salt
+    AND recovery_code_hash = @previous_recovery_code_hash
+    AND recovery_code_expires_at_ms IS @previous_recovery_code_expires_at_ms
 `);
 
 const upsertSessionStmt = authDb.prepare(`
@@ -503,6 +515,12 @@ const getSessionByTokenStmt = authDb.prepare(`
     username,
     expires_at_ms
   FROM sessions
+  WHERE token = ?
+`);
+
+const touchSessionStmt = authDb.prepare(`
+  UPDATE sessions
+  SET expires_at_ms = ?, updated_at = datetime('now')
   WHERE token = ?
 `);
 
@@ -963,7 +981,16 @@ function getUserByUsername(username) {
 }
 
 function createUser(user) {
-  createUserStmt.run(user);
+  createUserStmt.run({
+    ...user,
+    recovery_code_expires_at_ms: user.recovery_code_expires_at_ms ?? null,
+  });
+}
+
+function deleteUserAfterFailedProvisioning(username) {
+  return authDb.transaction(() => {
+    authDb.prepare(`DELETE FROM users WHERE username = ?`).run(username);
+  })();
 }
 
 function updateUserPassword(user) {
@@ -971,7 +998,13 @@ function updateUserPassword(user) {
 }
 
 function updateUserPasswordAndRecoveryCode(user) {
-  updateUserPasswordAndRecoveryCodeStmt.run(user);
+  return authDb.transaction(() => {
+    const result = updateUserPasswordAndRecoveryCodeStmt.run(user);
+    if (result.changes !== 1) return false;
+    authDb.prepare(`DELETE FROM sessions WHERE username = ?`).run(user.username);
+    authDb.prepare(`UPDATE mobile_auth_tokens SET revoked_at = datetime('now') WHERE username = ? AND revoked_at IS NULL`).run(user.username);
+    return true;
+  })();
 }
 
 function upsertSession(session) {
@@ -980,6 +1013,10 @@ function upsertSession(session) {
 
 function getSessionByToken(token) {
   return getSessionByTokenStmt.get(token) || null;
+}
+
+function touchSession(token, expiresAtMs) {
+  return touchSessionStmt.run(expiresAtMs, token).changes === 1;
 }
 
 function deleteSession(token) {
@@ -1124,10 +1161,12 @@ module.exports = {
   resetSettings,
   getUserByUsername,
   createUser,
+  deleteUserAfterFailedProvisioning,
   updateUserPassword,
   updateUserPasswordAndRecoveryCode,
   upsertSession,
   getSessionByToken,
+  touchSession,
   deleteSession,
   deleteExpiredSessions,
   createMobileAuthToken,

@@ -1,6 +1,8 @@
 const path = require("path");
 const crypto = require("crypto");
+const { promisify } = require("util");
 const express = require("express");
+const scrypt = promisify(crypto.scrypt);
 
 const hasDatabaseUrl =
   typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.trim() !== "";
@@ -42,9 +44,11 @@ const CSRF_COOKIE_NAME = "hours_csrf";
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
 const MOBILE_TOKEN_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const CSRF_TOKEN_DURATION_MS = 12 * 60 * 60 * 1000;
+const RECOVERY_CODE_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 10;
-const RECOVERY_CODE_REGEX = /^\d{6}$/;
+const MAX_PASSWORD_BYTES = 256;
+const RECOVERY_CODE_REGEX = /^(?:\d{6}|[A-Za-z0-9_-]{32})$/;
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_CLIENT_FIELD_LENGTH = 500;
 const MAX_CLIENT_LOGO_LENGTH = 2_000_000;
@@ -228,11 +232,8 @@ async function getSessionFromRequest(req) {
     await db.deleteSession(token);
     return null;
   }
-  await db.upsertSession({
-    token,
-    username: session.username,
-    expires_at_ms: Date.now() + SESSION_DURATION_MS,
-  });
+  const touched = await db.touchSession(token, Date.now() + SESSION_DURATION_MS);
+  if (!touched) return null;
   return { token, username: session.username };
 }
 
@@ -249,7 +250,7 @@ function isValidUsername(value) {
 }
 
 function isValidPassword(value) {
-  return typeof value === "string" && value.length >= MIN_PASSWORD_LENGTH;
+  return typeof value === "string" && value.length >= MIN_PASSWORD_LENGTH && Buffer.byteLength(value, "utf8") <= MAX_PASSWORD_BYTES;
 }
 
 function normalizeRecoveryCode(value) {
@@ -260,22 +261,22 @@ function isValidRecoveryCode(value) {
   return typeof value === "string" && RECOVERY_CODE_REGEX.test(value);
 }
 
-function hashPassword(password, saltHex = crypto.randomBytes(16).toString("hex")) {
-  const hashHex = crypto.scryptSync(password, saltHex, 64).toString("hex");
+async function hashPassword(password, saltHex = crypto.randomBytes(16).toString("hex")) {
+  const hashHex = (await scrypt(password, saltHex, 64)).toString("hex");
   return { saltHex, hashHex };
 }
 
 function generateRecoveryCode() {
-  return String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+  return crypto.randomBytes(24).toString("base64url");
 }
 
-function verifyPassword(password, saltHex, expectedHashHex) {
+async function verifyPassword(password, saltHex, expectedHashHex) {
   if (typeof password !== "string" || typeof saltHex !== "string" || typeof expectedHashHex !== "string") {
     return false;
   }
   try {
     const expectedBuffer = Buffer.from(expectedHashHex, "hex");
-    const computedBuffer = crypto.scryptSync(password, saltHex, expectedBuffer.length);
+    const computedBuffer = await scrypt(password, saltHex, expectedBuffer.length);
     if (expectedBuffer.length !== computedBuffer.length) {
       return false;
     }
@@ -290,7 +291,7 @@ async function authenticateCredentials(username, password) {
     return null;
   }
   const user = await db.getUserByUsername(username);
-  return user && verifyPassword(password, user.password_salt, user.password_hash) ? user : null;
+  return user && await verifyPassword(password, user.password_salt, user.password_hash) ? user : null;
 }
 
 function getRequestIp(req) {
@@ -361,9 +362,20 @@ function buildSecurityErrorMessage(actionLabel) {
 }
 
 const authAttemptStore = new Map();
+let authAttemptOperations = 0;
 
 function consumeRateLimitBucket(key, maxAttempts, windowMs) {
   const now = Date.now();
+  authAttemptOperations += 1;
+  if (authAttemptOperations % 256 === 0) {
+    for (const [bucketKey, bucket] of authAttemptStore) {
+      if (bucket.resetAtMs <= now) authAttemptStore.delete(bucketKey);
+    }
+  }
+  if (!authAttemptStore.has(key) && authAttemptStore.size >= 50000) {
+    const oldestKey = authAttemptStore.keys().next().value;
+    if (oldestKey !== undefined) authAttemptStore.delete(oldestKey);
+  }
   const entry = authAttemptStore.get(key);
   if (!entry || entry.resetAtMs <= now) {
     authAttemptStore.set(key, {
@@ -1456,7 +1468,10 @@ app.use(
     normalizeClientId,
     rateLimitLoginAttempt: (req) => {
       const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
-      return consumeRateLimitBucket(`login:${getRequestIp(req)}:${username.toLowerCase()}`, AUTH_RATE_LIMITS.login.maxAttempts, AUTH_RATE_LIMITS.login.windowMs);
+      const ip = getRequestIp(req);
+      const identityBucket = consumeRateLimitBucket(`login:${ip}:${username.toLowerCase()}`, AUTH_RATE_LIMITS.login.maxAttempts, AUTH_RATE_LIMITS.login.windowMs);
+      const ipBucket = consumeRateLimitBucket(`login-ip:${ip}`, AUTH_RATE_LIMITS.login.maxAttempts * 10, AUTH_RATE_LIMITS.login.windowMs);
+      return identityBucket.allowed && ipBucket.allowed ? identityBucket : { allowed: false, remaining: 0 };
     },
     revokeMobileAuthToken: (tokenHash) => db.revokeMobileAuthToken(tokenHash),
     serializeMonthDataForApi,
@@ -1489,10 +1504,7 @@ async function renderCsrfFailure(req, res) {
     res.status(statusCode);
     renderRegister(res, {
       error: message,
-      formData: {
-        username: typeof req.body?.username === "string" ? req.body.username.trim() : "",
-        recoveryCode: normalizeRecoveryCode(req.body?.recoveryCode),
-      },
+      formData: { username: typeof req.body?.username === "string" ? req.body.username.trim() : "" },
     });
     return;
   }
@@ -1540,8 +1552,11 @@ function createRateLimitMiddleware(actionKey, actionLabel, options) {
   const { maxAttempts, windowMs } = options;
   return (req, res, next) => {
     const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
-    const rateKey = `${actionKey}:${getRequestIp(req)}:${username.toLowerCase()}`;
-    const bucket = consumeRateLimitBucket(rateKey, maxAttempts, windowMs);
+    const ip = getRequestIp(req);
+    const rateKey = `${actionKey}:${ip}:${username.toLowerCase()}`;
+    const identityBucket = consumeRateLimitBucket(rateKey, maxAttempts, windowMs);
+    const ipBucket = consumeRateLimitBucket(`${actionKey}-ip:${ip}`, maxAttempts * 10, windowMs);
+    const bucket = identityBucket.allowed && ipBucket.allowed ? identityBucket : { allowed: false, remaining: 0 };
     if (bucket.allowed) {
       return next();
     }
@@ -1562,10 +1577,7 @@ function createRateLimitMiddleware(actionKey, actionLabel, options) {
     if (actionKey === "register") {
       return renderRegister(res, {
         error: message,
-        formData: {
-          username,
-          recoveryCode: normalizeRecoveryCode(req.body?.recoveryCode),
-        },
+        formData: { username },
       });
     }
     return renderForgotPassword(res, {
@@ -1636,26 +1648,18 @@ app.get("/register", (req, res) => {
 app.post("/register", createRateLimitMiddleware("register", "l'inscription", AUTH_RATE_LIMITS.register), async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
-  const recoveryCode = normalizeRecoveryCode(req.body.recoveryCode);
 
   if (!isValidUsername(username)) {
     return renderRegister(res, {
       error: "Le nom utilisateur doit contenir 3 a 32 caracteres (lettres, chiffres, . _ -).",
-      formData: { username, recoveryCode },
+      formData: { username },
     });
   }
 
   if (!isValidPassword(password)) {
     return renderRegister(res, {
-      error: `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.`,
-      formData: { username, recoveryCode },
-    });
-  }
-
-  if (!isValidRecoveryCode(recoveryCode)) {
-    return renderRegister(res, {
-      error: "Le code de recuperation doit contenir exactement 6 chiffres.",
-      formData: { username, recoveryCode },
+      error: `Le mot de passe doit contenir entre ${MIN_PASSWORD_LENGTH} caractères et ${MAX_PASSWORD_BYTES} octets en UTF-8.`,
+      formData: { username },
     });
   }
 
@@ -1669,12 +1673,15 @@ app.post("/register", createRateLimitMiddleware("register", "l'inscription", AUT
     });
     return renderRegister(res, {
       error: "Inscription impossible avec les informations fournies.",
-      formData: { username, recoveryCode },
+      formData: { username },
     });
   }
 
-  const { saltHex, hashHex } = hashPassword(password);
-  const { saltHex: recoverySaltHex, hashHex: recoveryHashHex } = hashPassword(recoveryCode);
+  const generatedRecoveryCode = generateRecoveryCode();
+  const { saltHex, hashHex } = await hashPassword(password);
+  const { saltHex: recoverySaltHex, hashHex: recoveryHashHex } = await hashPassword(generatedRecoveryCode);
+  const recoveryCodeExpiresAtMs = Date.now() + RECOVERY_CODE_DURATION_MS;
+  let userCreated = false;
   try {
     await db.createUser({
       username,
@@ -1682,9 +1689,18 @@ app.post("/register", createRateLimitMiddleware("register", "l'inscription", AUT
       password_hash: hashHex,
       recovery_code_salt: recoverySaltHex,
       recovery_code_hash: recoveryHashHex,
+      recovery_code_expires_at_ms: recoveryCodeExpiresAtMs,
     });
+    userCreated = true;
     await db.ensureUserDatabase(username);
   } catch (error) {
+    if (userCreated && typeof db.deleteUserAfterFailedProvisioning === "function") {
+      try {
+        await db.deleteUserAfterFailedProvisioning(username);
+      } catch (cleanupError) {
+        logSafeError("registration_cleanup_failed", cleanupError);
+      }
+    }
     if (isDuplicateUsernameError(error)) {
       logSecurityEvent("register_rejected", {
         username,
@@ -1694,12 +1710,17 @@ app.post("/register", createRateLimitMiddleware("register", "l'inscription", AUT
       });
       return renderRegister(res, {
         error: "Inscription impossible avec les informations fournies.",
-        formData: { username, recoveryCode },
+        formData: { username },
       });
     }
     throw error;
   }
-  return res.redirect(`/login?registered=1&username=${encodeURIComponent(username)}`);
+  res.set("Cache-Control", "no-store");
+  return renderRegister(res, {
+    success: "Compte créé. Copiez et conservez ce code de récupération : il expire dans 30 jours.",
+    recoveryCode: generatedRecoveryCode,
+    formData: { username },
+  });
 });
 
 app.get("/forgot-password", (req, res) => {
@@ -1736,7 +1757,14 @@ app.post("/forgot-password", createRateLimitMiddleware("forgotPassword", "la ré
 
   if (!isValidPassword(newPassword)) {
     return renderForgotPassword(res, {
-      error: `Le nouveau mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.`,
+      error: `Le nouveau mot de passe doit contenir entre ${MIN_PASSWORD_LENGTH} caractères et ${MAX_PASSWORD_BYTES} octets en UTF-8.`,
+      formData: { username },
+    });
+  }
+
+  if (!isValidRecoveryCode(recoveryCode)) {
+    return renderForgotPassword(res, {
+      error: "Le code de récupération est invalide.",
       formData: { username },
     });
   }
@@ -1755,9 +1783,13 @@ app.post("/forgot-password", createRateLimitMiddleware("forgotPassword", "la ré
     user.recovery_code_salt &&
     typeof user.recovery_code_hash === "string" &&
     user.recovery_code_hash;
+  const recoveryCodeExpired = user?.recovery_code_expires_at_ms !== null
+    && user?.recovery_code_expires_at_ms !== undefined
+    && Number(user.recovery_code_expires_at_ms) <= Date.now();
   if (
     !hasRecoveryCode ||
-    !verifyPassword(recoveryCode, user.recovery_code_salt, user.recovery_code_hash)
+    recoveryCodeExpired ||
+    !await verifyPassword(recoveryCode, user.recovery_code_salt, user.recovery_code_hash)
   ) {
     return renderForgotPassword(res, {
       error: "Réinitialisation impossible avec les informations fournies.",
@@ -1765,24 +1797,35 @@ app.post("/forgot-password", createRateLimitMiddleware("forgotPassword", "la ré
     });
   }
 
-  const { saltHex, hashHex } = hashPassword(newPassword);
+  const { saltHex, hashHex } = await hashPassword(newPassword);
   const nextRecoveryCode = generateRecoveryCode();
   const {
     saltHex: nextRecoverySaltHex,
     hashHex: nextRecoveryHashHex,
-  } = hashPassword(nextRecoveryCode);
+  } = await hashPassword(nextRecoveryCode);
+  const nextRecoveryCodeExpiresAtMs = Date.now() + RECOVERY_CODE_DURATION_MS;
 
-  await db.updateUserPasswordAndRecoveryCode({
+  const credentialsUpdated = await db.updateUserPasswordAndRecoveryCode({
     username,
     password_salt: saltHex,
     password_hash: hashHex,
     recovery_code_salt: nextRecoverySaltHex,
     recovery_code_hash: nextRecoveryHashHex,
+    recovery_code_expires_at_ms: nextRecoveryCodeExpiresAtMs,
+    previous_recovery_code_salt: user.recovery_code_salt,
+    previous_recovery_code_hash: user.recovery_code_hash,
+    previous_recovery_code_expires_at_ms: user.recovery_code_expires_at_ms ?? null,
   });
-  await db.revokeMobileAuthTokensByUsername(username);
+  if (!credentialsUpdated) {
+    return renderForgotPassword(res, {
+      error: "Réinitialisation impossible avec les informations fournies. Recommencez avec le code actuel.",
+      formData: { username },
+    });
+  }
 
+  res.set("Cache-Control", "no-store");
   return renderForgotPassword(res, {
-    success: "Mot de passe reinitialise. Conservez votre nouveau code de recuperation.",
+    success: "Mot de passe réinitialisé. Conservez votre nouveau code de récupération : il expire dans 30 jours.",
     recoveryCode: nextRecoveryCode,
     formData: { username },
   });

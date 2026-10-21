@@ -17,6 +17,9 @@ function buildMockDb() {
       }
       return { token, username: "alice", expires_at_ms: Date.now() + 60_000 };
     },
+    async touchSession() {
+      return true;
+    },
     async upsertSession() {},
     async getUserByUsername(username) {
       return username === "alice"

@@ -72,6 +72,15 @@
           <p class="alert"><%= error %></p>
           <% } %>
 
+
+	          <% if (recoveryCode) { %>
+	          <div class="alert alert-success recovery-code-box" role="status">
+	            <strong>Votre code de récupération (affiché une seule fois) :</strong>
+	            <div class="recovery-code-value"><%= recoveryCode %></div>
+	            <div>Copiez-le dans un endroit sûr. Il expire dans 30 jours et sera nécessaire si vous oubliez votre mot de passe.</div>
+	          </div>
+	          <p class="auth-switch"><a href="/login?registered=1&amp;username=<%= encodeURIComponent(formData.username || '') %>" data-ripple>Continuer vers la connexion</a></p>
+	          <% } else { %>
 	          <form action="/register" method="post" class="login-form">
 	            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 	            <div class="field">
@@ -95,6 +104,7 @@
 	                  type="password"
 	                  autocomplete="new-password"
 	                  minlength="10"
+	                  maxlength="256"
 	                  required
 	                  data-password-input
                 />
@@ -105,25 +115,8 @@
                   </svg>
                 </button>
               </div>
+	            <small class="field-hint">Au moins 10 caractères et 256 octets maximum en UTF-8.</small>
             </div>
-
-            <div class="field">
-              <label for="recoveryCode">Numero de récuperation</label>
-              <input
-                id="recoveryCode"
-                name="recoveryCode"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]{6}"
-                maxlength="6"
-                autocomplete="off"
-                placeholder="6 chiffres"
-                required
-                value="<%= formData.recoveryCode || '' %>"
-              />
-	              <small class="field-hint">Conservez ce code: il sera demande si vous devez reinitialiser votre mot de passe.</small>
-	            </div>
-
             <button type="submit" data-ripple>Créer mon compte</button>
           </form>
 
@@ -133,6 +126,7 @@
           <p class="auth-switch auth-switch-compact auth-switch-centered">
             <a href="mailto:xperienceweb@protonmail.com" data-ripple>Contacter le support technique</a>
           </p>
+	          <% } %>
         </section>
       </div>
     </main>

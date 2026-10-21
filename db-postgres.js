@@ -36,10 +36,13 @@ async function initializeDatabase() {
             password_hash TEXT NOT NULL,
             recovery_code_salt TEXT,
             recovery_code_hash TEXT,
+            recovery_code_expires_at_ms BIGINT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
         `);
+
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_code_expires_at_ms BIGINT`);
 
         await client.query(`
           CREATE TABLE IF NOT EXISTS sessions (
@@ -565,7 +568,7 @@ async function getUserByUsername(username) {
   await initializeDatabase();
   const result = await pool.query(
     `
-      SELECT id, username, password_salt, password_hash, recovery_code_salt, recovery_code_hash
+      SELECT id, username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, recovery_code_expires_at_ms
       FROM users
       WHERE username = $1
     `,
@@ -584,10 +587,11 @@ async function createUser(user) {
         password_hash,
         recovery_code_salt,
         recovery_code_hash,
+        recovery_code_expires_at_ms,
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
     `,
     [
       user.username,
@@ -595,9 +599,15 @@ async function createUser(user) {
       user.password_hash,
       user.recovery_code_salt,
       user.recovery_code_hash,
+      user.recovery_code_expires_at_ms ?? null,
       nowIsoString(),
     ]
   );
+}
+
+async function deleteUserAfterFailedProvisioning(username) {
+  await initializeDatabase();
+  await pool.query(`DELETE FROM users WHERE username = $1`, [username]);
 }
 
 async function updateUserPassword(user) {
@@ -614,26 +624,54 @@ async function updateUserPassword(user) {
 
 async function updateUserPasswordAndRecoveryCode(user) {
   await initializeDatabase();
-  await pool.query(
-    `
-      UPDATE users
-      SET
-        password_salt = $2,
-        password_hash = $3,
-        recovery_code_salt = $4,
-        recovery_code_hash = $5,
-        updated_at = $6
-      WHERE username = $1
-    `,
-    [
-      user.username,
-      user.password_salt,
-      user.password_hash,
-      user.recovery_code_salt,
-      user.recovery_code_hash,
-      nowIsoString(),
-    ]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `
+        UPDATE users
+        SET
+          password_salt = $2,
+          password_hash = $3,
+          recovery_code_salt = $4,
+          recovery_code_hash = $5,
+          recovery_code_expires_at_ms = $6,
+          updated_at = $7
+        WHERE username = $1
+          AND recovery_code_salt = $8
+          AND recovery_code_hash = $9
+          AND recovery_code_expires_at_ms IS NOT DISTINCT FROM $10
+      `,
+      [
+        user.username,
+        user.password_salt,
+        user.password_hash,
+        user.recovery_code_salt,
+        user.recovery_code_hash,
+        user.recovery_code_expires_at_ms,
+        nowIsoString(),
+        user.previous_recovery_code_salt,
+        user.previous_recovery_code_hash,
+        user.previous_recovery_code_expires_at_ms ?? null,
+      ]
+    );
+    if (result.rowCount !== 1) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+    await client.query(`DELETE FROM sessions WHERE username = $1`, [user.username]);
+    await client.query(
+      `UPDATE mobile_auth_tokens SET revoked_at = $2 WHERE username = $1 AND revoked_at IS NULL`,
+      [user.username, nowIsoString()]
+    );
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function upsertSession(session) {
@@ -668,6 +706,15 @@ async function getSessionByToken(token) {
     [token]
   );
   return result.rows[0] || null;
+}
+
+async function touchSession(token, expiresAtMs) {
+  await initializeDatabase();
+  const result = await pool.query(
+    `UPDATE sessions SET expires_at_ms = $2, updated_at = $3 WHERE token = $1`,
+    [token, expiresAtMs, nowIsoString()]
+  );
+  return result.rowCount === 1;
 }
 
 async function deleteSession(token) {
@@ -844,10 +891,12 @@ module.exports = {
   resetSettings,
   getUserByUsername,
   createUser,
+  deleteUserAfterFailedProvisioning,
   updateUserPassword,
   updateUserPasswordAndRecoveryCode,
   upsertSession,
   getSessionByToken,
+  touchSession,
   deleteSession,
   deleteExpiredSessions,
   createMobileAuthToken,

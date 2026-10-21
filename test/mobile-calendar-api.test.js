@@ -64,6 +64,9 @@ function buildMockDb() {
       }
       return null;
     },
+    async touchSession() {
+      return true;
+    },
     async upsertSession() {},
     async deleteExpiredSessions() {},
     async getClientById(username, clientId) {
