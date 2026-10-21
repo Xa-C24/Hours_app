@@ -1,4 +1,5 @@
 const express = require("express");
+const { logSafeError } = require("../services/server-reliability");
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -154,7 +155,7 @@ function createApiV1Router({
   router.use((req, res) => sendError(res, 404, "NOT_FOUND", "API endpoint not found"));
 
   router.use((error, req, res, next) => {
-    console.error("API v1 error", error);
+    logSafeError("api_v1_request_failed", error);
     return sendError(res, 500, "INTERNAL_ERROR", "An unexpected error occurred");
   });
 

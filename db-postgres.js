@@ -8,6 +8,12 @@ if (!connectionString) {
 
 const { postgresConnectionOptions } = require("./services/postgres-connection-options");
 const pool = new Pool(postgresConnectionOptions(connectionString));
+let poolClosePromise = null;
+
+function close() {
+  if (!poolClosePromise) poolClosePromise = pool.end();
+  return poolClosePromise;
+}
 
 let initPromise = null;
 
@@ -851,4 +857,5 @@ module.exports = {
   revokeMobileAuthTokensByUsername,
   deleteExpiredMobileAuthTokens,
   healthCheck,
+  close,
 };

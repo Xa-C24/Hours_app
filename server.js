@@ -27,6 +27,12 @@ const {
 } = require("./settings");
 const { validateAndPrepareWorkEntry } = require("./services/work-entry-service");
 const { createApiV1Router } = require("./routes/api-v1");
+const {
+  createHealthCheckHandler,
+  installGracefulShutdown,
+  logSafeError,
+  logSecurityEvent: writeSecurityEvent,
+} = require("./services/server-reliability");
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -152,43 +158,12 @@ app.use("/api/v1", (req, res, next) => {
   return next();
 });
 
-app.get("/healthz", async (req, res) => {
-  try {
-    const database = typeof db.healthCheck === "function"
-      ? await db.healthCheck()
-      : { ok: false, engine: "unknown" };
-    const isOk = Boolean(database && database.ok);
-    return res.status(isOk ? 200 : 503).json({
-      ok: isOk,
-      process: {
-        ok: true,
-        uptime_seconds: Math.floor(process.uptime()),
-      },
-      database: {
-        ok: isOk,
-        engine: database.engine || "unknown",
-      },
-      checked_at: new Date().toISOString(),
-    });
-  } catch (error) {
-    return res.status(503).json({
-      ok: false,
-      process: {
-        ok: true,
-        uptime_seconds: Math.floor(process.uptime()),
-      },
-      database: {
-        ok: false,
-        engine:
-          typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.trim()
-            ? "postgres"
-            : "sqlite",
-      },
-      error: "database_unavailable",
-      checked_at: new Date().toISOString(),
-    });
-  }
-});
+app.get("/healthz", createHealthCheckHandler(db, {
+  fallbackEngine: () =>
+    typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.trim()
+      ? "postgres"
+      : "sqlite",
+}));
 
 function parseCookies(cookieHeader) {
   if (typeof cookieHeader !== "string" || cookieHeader.trim() === "") {
@@ -329,22 +304,7 @@ function getRequestIp(req) {
 }
 
 function logSecurityEvent(event, details = {}) {
-  const safeDetails = {};
-  for (const [key, value] of Object.entries(details)) {
-    if (value === undefined || value === null || value === "") {
-      continue;
-    }
-    if (["password", "token", "csrfToken", "recoveryCode", "newPassword", "confirmPassword"].includes(key)) {
-      continue;
-    }
-    safeDetails[key] = value;
-  }
-  console.warn(
-    `[security] ${event} ${JSON.stringify({
-      at: new Date().toISOString(),
-      ...safeDetails,
-    })}`
-  );
+  writeSecurityEvent(event, details);
 }
 
 function safeEqualString(leftValue, rightValue) {
@@ -2357,13 +2317,17 @@ app.post("/entries/:workDate/delete", async (req, res) => {
 });
 
 app.use((error, req, res, next) => {
-  console.error(error);
+  logSafeError("http_request_failed", error);
   res.status(500).send("Erreur interne du serveur.");
 });
 
 if (require.main === module) {
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Hours app running on http://0.0.0.0:${PORT}`);
+  });
+  installGracefulShutdown({
+    server,
+    closeResources: () => typeof db.close === "function" ? db.close() : undefined,
   });
 }
 

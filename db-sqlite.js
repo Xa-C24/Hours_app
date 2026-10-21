@@ -517,6 +517,29 @@ const deleteExpiredSessionsStmt = authDb.prepare(`
 `);
 
 const userStores = new Map();
+let closePromise = null;
+
+function close() {
+  if (closePromise) return closePromise;
+  closePromise = (async () => {
+    const errors = [];
+    for (const store of userStores.values()) {
+      try {
+        store.database.close();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    userStores.clear();
+    try {
+      authDb.close();
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length) throw new AggregateError(errors, "One or more SQLite connections could not be closed.");
+  })();
+  return closePromise;
+}
 
 function migrateExistingUserDbs() {
   if (!fs.existsSync(userDbsDir)) {
@@ -1114,4 +1137,5 @@ module.exports = {
   revokeMobileAuthTokensByUsername,
   deleteExpiredMobileAuthTokens,
   healthCheck,
+  close,
 };
