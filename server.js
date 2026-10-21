@@ -698,28 +698,13 @@ function getRecoveryMinutes(workedMinutes) {
   return Math.max(0, DAILY_TARGET_MINUTES - workedMinutes);
 }
 
-function escapeCsvValue(value) {
-  const stringValue = normalizeCsvCell(value);
-  return `"${stringValue.replace(/"/g, '""')}"`;
-}
+const { escapeCsvValue } = require("./services/csv-export");
 
 function normalizeExportText(value) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function normalizeCsvCell(value) {
-  return String(value ?? "")
-    .replace(/TÃ©lÃ©travail/g, "Télétravail")
-    .replace(/CongÃ©s/g, "Congés")
-    .replace(/ArrÃªt/g, "Arrêt")
-    .replace(/FÃ©riÃ©/g, "Férié")
-    .replace(/PÃ©riode/g, "Période")
-    .replace(/journÃ©e/g, "journée")
-    .replace(/journÃ©es/g, "journées")
-    .replace(/travaillÃ©s/g, "travaillés")
-    .replace(/ArrivÃ©e/g, "Arrivée")
-    .replace(/DÃ©part/g, "Départ");
-}
+
 
 function encodeCsvForExcel(lines) {
   const csvText = `\uFEFF${lines.join("\r\n")}`;
