@@ -8,21 +8,51 @@ tmp/mobile-qa/
 # Fichiers temporaires / profils QA
 tmp/
 
-# Runtime data
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/*.sqlite
-data/*.sqlite-shm
-data/*.sqlite-wal
-data/users/*.db
-data/users/*.db-shm
-data/users/*.db-wal
+# Runtime databases and private user data
+/data/
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.db-*
+**/*.sqlite-*
+**/*.sqlite3-*
+**/*-wal
+**/*-shm
+
+# Backups, database dumps, temporary copies, and user exports
+*.bak
+*.backup
+*.backup.*
+*.dump
+*.dump.*
+*.pgdump
+*.pgdump.*
+*.sql.gz
+*.tmp
+*.temp
+**/backup/
+**/backups/
+**/export/
+**/exports/
+data/account-backups/
 
 # Environment
 .env
 .env.*
 !.env.example
+!.env.*.example
+!.env.sample
+!.env.template
+
+# Private keys and local certificates (keep explicitly named examples)
+*.pem
+!*.example.pem
+!*.sample.pem
+*.key
+!*.example.key
+!*.sample.key
+*.p12
+*.pfx
 
 # Logs
 *.log
