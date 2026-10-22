@@ -20,7 +20,7 @@ test("desktop settings mode isolates the settings workspace from business conten
     "cockpit-dashboard",
     "cockpit-quick-actions",
     "cockpit-week-activity",
-    "mobile-stats-card",
+    "cockpit-hero",
     "data-entry-card",
     "pay-period-card",
     "data-calendar-board",

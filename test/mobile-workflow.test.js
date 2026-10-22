@@ -30,9 +30,10 @@ test("mobile navigation makes only the selected view interactive and releases de
   const views = ["dashboard", "entry", "calendar", "history", "settings"].map(makeView);
   let selected = views[0];
   const mobileQuery = { matches: true };
-  const context = vm.createContext({ views, mobileQuery, getActiveView: () => selected, navButtons: [], dots: [] });
+  const phoneQuery = { matches: true };
+  const context = vm.createContext({ views, mobileQuery, phoneQuery, getActiveView: () => selected, navButtons: [], dots: [] });
   const start = view.indexOf("const syncActiveState = () => {");
-  const end = view.indexOf("const syncShellHeight", start);
+  const end = view.indexOf("const setIndex = (", start);
   vm.runInContext(`${view.slice(start, end)}; this.sync = syncActiveState;`, context);
   for (const current of views) {
     selected = current;

@@ -41,6 +41,41 @@ test("premium entry layout keeps the three visual zones", () => {
   });
 });
 
+test("premium workday fields and timer use independent layout containers", () => {
+  const view = fs.readFileSync(viewPath, "utf8");
+  const style = fs.readFileSync(stylePath, "utf8");
+  const workdayStart = view.indexOf('class="entry-hours-panel entry-workday-panel"');
+  const workdayEnd = view.indexOf("</section>", workdayStart);
+  const workday = view.slice(workdayStart, workdayEnd);
+
+  assert.match(workday, /<div class="entry-workday-layout">\s*<div class="entry-workday-main">[\s\S]*?class="entry-hours-grid"[\s\S]*?class="entry-live-summary"[\s\S]*?<\/div>\s*<div class="work-timer" data-work-timer/);
+  assert.match(style, /\.entry-workday-layout:has\(> \.work-timer:not\(\[hidden\]\)\)\s*\{\s*grid-template-columns: minmax\(0, 1\.25fr\) minmax\(290px, 0\.75fr\)/);
+  assert.match(style, /@media \(max-width: 1100px\)[\s\S]*?\.entry-workday-layout:has\(> \.work-timer:not\(\[hidden\]\)\)\s*\{\s*grid-template-columns: minmax\(0, 1fr\)/);
+});
+
+test("Premium workday has a dedicated two-zone desktop grid and stacks on small screens", () => {
+  const style = fs.readFileSync(stylePath, "utf8");
+
+  assert.match(style, /:root\[data-style="premium"\][\s\S]*?\.entry-workday-layout:has\(> \.work-timer:not\(\[hidden\]\)\)\s*\{\s*grid-template-columns: minmax\(0, 1\.25fr\) minmax\(290px, 0\.75fr\)/);
+  assert.match(style, /:root\[data-style="premium"\][\s\S]*?\.entry-hours-grid\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(style, /@media \(max-width: 700px\)[\s\S]*?\.entry-workday-layout:has\(> \.work-timer:not\(\[hidden\]\)\) \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(style, /\.entry-workday-panel::after\s*\{\s*content: none;/);
+});
+
+test("premium button skin targets prefill controls and preserves timer button layout", () => {
+  const style = fs.readFileSync(stylePath, "utf8");
+  const timerSelector = ':root[data-style="premium"] .home-premium-page .work-timer-actions button {';
+  const timerStart = style.indexOf(timerSelector);
+  const timerEnd = timerStart < 0 ? -1 : style.indexOf("}", timerStart);
+  const timerRule = timerStart < 0 ? "" : style.slice(timerStart, timerEnd);
+
+  assert.match(style, /:root\[data-style="premium"\] :is\(\.secondary, \.btn-secondary, \.btn-ghost, \.button-neutral, \.button-link/);
+  assert.match(style, /background: linear-gradient\(150deg, var\(--premium-highlight\), color-mix\(in srgb, var\(--card-bg-2\) 94%, var\(--secondary\) 6%\)\)/);
+  assert.equal(timerStart, -1, "timer buttons use the shared skin rather than a duplicate visual rule");
+  assert.equal(timerEnd, -1);
+  assert.equal(timerRule, "");
+});
+
 test("workday type and time inputs share the same visual cockpit", () => {
   const view = fs.readFileSync(viewPath, "utf8");
   const workdayStart = view.indexOf('class="entry-hours-panel entry-workday-panel"');

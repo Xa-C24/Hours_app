@@ -1325,6 +1325,7 @@
 	        <div class="mobile-premium-track" data-mobile-track>
 	          <div class="mobile-premium-view" data-mobile-view="dashboard" data-mobile-title="Dashboard">
 	      <section class="premium-summary-grid premium-dashboard-grid cockpit-dashboard" aria-label="Dashboard">
+	        <article class="cockpit-overview-shell card premium-surface app-surface app-card" aria-label="Résumé du cockpit">
 	        <article class="cockpit-hero card premium-surface app-surface app-card">
 	          <div class="cockpit-hero-copy">
 	            <div class="cockpit-welcome-card">
@@ -1343,13 +1344,8 @@
 	            </div>
 	            <div class="cockpit-insight-inline">
 			              <span class="cockpit-badge badge-success is-live">Aujourd'hui</span>
-			              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie trouvée" : "Aucune saisie" %></span>
+		              <span class="cockpit-badge badge-muted"><%= _todayEntry ? "Saisie enregistrée" : "Aucune saisie" %></span>
 	            </div>
-                <div id="cockpit-timer-controls" class="cockpit-timer-controls" hidden>
-                  <span data-cockpit-timer-context></span>
-                  <strong data-cockpit-timer-clock>00:00:00</strong>
-                  <p data-cockpit-timer-status role="status"></p>
-                </div>
 	          </div>
 	          <div class="cockpit-hero-profile">
 	            <div class="cockpit-profile-media<%= _userSettings.profilePhoto ? ' has-image' : '' %>" data-cockpit-profile-media>
@@ -1363,7 +1359,7 @@
 	          <div class="cockpit-hero-progress">
 				            <div class="cockpit-progress-ring progress-ring" data-cockpit-progress="<%= _progressRingValue %>">
 			              <div class="cockpit-progress-ring-core">
-			                <span class="cockpit-progress-label progress-label">Temps travaillé</span>
+		                <span class="cockpit-progress-label progress-label">Temps enregistré</span>
 		                <strong data-settings-cockpit="todayWorked"><%= _todayWorkedHHMM %></strong>
 		                <span class="cockpit-progress-meta" data-settings-cockpit="todayProgress"><%= _todayProgress %>%</span>
 		              </div>
@@ -1384,6 +1380,7 @@
 		            </div>
 	          </div>
 	        </article>
+
                 <div id="cockpit-timer-controls" class="cockpit-timer-controls" hidden>
                   <span data-cockpit-timer-context></span>
                   <strong data-cockpit-timer-clock>00:00:00</strong>
@@ -1394,8 +1391,7 @@
                     <a class="button-link button-neutral" data-timer-warning-link>Vérifier la journée</a>
                   </div>
                 </div>
-
-		        <article class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel">
+		        <section class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel" aria-label="Actions utiles">
 		          <div class="cockpit-panel-head">
 		            <span class="cockpit-kicker">Démarrage</span>
 		            <h3>Actions utiles</h3>
@@ -1417,9 +1413,9 @@
 			              <span>Retrouver l'historique</span>
 			            </button>
 		          </div>
-		        </article>
+		        </section>
 
-		        <article class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel">
+		        <section class="cockpit-panel cockpit-week-activity card premium-surface app-surface app-panel" aria-label="Activité de la semaine">
 		          <div class="cockpit-panel-head">
 		            <span class="cockpit-kicker">Activité</span>
 		            <h3>Semaine en cours</h3>
@@ -1458,7 +1454,8 @@
 		              <small class="cockpit-stat-detail" data-settings-cockpit="periodBreakdown"><%= totalHHMM %> h réalisées sur <%= _monthTargetHHMM %> prévues sur la période en cours</small>
 		            </div>
 		          </div>
-			        </article>
+		        </section>
+	        </article>
 
 				      </section>
 
@@ -1468,7 +1465,7 @@
 	      <section class="card entry-card premium-surface app-surface app-card" data-entry-card>
         <div class="entry-card-top">
           <div class="section-heading">
-            <p class="section-eyebrow">Saisie</p>
+
             <h2><%= _isEditing ? "Modifier une journée" : "Saisir une journée" %></h2>
           </div>
           <button
@@ -1503,15 +1500,11 @@
 			          <input type="hidden" name="originalWorkDate" value="<%= formData.originalWorkDate || '' %>" />
 			          <input type="hidden" name="confirmReplace" value="" data-confirm-replace-input />
 
-              <div class="entry-quick-actions">
-  <button type="button" class="secondary" data-entry-prefill="usual">Horaires habituels</button>
-  <button type="button" class="secondary" data-entry-prefill="last">Reprendre la dernière journée</button>
-  <small>Préremplir, puis vérifier avant d’enregistrer.</small>
-</div>
+
 <div class="entry-shell">
                 <div class="entry-daybar entry-context-grid">
 	                  <div class="field form-field entry-daybar-date entry-context-card">
-	                    <label class="form-label" for="date">Date selectionnee</label>
+	                    <label class="form-label" for="date">Date</label>
 	                    <input class="form-input" id="date" name="date" type="date" required value="<%= formData.date %>" />
                       <div class="entry-date-status-row">
 	                      <span class="entry-state-badge is-empty" data-entry-state-badge>⚪ Nouvelle journée</span>
@@ -1532,10 +1525,6 @@
 	                          </div>
 	                          <div class="entry-daybar-client-info">
 	                            <strong class="entry-daybar-client-name"><%= selectedClient ? selectedClient.company_name : "Aucun client" %></strong>
-	                            <% if (selectedClient && (selectedClient.phone || selectedClient.email)) { %>
-	                            <span class="entry-daybar-client-detail"><%= selectedClient.phone || "Téléphone non renseigné" %></span>
-	                            <span class="entry-daybar-client-detail"><%= selectedClient.email || "Email non renseigné" %></span>
-	                            <% } %>
 	                          </div>
 	                        </div>
 	                      </div>
@@ -1544,101 +1533,58 @@
 	                      <p class="entry-draft-status" data-entry-draft-status hidden aria-live="polite"></p>
 	                    </div>
 	                  </div>
+<div class="entry-quick-actions">
+  <button type="button" class="secondary" data-entry-prefill="usual">Horaires habituels</button>
+  <button type="button" class="secondary" data-entry-prefill="last" title="Reprendre les horaires de la dernière journée">Dernière journée</button>
+</div>
                 </div>
 
                 <div class="entry-main-layout entry-day-layout">
                   <section class="entry-hours-panel entry-workday-panel" aria-label="Bloc horaire">
-                    <div class="entry-hours-panel-head">
-                      <div>
-                        <span class="entry-hours-kicker">Horaire</span>
-                        <h3>Journée de travail</h3>
-                      </div>
-                      <span class="entry-hours-note">Démarrer · Pause · Terminer</span>
-                    </div>
+                    <div class="entry-workday-layout">
+                      <div class="entry-workday-main">
+                        <div class="entry-hours-panel-head">
+                          <div>
+                            <h3>Journée de travail</h3>
+                          </div>
+                        </div>
 
-                    <div class="work-timer" data-work-timer hidden>
-                      <span class="entry-hours-kicker">Temps travaillé</span>
-                      <strong class="work-timer-clock" data-timer-clock>00:00:00</strong>
-                      <p data-timer-status role="status">Prêt à démarrer</p>
-                      <div class="work-timer-warning" data-timer-warning hidden role="note" aria-label="Chronomètre à vérifier">
-                        <strong>Chronomètre ouvert depuis au moins 8 h</strong>
-                        <p data-timer-warning-message></p>
-                        <a class="button-link button-neutral" data-timer-warning-link>Vérifier la journée</a>
-                      </div>
-                      <div class="work-timer-actions">
-                        <button type="button" data-timer-action="play"><span aria-hidden="true">▶</span><span data-timer-play-label>Démarrer</span></button>
-                        <button type="button" data-timer-action="pause"><span aria-hidden="true">⏸</span>Pause</button>
-                        <button type="button" data-timer-action="stop"><span aria-hidden="true">⏹</span>Terminer</button>
-                      </div>
-                      <p class="entry-hours-note">Les pauses sont déduites. Terminer enregistre la journée, à la minute près. Suivi conservé sur votre compte et synchronisé entre vos onglets. Une connexion est nécessaire pour démarrer, mettre en pause ou terminer.</p>
-                      <button type="button" class="button-link button-neutral" data-timer-recover hidden>Récupérer l’ancien suivi de cet onglet</button>
-                      <button type="button" class="button-link button-neutral" data-timer-manual aria-expanded="false">Saisie manuelle / correction</button>
-                    </div>
-                    <div class="entry-hours-grid">
-	                      <div class="field form-field entry-day-type-field entry-day-type-card">
-	                        <label class="form-label" for="dayType">Type de journée</label>
-	                        <select class="form-select" id="dayType" name="dayType" required data-day-type-select data-native-select="true">
-                          <% dayTypeOptions.forEach((option) => { %>
-                          <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
-                            <%= option.label %>
-                          </option>
-                          <% }); %>
-                        </select>
-                      </div>
-	                      <div class="field form-field entry-time-field">
-	                        <label class="form-label" for="arrivalTime">Heure d'arrivee</label>
-	                        <input
-	                          class="form-input"
-                          id="arrivalTime"
-                          name="arrivalTime"
-                          type="time"
-                          required
-                          value="<%= formData.arrivalTime %>"
-                          data-worked-day-field
-                        />
-                      </div>
+                        <div class="entry-hours-grid">
+                          <div class="field form-field entry-day-type-field entry-day-type-card">
+                            <label class="form-label" for="dayType">Type de journée</label>
+                            <select class="form-select" id="dayType" name="dayType" required data-day-type-select data-native-select="true">
+                              <% dayTypeOptions.forEach((option) => { %>
+                              <option value="<%= option.value %>" <%= formData.dayType === option.value ? "selected" : "" %>>
+                                <%= option.label %>
+                              </option>
+                              <% }); %>
+                            </select>
+                          </div>
+                          <div class="field form-field entry-time-field">
+                            <label class="form-label" for="arrivalTime">Arrivée</label>
+                            <input class="form-input" id="arrivalTime" name="arrivalTime" type="time" required value="<%= formData.arrivalTime %>" data-worked-day-field />
+                          </div>
+                          <div class="field form-field entry-time-field">
+                            <label class="form-label" for="departureTime">Départ</label>
+                            <input class="form-input" id="departureTime" name="departureTime" type="time" required value="<%= formData.departureTime %>" data-worked-day-field />
+                          </div>
+                          <div class="field form-field entry-time-field entry-pause-field">
+                            <label class="form-label" for="lunchBreakMinutes">Pause (min)</label>
+                            <input class="form-input" id="lunchBreakMinutes" name="lunchBreakMinutes" type="number" min="0" required value="<%= formData.lunchBreakMinutes %>" data-worked-day-field />
+                          </div>
+                        </div>
 
-	                      <div class="field form-field entry-time-field">
-	                        <label class="form-label" for="departureTime">Heure de depart</label>
-	                        <input
-	                          class="form-input"
-                          id="departureTime"
-                          name="departureTime"
-                          type="time"
-                          required
-                          value="<%= formData.departureTime %>"
-                          data-worked-day-field
-                        />
-                      </div>
-
-	                      <div class="field form-field entry-time-field entry-pause-field">
-	                        <label class="form-label" for="lunchBreakMinutes">Pause dejeuner (minutes)</label>
-	                        <input
-	                          class="form-input"
-                          id="lunchBreakMinutes"
-                          name="lunchBreakMinutes"
-                          type="number"
-                          min="0"
-                          required
-                          value="<%= formData.lunchBreakMinutes %>"
-                          data-worked-day-field
-                        />
-                      </div>
-                    </div>
-
-                    <div class="entry-live-summary" data-entry-live-summary aria-live="polite">
-                      <div class="entry-live-summary-block">
-                        <span class="entry-live-summary-label">Temps prevu</span>
-                        <strong class="entry-live-summary-value" data-entry-summary-value>--:--</strong>
-                      </div>
-                      <div class="entry-live-summary-block entry-live-summary-block-secondary">
-                        <span class="entry-live-summary-label">Lecture rapide</span>
-                        <strong class="entry-live-summary-value entry-live-summary-feedback" data-entry-summary-feedback>Renseignez les horaires</strong>
-                      </div>
-                    </div>
-                  </section>
-
-	                  <div class="field form-field field-comment entry-comment-field">
+                        <div class="entry-live-summary" data-entry-live-summary aria-live="polite">
+                          <div class="entry-live-summary-block">
+                            <span class="entry-live-summary-label">Temps prévu</span>
+                            <strong class="entry-live-summary-value" data-entry-summary-value>--:--</strong>
+                          </div>
+                          <div class="entry-live-summary-block entry-live-summary-block-secondary">
+                            <span class="entry-live-summary-label">Objectif</span>
+                            <strong class="entry-live-summary-value entry-live-summary-feedback" data-entry-summary-feedback>Renseignez les horaires</strong>
+                          </div>
+                        </div>
+<div class="field form-field field-comment entry-comment-field">
 	                    <div class="entry-comment-header">
 	                      <div class="comment-toolbar">
 	                        <details class="comment-emoji-picker">
@@ -1663,6 +1609,33 @@
                       data-comment-target
                     ><%= formData.commentText || "" %></textarea>
                   </div>
+                      </div>
+
+                      <div class="work-timer" data-work-timer hidden>
+                      <span class="entry-hours-kicker">Temps travaillé</span>
+                      <strong class="work-timer-clock" data-timer-clock>00:00:00</strong>
+                      <p data-timer-status role="status">Prêt à démarrer</p>
+                      <div class="work-timer-warning" data-timer-warning hidden role="note" aria-label="Chronomètre à vérifier">
+                        <strong>Chronomètre ouvert depuis au moins 8 h</strong>
+                        <p data-timer-warning-message></p>
+                        <a class="button-link button-neutral" data-timer-warning-link>Vérifier la journée</a>
+                      </div>
+                      <div class="work-timer-actions work-timer-actions-icons" role="group" aria-label="Commandes du chronomètre">
+                        <button type="button" data-timer-action="play" aria-label="Démarrer" title="Démarrer"><svg class="work-timer-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z" /></svg><span class="timer-action-label" data-timer-play-label>Démarrer</span></button>
+                        <button type="button" data-timer-action="pause" aria-label="Pause" title="Pause"><svg class="work-timer-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z" /></svg></button>
+                        <button type="button" data-timer-action="stop" aria-label="Terminer et enregistrer la journée" title="Terminer et enregistrer la journée"><svg class="work-timer-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h14v14H5z" /></svg></button>
+                      </div>
+                      <details class="entry-timer-help">
+                        <summary>Aide du suivi</summary>
+                        <p>Les pauses sont déduites. Terminer enregistre la journée, à la minute près. Le suivi est conservé sur votre compte et synchronisé entre vos onglets. Une connexion est nécessaire pour démarrer, mettre en pause ou terminer.</p>
+                      </details>
+                      <button type="button" class="button-link button-neutral" data-timer-recover hidden>Récupérer l’ancien suivi de cet onglet</button>
+                      <button type="button" class="button-link button-neutral" data-timer-manual aria-expanded="false">Saisie manuelle</button>
+                    </div>
+                      </div>
+                  </section>
+
+
                 </div>
 
 		            <div class="form-actions entry-form-actions entry-actions-footer">
@@ -2672,7 +2645,7 @@
 	            <p class="section-eyebrow">Période de paie</p>
 	            <h2 id="dayDetailsTitle">Détail de la journée</h2>
 	          </div>
-	          <button type="button" class="client-modal-close secondary" data-close-day-details-modal aria-label="Fermer">×</button>
+	          <button type="button" class="client-modal-close secondary" data-close-day-details-modal aria-label="Fermer"><span class="day-details-close-symbol" aria-hidden="true">×</span><span class="day-details-close-label">Fermer</span><kbd class="day-details-close-shortcut" aria-hidden="true">Esc</kbd></button>
 	        </div>
 	        <div class="day-details-shell" data-day-details-content></div>
 	      </section>

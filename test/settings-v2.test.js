@@ -20,7 +20,7 @@ test("Settings V2 exposes one useful panel at a time", () => {
   assert.match(view, /const setVisibleSection = \(targetKey\) =>/);
   assert.match(view, /section\.hidden = !isActive/);
   assert.match(view, /settings-nav-secondary/);
-  assert.match(view, /style\.css\?v=entry-status-client-v2/);
+  assert.match(view, /style\.css\?v=hours-premium-v4-12-20261020/);
   assert.match(view, /settings-store\.js\?v=settings-v2-3/);
   assert.doesNotMatch(workspace, /productNews|contractType|exportFilenamePattern|exportSignature/);
 });

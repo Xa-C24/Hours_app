@@ -410,8 +410,8 @@
     if (!entry) {
       return `
         <div class="day-details-empty">
-          <strong>Aucune entree pour ce jour</strong>
-          <p>Vous pouvez créer une journée a cette date depuis l'onglet de saisie.</p>
+          <strong>Aucune entrée pour ce jour</strong>
+          <p>Vous pouvez créer une journée à cette date depuis l’onglet de saisie.</p>
           <div class="form-actions">
             <button type="button" data-day-details-create="${escapeHtml(isoDate)}">Créer une journée</button>
           </div>
@@ -490,9 +490,6 @@
 
           <div class="day-details-actions-row">
             <div class="day-details-actions day-details-actions-inline row-actions">
-              <button type="submit" class="btn-primary day-details-action-button">Modifier</button>
-            </div>
-            <div class="day-details-actions day-details-actions-inline row-actions">
               <button
                 type="submit"
                 class="danger day-details-action-button"
@@ -503,6 +500,10 @@
               >
                 Supprimer
               </button>
+            </div>
+            <button type="button" class="secondary day-details-action-button day-details-cancel" data-day-details-cancel>Annuler</button>
+            <div class="day-details-actions day-details-actions-inline row-actions">
+              <button type="submit" class="btn-primary day-details-action-button">Modifier la journée</button>
             </div>
           </div>
         </form>
@@ -579,6 +580,11 @@
   });
 
   document.addEventListener("click", (event) => {
+    if (event.target instanceof HTMLElement && event.target.closest("[data-day-details-cancel]")) {
+      closeDayDetailsModal();
+      return;
+    }
+
     const calendarCard = event.target instanceof HTMLElement ? event.target.closest("[data-calendar-day]") : null;
     if (calendarCard) {
       openDayDetailsModal(calendarCard.dataset.date || "");
