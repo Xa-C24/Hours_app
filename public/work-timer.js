@@ -19,20 +19,37 @@
     const pause = state.pauseMs + (state.pausedAt === null ? 0 : end - state.pausedAt);
     return { workedMs: Math.max(0, end - state.start - pause), pauseMinutes: Math.floor(pause / 60000) };
   }
-  if (typeof module !== "undefined" && module.exports) module.exports = { transition, totals, localDate };
+  function timerWarning(state, now) {
+    if (!state || state.end !== null || !Number.isFinite(state.start) || !Number.isFinite(now) ||
+        now - state.start < 8 * 3600000) return null;
+    const minutes = Math.floor((now - state.start) / 60000);
+    const duration = `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
+    const date = typeof state.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(state.date) ? state.date : "";
+    const clientId = String(state.clientId || "");
+    return {
+      message: `Le suivi${date ? ` du ${date.split("-").reverse().join("/")}` : ""} est ouvert depuis ${duration}, pauses comprises. Vérifiez si vous avez oublié de l’arrêter.`,
+      href: date && /^[1-9]\d*$/.test(clientId) ? `/entries/${date}/edit?clientId=${encodeURIComponent(clientId)}#entryFormPanel` : "",
+    };
+  }
+  if (typeof module !== "undefined" && module.exports) module.exports = { transition, totals, localDate, timerWarning };
   if (typeof document === "undefined") return;
   const form = document.querySelector("[data-entry-form]");
   if (!form) return;
   const panel = form.querySelector("[data-work-timer]");
   if (!panel) return;
+  const submitButton = form.querySelector("[data-entry-submit-button]");
   const field = name => form.elements.namedItem(name);
   const key = `hours:timer:v1:${form.dataset.timerUser}`;
   const status = panel.querySelector("[data-timer-status]");
   const buttons = [...panel.querySelectorAll("[data-timer-action]")];
-  const playLabel = panel.querySelector("[data-timer-play-label]");
+  const playLabels = [panel.querySelector("[data-timer-play-label]")];
   const cockpitControls = document.getElementById("cockpit-timer-controls");
+  const warningPanels = [...document.querySelectorAll("[data-timer-warning]")];
   if (cockpitControls) {
-    cockpitControls.appendChild(panel.querySelector(".work-timer-actions"));
+    const cockpitActions = panel.querySelector(".work-timer-actions").cloneNode(true);
+    cockpitControls.insertBefore(cockpitActions, cockpitControls.querySelector("[data-timer-warning]"));
+    buttons.push(...cockpitActions.querySelectorAll("[data-timer-action]"));
+    playLabels.push(cockpitActions.querySelector("[data-timer-play-label]"));
     cockpitControls.hidden = false;
   }
   const recoveryButton = panel.querySelector("[data-timer-recover]");
@@ -42,6 +59,7 @@
   let ready = false;
   let busy = false;
   let networkError = "";
+  let submitGuardMessage = "";
   let serverOffset = 0;
   const serverTime = () => Date.now() + serverOffset;
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -81,6 +99,7 @@
         return false;
       }
       networkError = "";
+      if (action) submitGuardMessage = "";
       return true;
     } catch (_) {
       networkError = "Connexion indisponible : action non confirmée. Le suivi serveur est conservé ; reconnectez-vous avant de réessayer.";
@@ -99,15 +118,22 @@
     const today = field("date").value === localDate(Date.now());
     const own = matches();
     const running = active();
-    buttons[0].disabled = !supported || !today || (running && (!own || state.pausedAt === null));
-    buttons[1].disabled = !own || !running || state.pausedAt !== null;
-    buttons[2].disabled = !own || !running || !supported;
-    if (!ready || busy || form.querySelector("[data-entry-submit-button]").disabled) buttons.forEach(button => { button.disabled = true; });
+    const playLabel = own && running && state.pausedAt !== null ? "Reprendre" : "Démarrer";
+    buttons.forEach(button => {
+      const action = button.dataset.timerAction;
+      button.disabled = action === "play" ? !supported || !today || (running && (!own || state.pausedAt === null)) :
+        action === "pause" ? !own || !running || state.pausedAt !== null : !own || !running || !supported;
+      if (action === "play") {
+        button.setAttribute("aria-label", playLabel);
+        button.setAttribute("title", playLabel);
+      }
+    });
+    if (!ready || busy || submitButton?.disabled) buttons.forEach(button => { button.disabled = true; });
     if (recoveryButton) {
       recoveryButton.hidden = !ready || Boolean(state) || !legacy;
       recoveryButton.disabled = busy;
     }
-    playLabel.textContent = own && running && state.pausedAt !== null ? "Reprendre" : "Démarrer";
+    playLabels.forEach(label => { label.textContent = playLabel; });
     const seconds = own ? Math.floor(totals(state, serverTime()).workedMs / 1000) : 0;
     panel.querySelector("[data-timer-clock]").textContent = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
     status.textContent = running && !own ? `Un suivi est en cours pour le client ${state.clientId}, le ${state.date}. Revenez sur cette journée pour le terminer.` :
@@ -116,6 +142,17 @@
       today ? "Prêt à démarrer" : "Le suivi est disponible pour aujourd’hui. Utilisez la saisie manuelle pour une autre date.";
     if (!ready) status.textContent = "Chargement du suivi serveur…";
     if (networkError) status.textContent = networkError;
+    else if (submitGuardMessage) status.textContent = submitGuardMessage;
+    const warning = ready ? timerWarning(state, serverTime()) : null;
+    warningPanels.forEach(element => {
+      element.hidden = !warning;
+      if (!warning) return;
+      const message = element.querySelector("[data-timer-warning-message]");
+      if (message.textContent !== warning.message) message.textContent = warning.message;
+      const link = element.querySelector("[data-timer-warning-link]");
+      link.hidden = !warning.href;
+      if (warning.href) link.setAttribute("href", warning.href);
+    });
     if (cockpitControls) {
       cockpitControls.querySelector("[data-cockpit-timer-context]").textContent = `Suivi de la saisie du ${field("date").value.split("-").reverse().join("/")}`;
       cockpitControls.querySelector("[data-cockpit-timer-clock]").textContent = panel.querySelector("[data-timer-clock]").textContent;
@@ -171,13 +208,15 @@
     if (!ready || busy || (active() && matches())) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      status.textContent = !ready || busy ? "Attendez la synchronisation du chronomètre avant d’enregistrer." : "Terminez le suivi avec ⏹ avant d’enregistrer la journée.";
+      submitGuardMessage = !ready || busy ? "Attendez la synchronisation du chronomètre avant d’enregistrer." : "Terminez le suivi avec ⏹ avant d’enregistrer la journée.";
+      render();
     }
   }, true);
   form.addEventListener("change", render);
   panel.hidden = false;
   form.classList.add("timer-enabled");
   manual(form.dataset.isEditing === "1");
+  if (window.location?.hash === "#entryFormPanel") document.querySelector('[data-dashboard-action="entry"]')?.click();
   render();
   if (recoveryButton) recoveryButton.addEventListener("click", async () => {
     if (!legacy || busy || state) return;

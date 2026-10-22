@@ -1,7 +1,27 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { transition, totals } = require("../public/work-timer");
+const { transition, totals, timerWarning } = require("../public/work-timer");
 const minute = 60000;
+
+test("forgotten timer warning starts at eight elapsed hours, including pauses", () => {
+  const state = { start: 0, end: null, pausedAt: 60 * minute, pauseMs: 0, clientId: "2", date: "2026-10-14" };
+  assert.equal(timerWarning(state, 480 * minute - 1), null);
+  const warning = timerWarning(state, 480 * minute);
+  assert.match(warning.message, /14\/10\/2026.*8 h 00 min.*pauses comprises/);
+  assert.equal(warning.href, "/entries/2026-10-14/edit?clientId=2#entryFormPanel");
+  assert.match(timerWarning(state, 3 * 24 * 60 * minute + 12 * minute).message, /72 h 12 min/);
+  assert.equal(state.end, null, "showing an alert never stops the timer");
+});
+
+test("stopped, absent and invalid timers never trigger a forgotten timer warning", () => {
+  const now = 600 * minute;
+  assert.equal(timerWarning(null, now), null);
+  assert.equal(timerWarning({ start: 0, end: 500 * minute }, now), null);
+  assert.equal(timerWarning({ start: NaN, end: null }, now), null);
+  assert.equal(timerWarning({ start: 0, end: null }, NaN), null);
+  assert.equal(timerWarning({ start: now + 1, end: null }, now), null);
+  assert.equal(timerWarning({ start: 0, end: null, date: '<script>', clientId: '../x' }, now).href, "");
+});
 
 test("timer deducts multiple pauses and resumes without changing arrival", () => {
   let state = transition(null, "play", 0);

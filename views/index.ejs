@@ -1383,6 +1383,16 @@
 		            </div>
 	          </div>
 	        </article>
+                <div id="cockpit-timer-controls" class="cockpit-timer-controls" hidden>
+                  <span data-cockpit-timer-context></span>
+                  <strong data-cockpit-timer-clock>00:00:00</strong>
+                  <p data-cockpit-timer-status role="status"></p>
+                  <div class="work-timer-warning" data-timer-warning hidden role="status" aria-atomic="true">
+                    <strong>Chronomètre ouvert depuis au moins 8 h</strong>
+                    <p data-timer-warning-message></p>
+                    <a class="button-link button-neutral" data-timer-warning-link>Vérifier la journée</a>
+                  </div>
+                </div>
 
 		        <article class="cockpit-panel cockpit-quick-actions card premium-surface app-surface app-panel">
 		          <div class="cockpit-panel-head">
@@ -1549,6 +1559,11 @@
                       <span class="entry-hours-kicker">Temps travaillé</span>
                       <strong class="work-timer-clock" data-timer-clock>00:00:00</strong>
                       <p data-timer-status role="status">Prêt à démarrer</p>
+                      <div class="work-timer-warning" data-timer-warning hidden role="note" aria-label="Chronomètre à vérifier">
+                        <strong>Chronomètre ouvert depuis au moins 8 h</strong>
+                        <p data-timer-warning-message></p>
+                        <a class="button-link button-neutral" data-timer-warning-link>Vérifier la journée</a>
+                      </div>
                       <div class="work-timer-actions">
                         <button type="button" data-timer-action="play"><span aria-hidden="true">▶</span><span data-timer-play-label>Démarrer</span></button>
                         <button type="button" data-timer-action="pause"><span aria-hidden="true">⏸</span>Pause</button>

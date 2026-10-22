@@ -1333,7 +1333,7 @@ async function renderIndex(res, options = {}) {
         commentText: entryToEdit.comment_text || "",
         originalWorkDate: entryToEdit.work_date,
       }
-    : {};
+    : editDate ? { date: editDate } : {};
   const mergedFormData = { ...defaultFormData, ...editFormData, ...(options.formData || {}) };
   const editingWorkDate = isValidDate(mergedFormData.originalWorkDate)
     ? mergedFormData.originalWorkDate
