@@ -97,7 +97,8 @@ async function initializeDatabase() {
             notes TEXT NOT NULL DEFAULT '',
             company_logo TEXT NOT NULL DEFAULT '',
             archived_at TIMESTAMPTZ,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            CONSTRAINT clients_username_id_unique UNIQUE (username, id)
           )
         `);
 
@@ -115,7 +116,7 @@ async function initializeDatabase() {
           CREATE TABLE IF NOT EXISTS work_entries (
             id BIGSERIAL PRIMARY KEY,
             username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
-            client_id BIGINT NOT NULL REFERENCES clients (id) ON DELETE CASCADE,
+            client_id BIGINT NOT NULL,
             work_date DATE NOT NULL,
             day_type TEXT NOT NULL DEFAULT 'office',
             arrival_time TEXT NOT NULL,
@@ -125,7 +126,10 @@ async function initializeDatabase() {
             comment_text TEXT NOT NULL DEFAULT '',
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (username, client_id, work_date)
+            UNIQUE (username, client_id, work_date),
+            CONSTRAINT work_entries_owner_client_fk
+              FOREIGN KEY (username, client_id)
+              REFERENCES clients (username, id) ON DELETE CASCADE
           )
         `);
 
@@ -138,12 +142,15 @@ async function initializeDatabase() {
           CREATE TABLE IF NOT EXISTS pay_period_salaries (
             id BIGSERIAL PRIMARY KEY,
             username TEXT NOT NULL REFERENCES users (username) ON DELETE CASCADE,
-            client_id BIGINT NOT NULL REFERENCES clients (id) ON DELETE CASCADE,
+            client_id BIGINT NOT NULL,
             pay_period_month TEXT NOT NULL,
             salary_amount_cents INTEGER NOT NULL CHECK (salary_amount_cents >= 0),
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (username, client_id, pay_period_month)
+            UNIQUE (username, client_id, pay_period_month),
+            CONSTRAINT pay_period_salaries_owner_client_fk
+              FOREIGN KEY (username, client_id)
+              REFERENCES clients (username, id) ON DELETE CASCADE
           )
         `);
 

@@ -42,8 +42,17 @@ function buildMockDb() {
     async getAllClients(username) {
       return username === "alice"
         ? [{ id: 1, company_name: "Acme", company_logo: "" }]
-        : [];
+        : username === "bob"
+          ? [{ id: 2, company_name: "Synthetic Bob Client", company_logo: "" }]
+          : [];
     },
+    async getClientById(username, id) {
+      if (username === "alice" && Number(id) === 1) return { id: 1, company_name: "Acme", company_logo: "" };
+      if (username === "bob" && Number(id) === 2) return { id: 2, company_name: "Synthetic Bob Client", company_logo: "" };
+      return null;
+    },
+    async updateClient() { throw new Error("foreign client update reached the mutation adapter"); },
+    async deleteClient() { throw new Error("foreign client deletion reached the mutation adapter"); },
     async getPayPeriodSalary() {
       return 0;
     },
@@ -168,6 +177,43 @@ test("API v1 calendar reuses the existing month calculations", async () => {
     assert.deepEqual(body.data.client, { id: 1, companyName: "Acme", companyLogo: "" });
     assert.equal(body.data.calendar.month, "2026-08");
     assert.equal(body.data.calendar.clientId, 1);
+  });
+});
+
+test("API calendar and CSV export reject a foreign client ID despite a forged username parameter", async () => {
+  await withApiServer(async (baseUrl) => {
+    const calendar = await requestJson(
+      baseUrl,
+      "/api/v1/calendar?month=2026-08&clientId=2&username=bob",
+      true
+    );
+    assert.equal(calendar.response.status, 404);
+    assert.equal(JSON.stringify(calendar.body).includes("Synthetic Bob Client"), false);
+
+    const exported = await fetch(`${baseUrl}/export.csv?month=2026-08&clientId=2`, {
+      headers: { Cookie: "hours_session=valid" },
+    });
+    assert.equal(exported.status, 400);
+    assert.equal((await exported.text()).includes("Synthetic Bob Client"), false);
+  });
+});
+
+test("web client update and delete reject a foreign ID before any mutation", async () => {
+  await withApiServer(async (baseUrl) => {
+    const csrf = "a".repeat(48);
+    for (const action of ["update", "delete"]) {
+      const response = await fetch(`${baseUrl}/clients/2/${action}`, {
+        method: "POST",
+        redirect: "manual",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `hours_session=valid; hours_csrf=${csrf}`,
+        },
+        body: JSON.stringify({ _csrf: csrf, selectedMonth: "2026-10", company_name: "Forged" }),
+      });
+      assert.equal(response.status, 302, action);
+      assert.match(response.headers.get("location"), /month=2026-10/, action);
+    }
   });
 });
 

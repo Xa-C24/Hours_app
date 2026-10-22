@@ -6,9 +6,13 @@ const { createWorkTimerRouter, recoverLegacy, dateInZone } = require("../routes/
 async function fixture(run) {
   const records = new Map();
   let now = Date.parse("2026-09-25T08:00:00Z");
+  const clientsByUser = new Map([
+    ["alice", new Set([1])],
+    ["bob", new Set([2])],
+  ]);
   const db = {
     getWorkTimer: async user => records.get(user) || { version: 0, state: null },
-    getClientById: async (user, id) => id === 1 ? { id } : null,
+    getClientById: async (user, id) => clientsByUser.get(user)?.has(id) ? { id } : null,
     saveWorkTimer: async (user, version, state) => {
       if ((records.get(user)?.version || 0) !== version) return null;
       const next = { version: version + 1, state };
@@ -59,7 +63,10 @@ test("timer API isolates users and validates ownership, version and dates", asyn
   assert.equal((await request(command("play", 0, { timeZone: "invalid" }))).status, 400);
   assert.equal((await request(command("play", 0))).status, 200);
   assert.equal((await request(null, "bob")).body.state, null);
-  assert.equal((await request(command("pause", 0), "bob")).status, 409);
+  assert.equal((await request(command("pause", 0), "bob")).status, 404);
+  assert.equal((await request(command("play", 0, { clientId: "2" }), "alice")).status, 404);
+  assert.equal((await request(null, "alice")).body.state.clientId, "1");
+  assert.equal((await request(command("play", 0, { clientId: "1" }), "bob")).status, 404);
 }));
 
 test("legacy recovery is explicit and cannot replace an existing server timer", async () => fixture(async ({ request }) => {
