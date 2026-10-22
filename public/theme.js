@@ -42,7 +42,7 @@
     "lavender-mist",
     "obsidian-gold",    "robot",
   ];
-  const STYLES = ["premium", "robot", "retro", "medieval"];
+  const STYLES = ["premium", "robot", "retro", "medieval", "liquid-luxury"];
   const THEME_DESCRIPTIONS = {
     light: "Ivoire : des tons crème et dorés, chaleureux et sobres.",
     dark: "Nuit graphite : des tons gris et bleutés, pour une ambiance sombre.",
@@ -61,6 +61,7 @@
     premium: "Premium : une présentation sobre, avec des formes arrondies.",
     robot: "Robot : des polices futuristes, des panneaux sombres et des effets lumineux.",
     retro: "SEGA : des polices pixel, des reliefs arcade et des fonds sombres teintés par le thème.",
+    "liquid-luxury": "Liquid Luxury : des surfaces satinées, des reflets métalliques et des commandes sculptées, adaptés à la palette active.",
   };
 
   function syncAppearanceDescriptions() {

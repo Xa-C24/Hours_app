@@ -1,0 +1,306 @@
+/* Liquid Luxury is an additive fifth style. All color comes from the active palette. */
+:root[data-style="liquid-luxury"] {
+  --liquid-metal: var(--theme-metal, var(--primary));
+  --liquid-highlight: var(--theme-highlight, var(--card-bg));
+  --liquid-edge: color-mix(in srgb, var(--border) 58%, var(--liquid-metal) 42%);
+  --liquid-shadow: color-mix(in srgb, var(--shadow) 78%, var(--liquid-metal) 22%);
+  --liquid-surface: linear-gradient(148deg, color-mix(in srgb, var(--card-bg) 95%, var(--liquid-highlight) 5%), color-mix(in srgb, var(--card-bg-2) 88%, var(--liquid-metal) 12%));
+  --liquid-focus: color-mix(in srgb, var(--primary) 74%, transparent);
+}
+
+:root[data-style="liquid-luxury"] body {
+  background-image:
+    radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--liquid-metal) 10%, transparent), transparent 34rem),
+    radial-gradient(ellipse at 96% 24%, color-mix(in srgb, var(--theme-atmosphere) 8%, transparent), transparent 38rem),
+    linear-gradient(145deg, var(--bg-top), var(--bg) 58%, var(--bg-bottom));
+  background-attachment: fixed;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+}
+
+:root[data-style="liquid-luxury"] :is(h1, h2, h3, .cockpit-hero-title, .month-header-copy h2) {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+:root[data-style="liquid-luxury"] .page-header-premium {
+  border: 1px solid var(--liquid-edge);
+  border-radius: 1.65rem;
+  background:
+    radial-gradient(ellipse at 12% 0%, color-mix(in srgb, var(--liquid-highlight) 28%, transparent), transparent 48%),
+    linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 94%, var(--liquid-highlight) 6%), color-mix(in srgb, var(--bg-top) 82%, var(--liquid-metal) 18%));
+  box-shadow: 0 22px 50px color-mix(in srgb, var(--liquid-shadow) 72%, transparent), inset 0 1px 0 color-mix(in srgb, white 62%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 18%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.premium-surface, .app-surface, .app-card, .app-panel, .card, .premium-mini-card, .cockpit-panel, .entry-card, .pay-period-card, .settings-profile-hero, .calendar-panel, .history-entry-card) {
+  border-color: var(--liquid-edge);
+  border-radius: 1.2rem;
+  background: var(--liquid-surface);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--liquid-shadow) 58%, transparent), inset 0 1px 0 color-mix(in srgb, white 62%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 12%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.premium-mini-card, .cockpit-hero-info-card, .cockpit-stat-pill, .calendar-summary-chip, .settings-nav-item, .settings-toggle-card, .settings-info-item, .entry-live-summary-block, .entry-daybar-date, .salary-editor-summary, .user-menu-panel, .notifications-panel, .export-menu-panel) {
+  border-color: color-mix(in srgb, var(--border) 70%, var(--liquid-metal) 30%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--card-bg) 94%, var(--liquid-highlight) 6%), color-mix(in srgb, var(--card-bg-2) 90%, var(--liquid-metal) 10%));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--liquid-shadow) 46%, transparent), inset 0 1px 0 color-mix(in srgb, white 54%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.cockpit-hero-progress, .cockpit-progress-item, .work-timer, .history-entry-metric, .day-details-empty) {
+  border-color: color-mix(in srgb, var(--liquid-metal) 42%, var(--border));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 90%, var(--liquid-highlight) 10%), color-mix(in srgb, var(--card-bg-2) 84%, var(--liquid-metal) 16%));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--liquid-shadow) 54%, transparent), inset 0 1px 0 color-mix(in srgb, white 62%, transparent);
+}
+
+/* Dashboard cockpit: a distinct satin-metal focal surface, scoped to this style. */
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 48%, var(--border));
+  background:
+    radial-gradient(ellipse at 88% 8%, color-mix(in srgb, var(--liquid-highlight) 30%, transparent), transparent 34%),
+    radial-gradient(ellipse at 6% 100%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 48%),
+    linear-gradient(132deg, color-mix(in srgb, var(--card-bg) 92%, var(--liquid-highlight) 8%), color-mix(in srgb, var(--card-bg-2) 78%, var(--liquid-metal) 22%) 58%, color-mix(in srgb, var(--card-bg) 88%, var(--primary) 12%));
+  box-shadow: 0 24px 48px color-mix(in srgb, var(--liquid-shadow) 68%, transparent), 0 5px 16px color-mix(in srgb, var(--liquid-metal) 12%, transparent), inset 0 1px 0 color-mix(in srgb, white 72%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 28%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero .cockpit-welcome-card {
+  position: relative;
+  padding: clamp(1rem, 2vw, 1.6rem);
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 25%, var(--border));
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 80%, white 20%), color-mix(in srgb, var(--card-bg-2) 94%, var(--liquid-metal) 6%));
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--liquid-shadow) 34%, transparent), inset 0 1px 0 color-mix(in srgb, white 82%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero .cockpit-kicker {
+  color: color-mix(in srgb, var(--primary) 74%, var(--text));
+  font-size: .7rem;
+  font-weight: 750;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero h2 {
+  max-width: 19ch;
+  font-size: clamp(2rem, 1.6rem + 1.4vw, 3rem);
+  line-height: 1;
+  text-shadow: 0 2px 14px color-mix(in srgb, var(--liquid-metal) 18%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero-info-card {
+  border-color: color-mix(in srgb, var(--liquid-metal) 38%, var(--border));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 84%, white 16%), color-mix(in srgb, var(--card-bg-2) 88%, var(--liquid-metal) 12%));
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--liquid-shadow) 30%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-hero-progress {
+  border-color: color-mix(in srgb, var(--liquid-metal) 42%, var(--border));
+  background: linear-gradient(152deg, color-mix(in srgb, var(--card-bg) 80%, white 20%), color-mix(in srgb, var(--card-bg-2) 82%, var(--liquid-metal) 18%));
+  box-shadow: 0 18px 34px color-mix(in srgb, var(--liquid-shadow) 48%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 18%, transparent);
+}
+
+/* Keep the live progress angle and palette-driven semantic ring colors. */
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-progress-ring {
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 46%, var(--border));
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--card-bg) 92%, var(--liquid-highlight) 8%) 0 58%, transparent 59%),
+    conic-gradient(color-mix(in srgb, var(--save-primary) 72%, var(--liquid-metal) 28%) 0deg, color-mix(in srgb, var(--save-primary) 72%, var(--liquid-metal) 28%) var(--cockpit-progress-angle), color-mix(in srgb, var(--card-bg-2) 72%, var(--border) 28%) var(--cockpit-progress-angle), color-mix(in srgb, var(--card-bg-2) 72%, var(--border) 28%) 360deg);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--liquid-shadow) 44%, transparent), 0 0 22px color-mix(in srgb, var(--liquid-metal) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 70%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-progress-ring-core {
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 30%, var(--border));
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--liquid-highlight) 24%, transparent), transparent 62%), linear-gradient(155deg, color-mix(in srgb, var(--card-bg) 94%, white 6%), color-mix(in srgb, var(--card-bg-2) 82%, var(--liquid-metal) 18%));
+  box-shadow: inset 0 2px 8px color-mix(in srgb, var(--liquid-shadow) 18%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-progress-ring-core strong,
+:root[data-style="liquid-luxury"] .home-premium-page [data-cockpit-timer-clock],
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-clock[data-timer-clock] {
+  color: var(--text);
+  font-family: "Georgia", "Times New Roman", serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.045em;
+  text-shadow: 0 2px 14px color-mix(in srgb, var(--liquid-metal) 24%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-progress-legend .cockpit-progress-item {
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 28%, var(--border));
+  background: linear-gradient(140deg, color-mix(in srgb, var(--card-bg) 88%, white 12%), color-mix(in srgb, var(--card-bg-2) 90%, var(--liquid-metal) 10%));
+  box-shadow: 0 7px 15px color-mix(in srgb, var(--liquid-shadow) 24%, transparent), inset 0 1px 0 color-mix(in srgb, white 70%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-card {
+  position: relative;
+  grid-template-columns: 2.8rem minmax(0, 1fr);
+  min-height: 6.4rem;
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 40%, var(--border));
+  border-radius: 1.05rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 84%, white 16%), color-mix(in srgb, var(--card-bg-2) 80%, var(--liquid-metal) 20%));
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--liquid-shadow) 40%, transparent), inset 0 1px 0 color-mix(in srgb, white 82%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 16%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-icon {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: .9rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 22%, var(--card-bg)), color-mix(in srgb, var(--primary) 10%, var(--card-bg-2)));
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--primary) 16%, transparent), inset 0 1px 0 color-mix(in srgb, white 72%, transparent);
+  color: var(--primary);
+  font-size: 1.15rem;
+}
+
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-card strong { align-self: end; font-weight: 720; }
+:root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-card > span:last-child { align-self: start; }
+
+/* The entry timer uses the real data-timer-clock node; preserve its existing layout. */
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer {
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 46%, var(--border));
+  background:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--liquid-highlight) 25%, transparent), transparent 56%),
+    linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 88%, white 12%), color-mix(in srgb, var(--card-bg-2) 78%, var(--liquid-metal) 22%));
+  box-shadow: 0 18px 34px color-mix(in srgb, var(--liquid-shadow) 46%, transparent), inset 0 1px 0 color-mix(in srgb, white 78%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--liquid-metal) 20%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-clock[data-timer-clock] {
+  display: inline-block;
+  padding: .28rem .75rem;
+  border: 1px solid color-mix(in srgb, var(--liquid-metal) 36%, var(--border));
+  border-radius: .8rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 78%, white 22%), color-mix(in srgb, var(--card-bg-2) 88%, var(--liquid-metal) 12%));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--liquid-shadow) 28%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent);
+  font-size: clamp(1.8rem, 1.45rem + 1.1vw, 2.6rem);
+}
+
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-actions [data-timer-action="play"] { box-shadow: 0 4px 0 color-mix(in srgb, var(--save-primary) 28%, var(--border)), 0 9px 18px color-mix(in srgb, var(--save-primary) 22%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent); }
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-actions [data-timer-action="pause"] { box-shadow: 0 4px 0 color-mix(in srgb, var(--theme-metal) 28%, var(--border)), 0 9px 18px color-mix(in srgb, var(--theme-metal) 18%, transparent), inset 0 1px 0 color-mix(in srgb, white 74%, transparent); }
+:root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-actions [data-timer-action="stop"] { box-shadow: 0 4px 0 color-mix(in srgb, var(--danger) 28%, var(--border)), 0 9px 18px color-mix(in srgb, var(--danger) 20%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent); }
+
+@media (max-width: 700px) {
+  :root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-card { grid-template-columns: 2.35rem minmax(0, 1fr); min-height: 5.6rem; }
+  :root[data-style="liquid-luxury"] .home-premium-page .cockpit-action-icon { width: 2.2rem; height: 2.2rem; }
+  :root[data-style="liquid-luxury"] .home-premium-page .cockpit-progress-ring-core strong { font-size: clamp(1.5rem, 6vw, 2rem); }
+  :root[data-style="liquid-luxury"] .entry-card[data-entry-card] .work-timer-clock[data-timer-clock] { font-size: clamp(1.55rem, 7vw, 2.1rem); }
+}
+
+:root[data-style="liquid-luxury"] :is(.cockpit-hero-title, .premium-mini-value, .cockpit-week-dayhours, .history-entry-metric strong, .work-timer-display, [data-worked-time]) {
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 color-mix(in srgb, white 28%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger, .client-view-button, .calendar-nav-button, .mobile-calendar-nav-button) {
+  border-color: color-mix(in srgb, var(--border) 64%, var(--liquid-metal) 36%);
+  border-radius: 0.82rem;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 94%, white 6%), color-mix(in srgb, var(--card-bg-2) 88%, var(--liquid-metal) 12%));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--liquid-metal) 18%, var(--border)), 0 8px 16px color-mix(in srgb, var(--liquid-shadow) 40%, transparent), inset 0 1px 0 color-mix(in srgb, white 76%, transparent);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease, filter 180ms ease;
+}
+
+:root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger, .client-view-button, .calendar-nav-button, .mobile-calendar-nav-button):hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--liquid-metal) 62%, var(--border));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--liquid-metal) 20%, var(--border)), 0 12px 22px color-mix(in srgb, var(--liquid-shadow) 55%, transparent), inset 0 1px 0 color-mix(in srgb, white 86%, transparent);
+  filter: brightness(1.025);
+  transform: translateY(-1px);
+}
+
+:root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger, .client-view-button, .calendar-nav-button, .mobile-calendar-nav-button):active:not(:disabled) {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--liquid-metal) 20%, var(--border)), inset 0 2px 5px color-mix(in srgb, var(--text) 12%, transparent);
+  transform: translateY(2px);
+}
+
+:root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger, .client-view-button, .calendar-nav-button, .mobile-calendar-nav-button):focus-visible,
+:root[data-style="liquid-luxury"] :is(input, select, textarea):focus-visible {
+  outline: 3px solid var(--liquid-focus);
+  outline-offset: 3px;
+}
+
+:root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger, .client-view-button, .calendar-nav-button, .mobile-calendar-nav-button):disabled {
+  box-shadow: none;
+  filter: saturate(.35);
+  opacity: .58;
+  transform: none;
+}
+
+:root[data-style="liquid-luxury"] :is(.primary, .btn-save-primary, [data-timer-action="play"], .settings-panel-actions button[type="submit"]) {
+  border-color: color-mix(in srgb, var(--save-primary) 54%, var(--border));
+  background-image: linear-gradient(145deg, color-mix(in srgb, var(--save-primary) 25%, var(--card-bg)), color-mix(in srgb, var(--save-primary) 12%, var(--card-bg-2)));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--save-primary) 28%, var(--border)), 0 10px 20px var(--save-primary-shadow), inset 0 1px 0 color-mix(in srgb, white 74%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.danger, .archived-delete-button, [data-timer-action="stop"]) {
+  border-color: color-mix(in srgb, var(--danger) 58%, var(--border));
+  background-image: linear-gradient(145deg, color-mix(in srgb, var(--danger) 22%, var(--card-bg)), color-mix(in srgb, var(--danger) 11%, var(--card-bg-2)));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--danger) 27%, var(--border)), 0 9px 18px color-mix(in srgb, var(--danger) 16%, transparent), inset 0 1px 0 color-mix(in srgb, white 62%, transparent);
+}
+
+:root[data-style="liquid-luxury"] [data-timer-action="pause"] {
+  border-color: color-mix(in srgb, var(--liquid-metal) 58%, var(--border));
+  background-image: linear-gradient(145deg, color-mix(in srgb, var(--theme-highlight) 34%, var(--card-bg)), color-mix(in srgb, var(--liquid-metal) 13%, var(--card-bg-2)));
+}
+
+:root[data-style="liquid-luxury"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .form-input, .form-select) {
+  border-color: color-mix(in srgb, var(--border) 68%, var(--liquid-metal) 32%);
+  border-radius: 0.72rem;
+  background-color: color-mix(in srgb, var(--input-bg) 92%, var(--card-bg) 8%);
+  box-shadow: inset 0 2px 4px color-mix(in srgb, var(--shadow) 12%, transparent), 0 1px 0 color-mix(in srgb, white 42%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.table-wrapper, .calendar-board-scroll) {
+  border: 1px solid var(--liquid-edge);
+  border-radius: 1rem;
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--liquid-shadow) 44%, transparent), inset 0 1px 0 color-mix(in srgb, white 48%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(thead th, .calendar-weekdays > *, .week-total-row td) {
+  background-image: linear-gradient(145deg, color-mix(in srgb, var(--card-bg-2) 88%, var(--liquid-metal) 12%), color-mix(in srgb, var(--card-bg) 94%, var(--liquid-highlight) 6%));
+}
+
+:root[data-style="liquid-luxury"] :is(.calendar-day-card, .cockpit-week-day, .calendar-summary-chip, .calendar-legend-item) {
+  border-color: color-mix(in srgb, var(--border) 72%, var(--liquid-metal) 28%);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--liquid-shadow) 30%, transparent), inset 0 1px 0 color-mix(in srgb, white 50%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.client-modal-dialog, .day-details-modal-dialog, .week-summary-modal-dialog, .command-palette-dialog, .login-card-premium) {
+  border-color: color-mix(in srgb, var(--border) 55%, var(--liquid-metal) 45%);
+  border-radius: 1.4rem;
+  background-image: radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--liquid-highlight) 20%, transparent), transparent 44%), var(--liquid-surface);
+  box-shadow: 0 28px 70px color-mix(in srgb, var(--liquid-shadow) 80%, transparent), 0 0 0 1px color-mix(in srgb, var(--liquid-metal) 12%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.notifications-panel, .user-menu-panel, .export-menu-panel, .app-custom-select-options, .command-palette-results) {
+  border-color: var(--liquid-edge);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--liquid-shadow) 68%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);
+}
+
+:root[data-style="liquid-luxury"] :is(.alert, .toast, .notification-card, .calendar-hover-tooltip) {
+  border-radius: 0.9rem;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--liquid-shadow) 48%, transparent), inset 0 1px 0 color-mix(in srgb, white 48%, transparent);
+}
+
+:root[data-style="liquid-luxury"] .mobile-premium-nav {
+  border-color: var(--liquid-edge);
+  background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+  box-shadow: 0 -10px 30px color-mix(in srgb, var(--liquid-shadow) 38%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+@media (max-width: 700px) {
+  :root[data-style="liquid-luxury"] :is(.premium-surface, .app-surface, .app-card, .app-panel, .card, .entry-card, .pay-period-card, .calendar-panel) {
+    border-radius: 1rem;
+  }
+  :root[data-style="liquid-luxury"] :is(button, .button-link, .app-custom-select-trigger) { min-height: 2.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="liquid-luxury"] *,
+  :root[data-style="liquid-luxury"] *::before,
+  :root[data-style="liquid-luxury"] *::after {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}

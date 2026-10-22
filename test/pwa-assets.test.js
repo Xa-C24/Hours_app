@@ -48,6 +48,7 @@ test("head declares iOS and desktop PWA integration tags", () => {
   assert.match(view, /<link rel="icon" type="image\/png" href="\/ApHfavicon\.png\?v=20260914" \/>/);
   assert.match(view, /<link rel="apple-touch-icon" sizes="180x180" href="\/ApH180x180\.png" \/>/);
   assert.match(view, /<link rel="manifest" href="\/manifest\.json" \/>/);
+  assert.match(view, /<link rel="stylesheet" href="\/liquid-luxury\.css\?v=liquid-luxury-1" \/>/);
 });
 
 test("pwa icon files exist with the expected dimensions", () => {

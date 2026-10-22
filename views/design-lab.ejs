@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr" data-theme="light" data-style="premium">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <title>Hours App — Design Lab V2</title>
+    <link rel="stylesheet" href="/design-lab/theme-tokens.css" />
+    <link rel="stylesheet" href="/design-lab/design-lab.css" />
+    <script src="/design-lab/design-lab.js" defer></script>
+  </head>
+  <body class="design-lab-page">
+    <main class="lab-shell">
+      <header class="lab-masthead">
+        <a class="lab-wordmark" href="#top" aria-label="Hours App — retour en haut"><span class="wordmark-glyph">H</span><span>HOURS<span class="wordmark-light"> / DESIGN SYSTEM</span></span></a>
+        <div class="masthead-center"><span class="live-dot"></span> LABORATOIRE PRIVÉ <span class="masthead-separator">·</span> CONCEPTS PREMIUM</div>
+        <label class="lab-theme-control" for="labTheme"><span>Palette</span><select id="labTheme" data-lab-theme>
+          <option value="light">Ivoire</option><option value="dark">Nuit graphite</option><option value="deep-ocean-blue">Bleu minuit</option><option value="light-blue">Brume bleue</option><option value="orange-sunset">Sable cuivre</option><option value="forest-green">Sauge profonde</option><option value="light-green">Céladon</option><option value="bordeaux-night">Bordeaux nuit</option><option value="lavender-mist">Lavande brume</option><option value="obsidian-gold">Obsidienne or</option><option value="robot">Robot</option>
+        </select></label>
+      </header>
+
+      <section class="intro-band" id="top">
+        <div><p class="lab-kicker">Trois directions · une itération luxe</p><h1>Hours, <em>en mieux.</em></h1><p class="lab-intro">Liquid Luxury est la direction retenue. Comparez sa première finition à la version 2.0, avec les mêmes composants et une palette partagée.</p></div>
+        <div class="intro-side"><span class="intro-number">04</span><span>PLANCHES<br />À COMPARER</span><span class="intro-rule"></span><span class="intro-note">B est la direction retenue.<br />B2.0 reste à comparer.</span></div>
+      </section>
+
+      <section class="compare-toolbar" aria-label="Outils de comparaison">
+        <div class="compare-pickers">
+          <span class="toolbar-caption">COMPARER</span>
+          <label for="compareLeft">Gauche<select id="compareLeft" data-compare-left>
+            <option value="a">A · Neo Future</option><option value="b" selected>B · Liquid Luxury</option><option value="c">C · Hyper UI</option><option value="b2">B2.0 · Liquid Luxury</option>
+          </select></label>
+          <span class="compare-versus" aria-hidden="true">↔</span>
+          <label for="compareRight">Droite<select id="compareRight" data-compare-right>
+            <option value="a">A · Neo Future</option><option value="b">B · Liquid Luxury</option><option value="c">C · Hyper UI</option><option value="b2" selected>B2.0 · Liquid Luxury</option>
+          </select></label>
+        </div>
+        <div class="toolbar-actions">
+          <div class="palette-shortcuts" aria-label="Raccourcis palettes">
+            <span class="toolbar-caption">PALETTE</span>
+            <button type="button" data-theme-shortcut="light" aria-pressed="true">Ivoire</button>
+            <button type="button" data-theme-shortcut="deep-ocean-blue" aria-pressed="false">Bleu minuit</button>
+          </div>
+          <button class="compare-return" type="button" data-return-compare hidden>← Revenir à la comparaison</button>
+        </div>
+        <p class="compare-status" data-compare-status aria-live="polite">B · Liquid Luxury ↔ B2.0 · Liquid Luxury</p>
+      </section>
+
+      <section class="lab-variants" data-variant-grid aria-label="Comparaison des directions artistiques">
+        <% const variants = [
+          { id: 'a', code: 'A / 01', name: 'Neo Future', descriptor: 'Une précision lumineuse. Des surfaces en apesanteur.', tag: 'DIGITAL CALM', hero: 'Le temps, maîtrisé.', timeLabel: 'TEMPS EFFECTUÉ', badge: 'ARCHIVE · RÉFÉRENCE' },
+          { id: 'c', code: 'C / 03', name: 'Hyper UI', descriptor: 'Une interface franche, tactile et pleine d’élan.', tag: 'HIGH ENERGY', hero: 'Passez à l’action.', timeLabel: 'TEMPS TRAVAILLÉ', badge: 'ARCHIVE · RÉFÉRENCE' },
+          { id: 'b', code: 'B / 02', name: 'Liquid Luxury', descriptor: 'La matière satinée rencontre le geste quotidien.', tag: 'DIRECTION RETENUE', hero: 'Chaque heure compte.', timeLabel: 'DURÉE DU JOUR', badge: 'CHOIX VALIDÉ' },
+          { id: 'b2', code: 'B / 02.0', name: 'Liquid Luxury', descriptor: 'Une finition plus sculptée, plus précise, toujours mesurée.', tag: 'LIQUID LUXURY · ÉVOLUTION', hero: 'Le temps prend forme.', timeLabel: 'TEMPS TRAVAILLÉ', badge: 'À COMPARER' }
+        ]; %>
+        <% variants.forEach((variant) => { %>
+          <article class="proposal proposal--<%= variant.id %>" data-proposal="<%= variant.id %>">
+            <header class="proposal-heading">
+              <span class="proposal-code"><%= variant.code %></span>
+              <div class="proposal-title"><p class="proposal-tag"><%= variant.tag %></p><h2><%= variant.name %><% if (variant.id === 'b2') { %><span class="version-mark">2.0</span><% } %></h2><p class="proposal-descriptor"><%= variant.descriptor %></p></div>
+              <span class="proposal-badge"><%= variant.badge %></span>
+              <label class="disabled-switch"><input type="checkbox" data-disabled-toggle aria-label="Afficher les boutons désactivés pour <%= variant.name %>" /><span>DÉSACTIVÉS</span></label>
+              <button class="examine-button" type="button" data-examine="<%= variant.id %>">Examiner seul <span aria-hidden="true">↗</span></button>
+            </header>
+
+            <section class="showcase" aria-label="Démonstration principale">
+              <div class="showcase-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="showcase-topline"><span>JEUDI · 15 OCTOBRE</span><span class="showcase-status"><i></i> JOURNÉE ENREGISTRÉE</span></div>
+              <div class="showcase-main">
+                <div class="showcase-message"><p class="showcase-eyebrow">VOTRE JOURNÉE, EN UN REGARD</p><h3><%= variant.hero %></h3><p class="showcase-caption">Bureau <span>·</span> Arrivée à 08:30</p></div>
+                <div class="showcase-time" data-lab-component="worked-card"><span class="time-ring" aria-hidden="true"><i></i></span><div class="time-reading"><small><%= variant.timeLabel %></small><strong>07<span>:</span>42</strong><div class="time-goal"><span>Objectif <b>08:00</b></span><span>Reste <b>00:18</b></span></div></div></div>
+              </div>
+              <button class="lab-button lab-button--save showcase-cta" data-lab-component="save" data-button-preview type="button"><span class="button-symbol" aria-hidden="true">↗</span> Enregistrer la journée <span class="button-arrow" aria-hidden="true">→</span></button>
+              <div class="showcase-footer"><span class="footer-pulse"></span> SYNCHRONISÉ À L’INSTANT <span class="footer-line"></span><span>HEURES APP</span></div>
+            </section>
+
+            <section class="action-section" aria-label="Actions de démonstration">
+              <div class="section-heading"><span>01</span><h3>Actions</h3><span class="section-hairline"></span></div>
+              <div class="button-grid" data-button-preview>
+                <button class="lab-button lab-button--edit" data-lab-component="edit" type="button"><span aria-hidden="true">↗</span> Modifier</button>
+                <button class="lab-button lab-button--delete" data-lab-component="delete" type="button"><span aria-hidden="true">×</span> Supprimer</button>
+                <button class="lab-button lab-button--cancel" data-lab-component="cancel" type="button">Annuler</button>
+                <button class="lab-button lab-button--create" data-lab-component="create" type="button"><span aria-hidden="true">＋</span> Créer une journée</button>
+                <button class="lab-button lab-button--start" data-lab-component="start" type="button"><span aria-hidden="true">▶</span> Démarrer</button>
+                <button class="lab-button lab-button--pause" data-lab-component="pause" type="button"><span aria-hidden="true">Ⅱ</span> Pause</button>
+                <button class="lab-button lab-button--stop" data-lab-component="stop" type="button"><span aria-hidden="true">■</span> Terminer</button>
+              </div>
+              <p class="interaction-hint">Survol · pression · focus clavier <span>— aucune action n’est exécutée</span></p>
+            </section>
+
+            <section class="detail-section" aria-label="Champs de démonstration">
+              <div class="section-heading"><span>02</span><h3>Votre journée</h3><span class="section-hairline"></span></div>
+              <div class="field-grid">
+                <label class="lab-field" data-lab-component="date"><span>Date</span><input type="date" value="2026-10-15" /></label>
+                <label class="lab-field" data-lab-component="time"><span>Arrivée</span><input type="time" value="08:30" /></label>
+                <label class="lab-field lab-field--wide" data-lab-component="select"><span>Type de journée</span><select><option>Bureau</option><option>Télétravail</option><option>Congé</option></select></label>
+              </div>
+            </section>
+
+            <section class="info-card" data-lab-component="info-card">
+              <span class="info-icon" aria-hidden="true">◷</span><div class="info-copy"><span class="info-label">CARTE D’INFORMATIONS</span><strong>Une journée bien remplie</strong><span>Jeudi 15 octobre <i>·</i> Bureau</span></div><span class="info-status">OK</span>
+            </section>
+
+            <section class="mini-modal" data-lab-component="mini-modal" role="group" aria-label="Aperçu de la modale Détail de la journée">
+              <div class="mini-modal-top"><span class="modal-overline">APERÇU DE MODALE</span><span class="modal-close" aria-hidden="true">×</span></div>
+              <div class="mini-modal-heading"><span class="modal-icon" aria-hidden="true">▦</span><div><p class="lab-kicker">PÉRIODE DE PAIE</p><h3>Détail de la journée</h3></div></div>
+              <div class="modal-details"><span><small>Date</small><strong>15 oct. 2026</strong></span><span><small>Arrivée</small><strong>08:30</strong></span><span><small>Départ</small><strong>16:42</strong></span></div>
+              <div class="modal-note"><small>COMMENTAIRE</small><span>Une journée de travail bien menée.</span></div>
+            </section>
+            <footer class="proposal-footer"><span>HOURS APP</span><span>APERÇU CONCEPTUEL</span><span class="proposal-footer-line"></span><span>2026</span></footer>
+          </article>
+        <% }); %>
+      </section>
+      <footer class="lab-footer"><span>DESIGN LAB V3</span><span>Palette active partagée par les deux propositions</span><span>Local · Aucun effet métier</span></footer>
+    </main>
+  </body>
+</html>

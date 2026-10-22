@@ -15,7 +15,7 @@
         const themeKey = "hours_theme";
         const styleKey = "hours_style";
         const allowedThemes = ["light", "dark", "deep-ocean-blue", "light-blue", "orange-sunset", "forest-green", "light-green", "bordeaux-night", "lavender-mist", "obsidian-gold", "robot"];
-        const allowedStyles = ["premium", "robot", "retro", "medieval"];
+        const allowedStyles = ["premium", "robot", "retro", "medieval", "liquid-luxury"];
         try {
           const storedTheme = localStorage.getItem(themeKey) || "light";
           const theme = storedTheme === "futuristic-robot" ? "robot" : storedTheme;
@@ -30,6 +30,7 @@
       })();
     </script>
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/liquid-luxury.css?v=liquid-luxury-1" />
   </head>
   <body class="auth-premium-page">
     <main class="login-page">
@@ -55,7 +56,7 @@
             <select id="styleSelectLogin" data-style-selector>
               <option value="premium">Premium</option>
               <option value="robot">Robot</option>
-              <option value="retro">SEGA</option><option value="medieval">Moyen Âge</option>
+              <option value="retro">SEGA</option><option value="medieval">Moyen Âge</option><option value="liquid-luxury">Liquid Luxury</option>
             </select>
           </div>
         </div>

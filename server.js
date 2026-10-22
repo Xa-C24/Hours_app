@@ -1841,6 +1841,49 @@ app.post("/logout", async (req, res) => {
 });
 
 app.use("/work-timer", require("./routes/work-timer").createWorkTimerRouter(db));
+
+// Visual design experiments are available only in a non-production process.
+// Keep their assets outside /public and serve them through this same guard.
+if (IS_DEVELOPMENT) {
+  const requireLocalDesignLab = (req, res, next) => {
+    const remoteAddress = req.socket.remoteAddress;
+    const isLoopback = remoteAddress === "127.0.0.1"
+      || remoteAddress === "::1"
+      || remoteAddress === "::ffff:127.0.0.1";
+    let hostname = "";
+    try {
+      hostname = new URL(`http://${req.get("host")}`).hostname.replace(/^\[|\]$/g, "");
+    } catch {
+      hostname = "";
+    }
+    const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    if (!isLoopback || !isLocalHost) return res.sendStatus(404);
+    return next();
+  };
+
+  app.get("/design-lab", requireLocalDesignLab, (req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.render("design-lab");
+  });
+
+  app.get("/design-lab/design-lab.css", requireLocalDesignLab, (req, res) => {
+    res.type("text/css").set("Cache-Control", "no-store");
+    res.sendFile(path.join(__dirname, "design-lab", "design-lab.css"));
+  });
+
+  app.get("/design-lab/design-lab.js", requireLocalDesignLab, (req, res) => {
+    res.type("application/javascript").set("Cache-Control", "no-store");
+    res.sendFile(path.join(__dirname, "design-lab", "design-lab.js"));
+  });
+
+  app.get("/design-lab/theme-tokens.css", requireLocalDesignLab, (req, res) => {
+    const { extractThemeTokenRules } = require("./design-lab/theme-tokens");
+    const sourceCss = require("fs").readFileSync(path.join(__dirname, "public", "style.css"), "utf8");
+    res.type("text/css").set("Cache-Control", "no-store");
+    res.send(extractThemeTokenRules(sourceCss));
+  });
+}
+
 app.use(requireAuth);
 app.use("/account-backup", require("./routes/account-backup").createAccountBackupRouter(db));
 

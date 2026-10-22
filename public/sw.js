@@ -1,7 +1,8 @@
-const STATIC_CACHE_NAME = "hours-static-v17";
+const STATIC_CACHE_NAME = "hours-static-v35";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/style.css",
+  "/liquid-luxury.css",
   "/theme.js",
   "/daily-tools.js",
   "/account-backup.js",

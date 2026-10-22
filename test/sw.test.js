@@ -11,10 +11,11 @@ const {
 const APP_ORIGIN = "https://hours.example";
 
 test("service worker precache list contains only explicit static assets", () => {
-  assert.equal(STATIC_CACHE_NAME, "hours-static-v17");
+  assert.equal(STATIC_CACHE_NAME, "hours-static-v35");
   assert.deepEqual(STATIC_ASSETS, [
     "/manifest.json",
     "/style.css",
+    "/liquid-luxury.css",
     "/theme.js",
     "/daily-tools.js",
     "/account-backup.js",
@@ -69,6 +70,7 @@ test("service worker never caches authenticated or dynamic application routes", 
 test("service worker allows only explicit public static assets", () => {
   const allowedRequests = [
     { url: "https://hours.example/style.css", destination: "style" },
+    { url: "https://hours.example/liquid-luxury.css", destination: "style" },
     { url: "https://hours.example/theme.js", destination: "script" },
     { url: "https://hours.example/toast-center.js", destination: "script" },
     { url: "https://hours.example/entry-draft-store.js", destination: "script" },
