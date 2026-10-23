@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS work_timers (
 
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT,
   username TEXT NOT NULL UNIQUE,
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
@@ -183,6 +184,8 @@ function ensureUsersRecoveryColumns(database) {
     database.prepare("ALTER TABLE users ADD COLUMN recovery_code_expires_at_ms INTEGER").run();
   }
 }
+
+const { ensureUsersIdentitySchema } = require(path.join(__dirname, "services", "user-identity-sqlite"));
 
 function ensureClientsTable(database) {
   database.exec(clientsSchemaSql);
@@ -426,11 +429,18 @@ function initializeUserDatabase(database) {
   database.exec(settingsSchemaSql);
 }
 
-ensureUsersRecoveryColumns(authDb);
+try {
+  ensureUsersRecoveryColumns(authDb);
+  ensureUsersIdentitySchema(authDb);
+} catch (error) {
+  authDb.close();
+  throw error;
+}
 
 const getUserByUsernameStmt = authDb.prepare(`
   SELECT
     id,
+    user_id,
     username,
     password_salt,
     password_hash,
@@ -443,6 +453,7 @@ const getUserByUsernameStmt = authDb.prepare(`
 
 const createUserStmt = authDb.prepare(`
   INSERT INTO users (
+    user_id,
     username,
     password_salt,
     password_hash,
@@ -453,6 +464,7 @@ const createUserStmt = authDb.prepare(`
     updated_at
   )
   VALUES (
+    @user_id,
     @username,
     @password_salt,
     @password_hash,
@@ -983,6 +995,9 @@ function getUserByUsername(username) {
 function createUser(user) {
   createUserStmt.run({
     ...user,
+    user_id: user.user_id || crypto.randomUUID(),
+    recovery_code_salt: user.recovery_code_salt ?? null,
+    recovery_code_hash: user.recovery_code_hash ?? null,
     recovery_code_expires_at_ms: user.recovery_code_expires_at_ms ?? null,
   });
 }

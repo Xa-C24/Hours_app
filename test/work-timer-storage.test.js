@@ -23,7 +23,7 @@ test("SQLite timer writes are atomic, isolated per account and retain stopped st
   try {
     const db = module.exports;
     for (const username of ["alice", "bob"]) {
-      connections[0].prepare("INSERT INTO users (username, password_salt, password_hash, created_at, updated_at) VALUES (?, 'test', 'test', 'test', 'test')").run(username);
+      db.createUser({ username, password_salt: "test", password_hash: "test" });
     }
     const running = { start: 1000, end: null, pausedAt: null, pauseMs: 0, clientId: "1" };
     assert.equal(db.saveWorkTimer("alice", 0, running).version, 1);

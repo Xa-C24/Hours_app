@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const USER_ID_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const path = require("path");
 const Database = require("better-sqlite3");
 const { Pool } = require("pg");
@@ -117,14 +118,56 @@ async function ensurePgSchema() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id BIGSERIAL PRIMARY KEY,
+        user_id UUID NOT NULL DEFAULT gen_random_uuid(),
         username TEXT NOT NULL UNIQUE,
         password_salt TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         recovery_code_salt TEXT,
         recovery_code_hash TEXT,
+        recovery_code_expires_at_ms BIGINT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT users_user_id_unique UNIQUE (user_id)
       )
+    `);
+    await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_code_expires_at_ms BIGINT");
+    await client.query("LOCK TABLE users IN ACCESS EXCLUSIVE MODE");
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS user_id UUID`);
+        await client.query("DO $$\nBEGIN\n  IF NOT EXISTS (\n    SELECT 1 FROM pg_catalog.pg_attribute\n    WHERE attrelid = 'users'::regclass AND attname = 'user_id'\n      AND atttypid = 'pg_catalog.uuid'::regtype AND NOT attisdropped\n  ) THEN\n    RAISE EXCEPTION 'M02 identity preflight failed: users.user_id must have PostgreSQL type UUID';\n  END IF;\nEND;\n$$;");
+    await client.query(`UPDATE users SET user_id = gen_random_uuid() WHERE user_id IS NULL`);
+    await client.query(`ALTER TABLE users ALTER COLUMN user_id SET DEFAULT gen_random_uuid()`);
+    await client.query(`ALTER TABLE users ALTER COLUMN user_id SET NOT NULL`);
+    await client.query(`
+      DO $$
+      DECLARE existing_definition TEXT;
+      BEGIN
+        SELECT pg_get_constraintdef(oid) INTO existing_definition
+        FROM pg_constraint
+        WHERE conrelid = 'users'::regclass AND conname = 'users_user_id_unique';
+        IF existing_definition IS NULL THEN
+          ALTER TABLE users ADD CONSTRAINT users_user_id_unique UNIQUE (user_id);
+        ELSIF existing_definition <> 'UNIQUE (user_id)' THEN
+          RAISE EXCEPTION 'users_user_id_unique has an unexpected definition';
+        END IF;
+      END;
+      $$
+    `);
+    await client.query(`
+      CREATE OR REPLACE FUNCTION hours_m02_reject_user_id_update() RETURNS trigger
+      LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+          RAISE EXCEPTION 'users.user_id is immutable' USING ERRCODE = '22000';
+        END IF;
+        RETURN NEW;
+      END;
+      $$
+    `);
+    await client.query(`DROP TRIGGER IF EXISTS users_user_id_immutable ON users`);
+    await client.query(`
+      CREATE TRIGGER users_user_id_immutable
+      BEFORE UPDATE OF user_id ON users
+      FOR EACH ROW EXECUTE FUNCTION hours_m02_reject_user_id_update()
     `);
     await client.query(`
       CREATE TABLE IF NOT EXISTS sessions (
@@ -224,35 +267,51 @@ async function ensurePgSchema() {
   }
 }
 
-async function migrateUsers(sqlite, pool) {
+function readSourceUsers(sqlite) {
   validateAuthDatabase(sqlite);
+  const columns = getTableColumns(sqlite, "users");
+  const hasUserId = columns.includes("user_id");
+  const hasExpiry = columns.includes("recovery_code_expires_at_ms");
+  if (!hasUserId) {
+    const protection = sqlite.prepare("SELECT 1 FROM sqlite_schema WHERE name IN ('hours_user_identity_schema','users_user_id_unique_idx','users_user_id_insert_guard','users_user_id_update_guard','users_user_id_immutable','users_user_id_replace_guard') LIMIT 1").get();
+    if (protection) throw new Error("Migration stopped: user_id is unexpectedly absent from an M02 source.");
+  }
+  const users = sqlite.prepare(
+    "SELECT " + (hasUserId ? "user_id, " : "") +
+    (hasExpiry ? "recovery_code_expires_at_ms, " : "NULL AS recovery_code_expires_at_ms, ") +
+    "username,password_salt,password_hash,recovery_code_salt,recovery_code_hash,created_at,updated_at FROM users ORDER BY id ASC"
+  ).all();
+  const seen = new Set();
+  return users.map(user => {
+    if (hasUserId && (user.user_id === null || user.user_id === undefined)) {
+      throw new Error("Migration stopped: missing user_id in an M02 source; resume its SQLite migration before importing.");
+    }
+    if (hasUserId && (typeof user.user_id !== "string" || user.user_id.length !== 36 || !USER_ID_UUID_PATTERN.test(user.user_id))) {
+      throw new Error("Migration stopped: source account has a malformed user_id.");
+    }
+    const id = hasUserId ? user.user_id : crypto.randomUUID();
+    const key = id.toLowerCase();
+    if (seen.has(key)) throw new Error("Migration stopped: conflicting source UUIDs (case insensitive).");
+    seen.add(key);
+    if (user.recovery_code_expires_at_ms !== null && !Number.isSafeInteger(user.recovery_code_expires_at_ms)) {
+      throw new Error("Migration stopped: invalid recovery-code expiration; no account imported.");
+    }
+    return { ...user, user_id: id };
+  });
+}
 
-  const users = sqlite.prepare(`
-    SELECT username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, created_at, updated_at
-    FROM users
-    ORDER BY id ASC
-  `).all();
-
+async function migrateUsers(sqlite, pool, users = readSourceUsers(sqlite)) {
   for (const user of users) {
     await pool.query(
-      `
-        INSERT INTO users (
-          username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()), COALESCE($7::timestamptz, NOW()))
-      `,
+      "INSERT INTO users (user_id, username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, created_at, updated_at, recovery_code_expires_at_ms) " +
+      "VALUES ($1,$2,$3,$4,$5,$6,COALESCE($7::timestamptz,NOW()),COALESCE($8::timestamptz,NOW()),$9)",
       [
-        user.username,
-        user.password_salt,
-        user.password_hash,
-        user.recovery_code_salt,
-        user.recovery_code_hash,
-        user.created_at,
-        user.updated_at,
+        user.user_id, user.username, user.password_salt, user.password_hash,
+        user.recovery_code_salt, user.recovery_code_hash, user.created_at, user.updated_at,
+        user.recovery_code_expires_at_ms,
       ]
     );
   }
-
   return users;
 }
 
@@ -474,14 +533,14 @@ async function runMigration({ sqlite, pool, sourceIdentity, onStage } = {}) {
       return { alreadyMigrated: true };
     }
     validateAuthDatabase(sqlite);
-    const users = sqlite.prepare("SELECT username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, created_at, updated_at FROM users ORDER BY id ASC").all();
+    const users = readSourceUsers(sqlite);
     const usernames = users.map((user) => user.username);
     if (usernames.length) {
-      const existing = await connection.query("SELECT count(*)::int AS count FROM users WHERE username = ANY($1::text[])", [usernames]);
-      if (Number(existing.rows[0].count) > 0) throw new Error("Migration stopped: one or more source accounts already exist in PostgreSQL without a matching migration record.");
+      const existing = await connection.query("SELECT count(*)::int AS count FROM users WHERE username = ANY($1::text[]) OR user_id = ANY($2::uuid[])", [usernames, users.map(user => user.user_id)]);
+      if (Number(existing.rows[0].count) > 0) throw new Error("Migration stopped: one or more source accounts already exist in PostgreSQL or their UUIDs conflict without a matching migration record.");
     }
     if (onStage) await onStage("before-import");
-    const migratedUsers = await migrateUsers(sqlite, connection);
+    const migratedUsers = await migrateUsers(sqlite, connection, users);
     const migratedSessions = await migrateSessions(sqlite, connection);
     const migratedMobileTokens = await migrateMobileAuthTokens(sqlite, connection);
     const clientMapsByUsername = new Map();

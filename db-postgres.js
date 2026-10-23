@@ -1,3 +1,4 @@
+const crypto = require("node:crypto");
 const { Pool } = require("pg");
 
 const connectionString = process.env.DATABASE_URL;
@@ -31,6 +32,7 @@ async function initializeDatabase() {
         await client.query(`
           CREATE TABLE IF NOT EXISTS users (
             id BIGSERIAL PRIMARY KEY,
+            user_id UUID NOT NULL DEFAULT gen_random_uuid(),
             username TEXT NOT NULL UNIQUE,
             password_salt TEXT NOT NULL,
             password_hash TEXT NOT NULL,
@@ -38,11 +40,50 @@ async function initializeDatabase() {
             recovery_code_hash TEXT,
             recovery_code_expires_at_ms BIGINT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            CONSTRAINT users_user_id_unique UNIQUE (user_id)
           )
         `);
 
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_code_expires_at_ms BIGINT`);
+        await client.query("LOCK TABLE users IN ACCESS EXCLUSIVE MODE");
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS user_id UUID`);
+        await client.query("DO $$\nBEGIN\n  IF NOT EXISTS (\n    SELECT 1 FROM pg_catalog.pg_attribute\n    WHERE attrelid = 'users'::regclass AND attname = 'user_id'\n      AND atttypid = 'pg_catalog.uuid'::regtype AND NOT attisdropped\n  ) THEN\n    RAISE EXCEPTION 'M02 identity preflight failed: users.user_id must have PostgreSQL type UUID';\n  END IF;\nEND;\n$$;");
+        await client.query(`UPDATE users SET user_id = gen_random_uuid() WHERE user_id IS NULL`);
+        await client.query(`ALTER TABLE users ALTER COLUMN user_id SET DEFAULT gen_random_uuid()`);
+        await client.query(`ALTER TABLE users ALTER COLUMN user_id SET NOT NULL`);
+        await client.query(`
+          DO $$
+          DECLARE existing_definition TEXT;
+          BEGIN
+            SELECT pg_get_constraintdef(oid) INTO existing_definition
+            FROM pg_constraint
+            WHERE conrelid = 'users'::regclass AND conname = 'users_user_id_unique';
+            IF existing_definition IS NULL THEN
+              ALTER TABLE users ADD CONSTRAINT users_user_id_unique UNIQUE (user_id);
+            ELSIF existing_definition <> 'UNIQUE (user_id)' THEN
+              RAISE EXCEPTION 'users_user_id_unique has an unexpected definition';
+            END IF;
+          END;
+          $$
+        `);
+        await client.query(`
+          CREATE OR REPLACE FUNCTION hours_m02_reject_user_id_update() RETURNS trigger
+          LANGUAGE plpgsql AS $$
+          BEGIN
+            IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+              RAISE EXCEPTION 'users.user_id is immutable' USING ERRCODE = '22000';
+            END IF;
+            RETURN NEW;
+          END;
+          $$
+        `);
+        await client.query(`DROP TRIGGER IF EXISTS users_user_id_immutable ON users`);
+        await client.query(`
+          CREATE TRIGGER users_user_id_immutable
+          BEFORE UPDATE OF user_id ON users
+          FOR EACH ROW EXECUTE FUNCTION hours_m02_reject_user_id_update()
+        `);
 
         await client.query(`
           CREATE TABLE IF NOT EXISTS sessions (
@@ -575,7 +616,7 @@ async function getUserByUsername(username) {
   await initializeDatabase();
   const result = await pool.query(
     `
-      SELECT id, username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, recovery_code_expires_at_ms
+      SELECT id, user_id, username, password_salt, password_hash, recovery_code_salt, recovery_code_hash, recovery_code_expires_at_ms
       FROM users
       WHERE username = $1
     `,
@@ -589,6 +630,7 @@ async function createUser(user) {
   await pool.query(
     `
       INSERT INTO users (
+        user_id,
         username,
         password_salt,
         password_hash,
@@ -598,9 +640,10 @@ async function createUser(user) {
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
     `,
     [
+      user.user_id || crypto.randomUUID(),
       user.username,
       user.password_salt,
       user.password_hash,

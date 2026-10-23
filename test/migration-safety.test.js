@@ -98,7 +98,7 @@ test("migration rolls back imported synthetic rows after interruption, resumes o
         const count = pending.users.filter((row) => params[0].includes(row.username)).length;
         return { rowCount: 1, rows: [{ count }] };
       }
-      if (sql.includes("INSERT INTO users")) { pending.users.push({ username: params[0] }); return { rowCount: 1, rows: [] }; }
+      if (sql.includes("INSERT INTO users")) { pending.users.push({ user_id: params[0], username: params[1] }); return { rowCount: 1, rows: [] }; }
       if (sql.includes("INSERT INTO sessions")) {
         if (!pending.users.some((row) => row.username === params[1])) throw new Error("session user foreign key violation");
         pending.sessions.push({ token: params[0], username: params[1] });
@@ -151,6 +151,9 @@ test("migration rolls back imported synthetic rows after interruption, resumes o
     assert.equal(resumed.migratedUsers, 2);
     assert.equal(resumed.migratedSessions, 2);
     assert.equal(committed.users.length, 2);
+    assert.match(committed.users[0].user_id, /^[0-9a-f-]{36}$/i);
+    assert.match(committed.users[1].user_id, /^[0-9a-f-]{36}$/i);
+    assert.notEqual(committed.users[0].user_id, committed.users[1].user_id);
     assert.equal(committed.clients.length, 2);
     assert.deepEqual(committed.mappings, [
       { source_client_id: "7", target_client_id: 401 },

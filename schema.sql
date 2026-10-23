@@ -6,6 +6,7 @@
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
+  user_id UUID NOT NULL DEFAULT gen_random_uuid(),
   username TEXT NOT NULL UNIQUE,
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
@@ -13,8 +14,24 @@ CREATE TABLE IF NOT EXISTS users (
   recovery_code_hash TEXT,
   recovery_code_expires_at_ms BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT users_user_id_unique UNIQUE (user_id)
 );
+
+CREATE OR REPLACE FUNCTION hours_m02_reject_user_id_update() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+    RAISE EXCEPTION 'users.user_id is immutable' USING ERRCODE = '22000';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS users_user_id_immutable ON users;
+CREATE TRIGGER users_user_id_immutable
+BEFORE UPDATE OF user_id ON users
+FOR EACH ROW EXECUTE FUNCTION hours_m02_reject_user_id_update();
 
 CREATE INDEX IF NOT EXISTS idx_users_username
   ON users (username);
